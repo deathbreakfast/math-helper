@@ -51,6 +51,16 @@ npm run dev
 
 The Vite dev server proxies `/api/*` calls to Flask, confirming the end-to-end wiring while UI features are built out.
 
+## Security posture
+
+Math Helper is designed for trusted, local-network deployments while the curriculum engine evolves. Authentication is limited to a shared display name + 4-digit PIN that are stored in plain text and embedded in app URLs for convenience. Do **not** deploy this configuration to public networks without hardening the auth layer and removing the plain-text PIN storage/transport.
+
+## API sketch
+
+- `POST /api/users` – Create a learner profile with `{ "avatar": "🐯", "name": "Taylor", "pin": "1234" }`. The response includes `share_url_params` so the frontend can build links such as `/dashboard?user=Taylor&pin=1234`.
+
+Schema groundwork (SQLite via SQLAlchemy) also defines `questions` and `responses` tables, ready for future endpoints that log generated prompts and learner answers with timestamps.
+
 ## TODOs
 
 1. Question engine with level definitions, flash-card pools, and long-division builders.

@@ -1,0 +1,91 @@
+:root {
+  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  color: #0f172a;
+  background-color: #f8fafc;
+  line-height: 1.5;
+  font-weight: 400;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+.app-shell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 3rem 1.5rem;
+  background: radial-gradient(circle at top, #dbeafe, transparent 60%);
+}
+
+.app-hero {
+  max-width: 720px;
+  background: white;
+  border-radius: 16px;
+  padding: 3rem;
+  box-shadow: 0 25px 50px -12px rgb(15 23 42 / 0.15);
+  text-align: left;
+}
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.2em;
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+  color: #0ea5e9;
+  font-weight: 600;
+}
+
+h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2rem, 4vw, 3rem);
+  color: #0f172a;
+}
+
+.subtitle {
+  margin: 0 0 2rem;
+  color: #475569;
+  font-size: 1rem;
+}
+
+.status-card {
+  background: #eff6ff;
+  border: 1px solid #dbeafe;
+  padding: 1.25rem;
+  border-radius: 12px;
+}
+
+.status-label {
+  margin: 0 0 0.5rem;
+  font-size: 0.9rem;
+  color: #1d4ed8;
+  font-weight: 600;
+}
+
+.status-success {
+  margin: 0;
+  color: #14532d;
+  font-weight: 600;
+}
+
+.status-error {
+  margin: 0;
+  color: #dc2626;
+  font-weight: 600;
+}
+
+@media (max-width: 640px) {
+  .app-hero {
+    padding: 2rem;
+  }
+}

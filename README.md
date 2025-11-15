@@ -18,12 +18,13 @@ math-helper/
 │   ├── app/__init__.py
 │   └── app/routes.py
 ├── frontend/          # React + TypeScript client (Vite)
-│   ├── src/App.tsx    # Placeholder status view hitting the API
+│   ├── src/components/MathDashboard.tsx  # Animated learner dashboard
+│   ├── src/App.tsx    # Renders the dashboard
 │   └── vite.config.ts # Dev server proxy → Flask backend
 └── README.md
 ```
 
-- **Frontend** (React + TypeScript) renders flash-card flows, dashboards, and results views. Styling upgrades (e.g., Tailwind) can be layered on without changing the stack.
+- **Frontend** (React + TypeScript + Tailwind) now ships the animated Math Dashboard experience with sample streak cards, achievements, and the backend-powered learner invite flow. A new `/practice` route renders the mocked practice session surface that consumes the PIN-verified submission endpoint.
 - **Backend** (Flask) powers real-time question generation, evaluation, and analytics APIs.
 - **Storage** uses SQLite for lightweight persistence, perfect for edge deployments and sync workflows.
 
@@ -36,10 +37,10 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
-flask --app app run --debug
+flask --app app run --debug --port 5004
 ```
 
-API is served at `http://localhost:5000` with a `/api/hello` handshake and `/healthz` probe for readiness checks.
+API is served at `http://localhost:5004` with a `/api/hello` handshake and `/healthz` probe for readiness checks.
 
 ### Frontend
 
@@ -57,7 +58,11 @@ Math Helper is designed for trusted, local-network deployments while the curricu
 
 ## API sketch
 
-- `POST /api/users` – Create a learner profile with `{ "avatar": "🐯", "name": "Taylor", "pin": "1234" }`. The response includes `share_url_params` so the frontend can build links such as `/dashboard?user=Taylor&pin=1234`.
+- `POST /api/users` – Create a learner profile with `{ "avatar": "🐯", "name": "Taylor", "pin": "1234" }`. The response includes `share_url_params` for future invite links, even though the current frontend keeps everything local-only.
+- `GET /api/users` – List every learner plus derived dashboard metrics (levels, accuracy, speed, streaks) and any persisted achievements awarded by the backend rules engine.
+- `GET /api/users/<id>` – Fetch a single learner snapshot with the same metric payload as the list endpoint.
+- `GET /api/achievements?user_id=<id>` – Fetch the persisted achievements across all learners or scoped to a single learner for the global activity rail shown on the dashboard.
+- `POST /api/practice/submissions` – Accepts `{ userId?, userName?, pin, attempts[] }`, verifies the PIN from share-link parameters, and returns a mocked practice session summary so the new practice UI can gate submissions before the real engine lands.
 
 Schema groundwork (SQLite via SQLAlchemy) also defines `questions` and `responses` tables, ready for future endpoints that log generated prompts and learner answers with timestamps.
 

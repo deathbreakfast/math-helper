@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Check, Delete, X } from 'lucide-react'
+import { PillButton } from '../../../components/ui'
 
 type PinPadProps = {
   maxDigits?: number
@@ -267,15 +268,18 @@ const PinPad = ({
       </p>
 
       {showContinueButton && (
-        <motion.button
-          type="button"
-          disabled={!isComplete || disabled}
-          whileTap={isComplete && !disabled ? { scale: 0.98 } : undefined}
-          className="mt-6 w-full rounded-xl bg-gradient-to-r from-emerald-500 to-green-600 px-6 py-3 text-base font-semibold text-white shadow-lg transition hover:from-emerald-600 hover:to-green-700 disabled:cursor-not-allowed disabled:opacity-50"
-          onClick={() => (isComplete && !disabled ? onComplete?.(pin) : null)}
-        >
-          {continueLabel}
-        </motion.button>
+        <motion.div whileTap={isComplete && !disabled ? { scale: 0.98 } : undefined} className="w-full">
+          <PillButton
+            type="button"
+            tone="emerald"
+            disabled={!isComplete || disabled}
+            fullWidth
+            className="mt-6 text-base"
+            onClick={() => (isComplete && !disabled ? onComplete?.(pin) : null)}
+          >
+            {continueLabel}
+          </PillButton>
+        </motion.div>
       )}
     </motion.div>
   )

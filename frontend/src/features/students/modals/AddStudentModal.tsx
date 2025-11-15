@@ -2,8 +2,9 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useMemo, useState } from 'react'
 import { ArrowLeft, Check, X } from 'lucide-react'
 import ModalShell from '../../../components/ModalShell'
-import { AVATAR_OPTIONS } from '../hooks/useStudents'
+import { AVATAR_OPTIONS } from '../../../lib/learners/api'
 import PinPad from '../components/PinPad'
+import { PillButton } from '../../../components/ui'
 
 type AddStudentModalProps = {
   isOpen: boolean
@@ -182,14 +183,15 @@ const AddStudentModal = ({
           )}
         </AnimatePresence>
       </div>
-      <button
+      <PillButton
         type="button"
         onClick={handleNameNext}
         disabled={!newUser.name.trim() || isSubmitting}
-        className="mt-6 w-full rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4 text-base font-semibold text-white shadow-lg transition hover:from-blue-600 hover:to-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+        fullWidth
+        className="mt-6 text-base"
       >
         Next: Choose Avatar
-      </button>
+      </PillButton>
     </div>
   )
 
@@ -226,14 +228,15 @@ const AddStudentModal = ({
           )
         })}
       </div>
-      <button
+      <PillButton
         type="button"
         onClick={handleAvatarNext}
         disabled={!isAvatarValid || isSubmitting}
-        className="mt-8 w-full rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 px-6 py-4 text-base font-semibold text-white shadow-lg transition hover:from-blue-600 hover:to-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+        fullWidth
+        className="mt-8 text-base"
       >
         Next: Create PIN
-      </button>
+      </PillButton>
     </div>
   )
 

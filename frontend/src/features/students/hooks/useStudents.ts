@@ -1,57 +1,12 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
-export type UserStats = {
-  additionAccuracy: number
-  subtractionAccuracy: number
-  multiplicationAccuracy: number
-  divisionAccuracy: number
-  additionSpeed: number
-  subtractionSpeed: number
-  multiplicationSpeed: number
-  divisionSpeed: number
-  currentStreak: number
-  bestStreak: number
-}
+import { useLearners } from '../../../lib/learners/hooks'
+import { AVATAR_OPTIONS, mapApiLearner } from '../../../lib/learners/api'
+import type { Learner, LearnerAchievement, LearnerStats } from '../../../lib/learners/types'
 
-export type Achievement = {
-  id: string
-  title: string
-  description: string
-  icon: string
-  earnedAt: Date
-  category: string
-}
-
-export type User = {
-  id: string
-  name: string
-  avatar: string
-  pin: string
-  level: number
-  questionsAnswered: number
-  weeklyGain?: number
-  averageSpeed: number
-  achievements: Achievement[]
-  stats: UserStats
-}
-
-type ApiAchievement = Omit<Achievement, 'earnedAt'> & {
-  earnedAt: string
-}
-
-type ApiUser = {
-  id: number
-  name: string
-  avatar: string
-  pin: string
-  level: number
-  questionsAnswered: number
-  averageSpeed: number
-  stats: Partial<UserStats>
-  achievements: ApiAchievement[]
-}
-
-export const AVATAR_OPTIONS = ['👧', '👦', '🧒', '👨', '👩', '🧑', '👶', '🦸', '🦹', '🧙', '🧚', '🦄']
+export type UserStats = LearnerStats
+export type Achievement = LearnerAchievement
+export type User = Learner
 
 const INITIAL_NEW_USER = {
   name: '',
@@ -59,78 +14,21 @@ const INITIAL_NEW_USER = {
   pin: '',
 }
 
-const sanitizeStats = (stats: Partial<UserStats> | undefined): UserStats => ({
-  additionAccuracy: stats?.additionAccuracy ?? 0,
-  subtractionAccuracy: stats?.subtractionAccuracy ?? 0,
-  multiplicationAccuracy: stats?.multiplicationAccuracy ?? 0,
-  divisionAccuracy: stats?.divisionAccuracy ?? 0,
-  additionSpeed: stats?.additionSpeed ?? 0,
-  subtractionSpeed: stats?.subtractionSpeed ?? 0,
-  multiplicationSpeed: stats?.multiplicationSpeed ?? 0,
-  divisionSpeed: stats?.divisionSpeed ?? 0,
-  currentStreak: stats?.currentStreak ?? 0,
-  bestStreak: stats?.bestStreak ?? 0,
-})
-
-const mapAchievement = (achievement: ApiAchievement): Achievement => ({
-  ...achievement,
-  earnedAt: achievement.earnedAt ? new Date(achievement.earnedAt) : new Date(),
-})
-
-const mapUser = (payload: ApiUser): User => ({
-  id: String(payload.id),
-  name: payload.name,
-  avatar: payload.avatar || AVATAR_OPTIONS[0],
-  pin: payload.pin,
-  level: payload.level ?? 1,
-  questionsAnswered: payload.questionsAnswered ?? 0,
-  weeklyGain: 0,
-  averageSpeed: payload.averageSpeed ?? 0,
-  achievements: (payload.achievements || []).map(mapAchievement),
-  stats: sanitizeStats(payload.stats),
-})
-
 export const useStudents = () => {
-  const [users, setUsers] = useState<User[]>([])
+  const { learners, isLoading, error, refetch, setLearners } = useLearners()
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [showAddUser, setShowAddUser] = useState(false)
   const [filterCategory, setFilterCategory] = useState<string>('all')
   const [filterLevel, setFilterLevel] = useState<string>('all')
   const [newUser, setNewUser] = useState(INITIAL_NEW_USER)
-  const [isLoadingUsers, setIsLoadingUsers] = useState(true)
-  const [loadError, setLoadError] = useState<string | null>(null)
   const [creationError, setCreationError] = useState<string | null>(null)
   const [isCreatingUser, setIsCreatingUser] = useState(false)
 
-  const fetchUsers = useCallback(async () => {
-    setIsLoadingUsers(true)
-    setLoadError(null)
-    try {
-      const response = await fetch('/api/users')
-      if (!response.ok) {
-        throw new Error('Unable to load learners. Please try again.')
-      }
-      const data = await response.json()
-      const parsedUsers = Array.isArray(data.users) ? data.users.map(mapUser) : []
-      setUsers(parsedUsers)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to load learners.'
-      setLoadError(message)
-      setUsers([])
-    } finally {
-      setIsLoadingUsers(false)
-    }
-  }, [])
-
   useEffect(() => {
-    fetchUsers()
-  }, [fetchUsers])
-
-  useEffect(() => {
-    if (selectedUser && !users.some((user) => user.id === selectedUser.id)) {
+    if (selectedUser && !learners.some((user) => user.id === selectedUser.id)) {
       setSelectedUser(null)
     }
-  }, [selectedUser, users])
+  }, [selectedUser, learners])
 
   const handleAddUser = async () => {
     if (!newUser.name.trim() || newUser.pin.length !== 4) {
@@ -161,8 +59,8 @@ export const useStudents = () => {
         return
       }
 
-      const createdUser = mapUser(result)
-      setUsers((prev) => [...prev, createdUser])
+      const createdUser = mapApiLearner(result)
+      setLearners((prev) => [...prev, createdUser])
       setNewUser(INITIAL_NEW_USER)
       setShowAddUser(false)
     } catch (error) {
@@ -172,6 +70,10 @@ export const useStudents = () => {
       setIsCreatingUser(false)
     }
   }
+
+  const users = learners
+  const isLoadingUsers = isLoading
+  const loadError = error
 
   const allAchievements = useMemo(
     () =>
@@ -220,7 +122,7 @@ export const useStudents = () => {
       setNewUser,
       setCreationError,
       handleAddUser,
-      refetchUsers: fetchUsers,
+      refetchUsers: refetch,
     },
   }
 }

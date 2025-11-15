@@ -1,5 +1,5 @@
 import { Clock, Target, TrendingUp, Zap } from 'lucide-react'
-import MetricCard from '../../../components/common/MetricCard'
+import { StatCard } from '../../../components/ui'
 import type { User } from '../hooks/useStudents'
 
 type Props = {
@@ -12,28 +12,28 @@ const StudentStatsCards = ({ user }: Props) => {
       label: 'Current Level',
       value: user.level,
       icon: Target,
-      accent: 'bg-blue-100 text-blue-600',
+      tone: 'indigo',
       subtitle: 'Multi-digit operations',
     },
     {
       label: 'Questions Answered',
       value: user.questionsAnswered,
       icon: TrendingUp,
-      accent: 'bg-purple-100 text-purple-600',
+      tone: 'rose',
       subtitle: user.weeklyGain ? `+${user.weeklyGain} this week` : 'Keep the momentum going',
     },
     {
       label: 'Avg Speed',
       value: `${user.averageSpeed}s`,
       icon: Clock,
-      accent: 'bg-green-100 text-green-600',
+      tone: 'emerald',
       subtitle: 'Per question',
     },
     {
       label: 'Current Streak',
       value: user.stats.currentStreak,
       icon: Zap,
-      accent: 'bg-orange-100 text-orange-600',
+      tone: 'amber',
       subtitle: `Best: ${user.stats.bestStreak} days`,
     },
   ]
@@ -41,13 +41,13 @@ const StudentStatsCards = ({ user }: Props) => {
   return (
     <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
       {stats.map((stat, idx) => (
-        <MetricCard
+        <StatCard
           key={stat.label}
           label={stat.label}
           value={stat.value}
           icon={stat.icon}
-          accentClass={stat.accent}
           subtitle={stat.subtitle}
+          tone={stat.tone}
           index={idx}
         />
       ))}

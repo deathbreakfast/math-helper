@@ -4,6 +4,7 @@ import { AlertTriangle, Check, X } from 'lucide-react'
 import ModalShell from '../../../components/ModalShell'
 import PinPad from '../components/PinPad'
 import type { User } from '../hooks/useStudents'
+import { PillButton } from '../../../components/ui'
 
 type PINVerificationModalProps = {
   isOpen: boolean
@@ -161,14 +162,15 @@ const PINVerificationModal = ({ isOpen, onClose, onVerified, selectedUser }: PIN
             >
               Cancel
             </button>
-            <button
+            <PillButton
               type="button"
               onClick={handleVerify}
               disabled={!selectedUser || pin.length !== 4 || isVerifying}
-              className="flex items-center justify-center rounded-xl bg-gradient-to-r from-blue-600 to-purple-600 px-6 py-3 font-semibold text-white shadow-lg transition hover:from-blue-700 hover:to-purple-700 disabled:cursor-not-allowed disabled:opacity-50"
+              tone="indigo"
+              fullWidth
             >
               {isVerifying ? 'Verifying…' : 'Start Practice'}
-            </button>
+            </PillButton>
           </div>
         </div>
       </div>

@@ -73,6 +73,10 @@ export const generateProblems = (level: number, count = 10): PracticeQuestion[] 
       difficulty: `Level ${level}`,
       targetMs: 4000 + level * 500,
       hint: 'Stack the digits and carry if needed.',
+      layout: {
+        type: 'vertical',
+      },
+      answerFormat: 'integer',
     })
   }
 

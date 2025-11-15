@@ -11,6 +11,7 @@ import AchievementsList from './components/AchievementsList'
 import AddStudentModal from './modals/AddStudentModal'
 import PINVerificationModal from './modals/PINVerificationModal'
 import { useStudents } from './hooks/useStudents'
+import { PillButton } from '../../components/ui'
 
 const StudentsDashboard = () => {
   const {
@@ -83,13 +84,9 @@ const StudentsDashboard = () => {
         title="Math Helper"
         subtitle="Choose your learner to begin practice"
         cta={
-          <button
-            onClick={handleOpenModal}
-            className="ml-auto flex items-center gap-2 rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-lg transition hover:bg-blue-700"
-          >
-            <Plus className="h-4 w-4" />
+          <PillButton onClick={handleOpenModal} className="ml-auto" tone="indigo" leftIcon={<Plus className="h-4 w-4" />}>
             Add Learner
-          </button>
+          </PillButton>
         }
       >
         <motion.h2 initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }} className="mb-4 text-xl font-semibold text-slate-900">
@@ -126,12 +123,9 @@ const StudentsDashboard = () => {
           <StudentDetailLayout
             title={`${selectedUser.name}'s progress`}
             action={
-              <button
-                onClick={handleStartPractice}
-                className="rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 px-6 py-3 font-semibold text-white shadow-lg transition hover:from-emerald-600 hover:to-green-700"
-              >
+              <PillButton onClick={handleStartPractice} tone="emerald">
                 Start Practice
-              </button>
+              </PillButton>
             }
           >
             <StudentStatsCards user={selectedUser} />

@@ -1,6 +1,8 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import type { PracticeQuestion } from '../types'
 import { RefObject } from 'react'
+import { GradientSurface, PillButton } from '../../../components/ui'
+import { renderProblemLayout } from '../layouts/ProblemLayouts'
 
 type PracticeDeckProps = {
   practiceSectionRef: RefObject<HTMLDivElement>
@@ -23,10 +25,14 @@ const PracticeDeck = ({
   showAnswer,
   inputRef,
 }: PracticeDeckProps) => {
+  const layoutType = question.layout?.type ?? 'vertical'
+
   return (
-    <div
+    <GradientSurface
       ref={practiceSectionRef}
-      className="mt-8 rounded-3xl border border-slate-100 bg-gradient-to-r from-white to-slate-50 p-8 text-center shadow-inner"
+      variant="soft"
+      tone="neutral"
+      className="mt-8 p-8 text-center"
     >
       <AnimatePresence mode="wait">
         <motion.div
@@ -36,17 +42,12 @@ const PracticeDeck = ({
           exit={{ opacity: 0, y: -16 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="text-center text-slate-900">
-            <div className="text-7xl font-bold leading-tight">{question.operand1}</div>
-            <div className="text-5xl font-bold text-slate-500">{question.operation === 'addition'
-              ? '+'
-              : question.operation === 'subtraction'
-                ? '−'
-                : question.operation === 'multiplication'
-                  ? '×'
-                  : '÷'}</div>
-            <div className="text-7xl font-bold leading-tight">{question.operand2}</div>
-          </div>
+          {renderProblemLayout(layoutType, {
+            question,
+            answerFormat: question.answerFormat,
+            showWork: question.layout?.showWork,
+            workSteps: question.layout?.workSteps,
+          })}
           <form
             onSubmit={(event) => {
               event.preventDefault()
@@ -76,18 +77,14 @@ const PracticeDeck = ({
                 <span className="text-base text-green-600">{question.correctAnswer}</span>
               </div>
             )}
-            <button
-              type="submit"
-              disabled={!userAnswer.trim()}
-              className="rounded-2xl bg-gradient-to-r from-blue-500 to-purple-600 px-10 py-3 text-lg font-semibold text-white shadow-lg transition hover:shadow-xl disabled:cursor-not-allowed disabled:opacity-40"
-            >
+            <PillButton type="submit" tone="indigo" disabled={!userAnswer.trim()} className="px-10 py-4 text-lg">
               Check Answer
-            </button>
+            </PillButton>
             <p className="text-sm text-slate-400">Press Enter to submit</p>
           </form>
         </motion.div>
       </AnimatePresence>
-    </div>
+    </GradientSurface>
   )
 }
 

@@ -1,33 +1,24 @@
-export type UserStats = {
-  additionAccuracy: number
-  subtractionAccuracy: number
-  multiplicationAccuracy: number
-  divisionAccuracy: number
-  additionSpeed: number
-  subtractionSpeed: number
-  multiplicationSpeed: number
-  divisionSpeed: number
-  currentStreak: number
-  bestStreak: number
-}
+import type { Learner, LearnerAchievement, LearnerStats } from '../../lib/learners/types'
 
-export type Achievement = {
+export type UserStats = LearnerStats
+export type Achievement = LearnerAchievement
+export type User = Learner
+
+export type AnswerFormat = 'integer' | 'remainder' | 'fraction' | 'decimal' | 'mixed'
+
+export type WorkStep = {
   id: string
-  title: string
   description: string
-  icon: string
-  earnedAt: Date
-  category: string
+  value?: string
+  isEditable?: boolean
 }
 
-export type User = {
-  id: string
-  name: string
-  avatar: string
-  pin: string
-  level: number
-  achievements: Achievement[]
-  stats: UserStats
+export type ProblemLayoutType = 'vertical' | 'horizontal' | 'longDivision' | 'work'
+
+export type ProblemLayoutConfig = {
+  type: ProblemLayoutType
+  showWork?: boolean
+  workSteps?: WorkStep[]
 }
 
 export type Operation = 'addition' | 'subtraction' | 'multiplication' | 'division'
@@ -42,6 +33,10 @@ export type PracticeQuestion = {
   difficulty: string
   targetMs: number
   hint: string
+  layout?: ProblemLayoutConfig
+  answerFormat?: AnswerFormat
+  acceptedAnswers?: string[]
+  decimalPlaces?: number
 }
 
 export type PracticeAttempt = {
@@ -70,17 +65,5 @@ export type PracticeSessionSummary = {
     level?: number
   }
   attempts: PracticeAttempt[]
-}
-
-export type ApiAchievement = Omit<Achievement, 'earnedAt'> & { earnedAt: string }
-
-export type ApiUser = {
-  id: number
-  name: string
-  avatar: string
-  pin: string
-  level: number
-  stats?: Partial<UserStats>
-  achievements?: ApiAchievement[]
 }
 

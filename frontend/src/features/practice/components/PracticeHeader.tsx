@@ -1,5 +1,6 @@
 import { Award, Home } from 'lucide-react'
 import type { PracticeQuestion, User } from '../types'
+import { Badge } from '../../../components/ui'
 
 type PracticeHeaderProps = {
   selectedUser: User | null
@@ -38,10 +39,10 @@ const PracticeHeader = ({
           <div className="text-right">
             <p className="text-3xl font-bold text-slate-900">{cardCounterDisplay}</p>
             {currentQuestion && (
-              <span className="inline-flex items-center gap-2 text-sm font-semibold text-amber-700">
-                <Award className="h-4 w-4" />
+              <Badge tone="amber" className="text-xs">
+                <Award className="h-3 w-3" />
                 {currentQuestion.operation}
-              </span>
+              </Badge>
             )}
           </div>
         </div>

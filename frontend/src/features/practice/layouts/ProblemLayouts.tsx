@@ -43,6 +43,7 @@ const layoutComponents: Record<ProblemLayoutType, ComponentType<ProblemLayoutPro
   horizontal: PlaceholderLayout,
   longDivision: PlaceholderLayout,
   work: PlaceholderLayout,
+  partialProducts: PlaceholderLayout,
 }
 
 export const renderProblemLayout = (type: ProblemLayoutType, props: ProblemLayoutProps) => {

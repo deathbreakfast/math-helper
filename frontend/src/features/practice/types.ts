@@ -13,12 +13,40 @@ export type WorkStep = {
   isEditable?: boolean
 }
 
-export type ProblemLayoutType = 'vertical' | 'horizontal' | 'longDivision' | 'work'
+export type PartialProductsMode = 'easy' | 'normal'
+
+export type NoticeTone = 'indigo' | 'blue' | 'orange' | 'emerald'
+
+export type NoticeConfig = {
+  tone?: NoticeTone
+  icon?: 'lightbulb' | 'info'
+  title?: string
+  body: string
+}
+
+export type TipConfig = {
+  icon?: 'lightbulb' | 'info'
+  title?: string
+  body: string
+}
+
+export type AnswerMode = 'remainder' | 'fraction' | 'decimal'
+
+export type ProblemLayoutType =
+  | 'vertical'
+  | 'horizontal'
+  | 'longDivision'
+  | 'work'
+  | 'partialProducts'
 
 export type ProblemLayoutConfig = {
   type: ProblemLayoutType
   showWork?: boolean
   workSteps?: WorkStep[]
+  partialProductsMode?: PartialProductsMode
+  notice?: NoticeConfig
+  tip?: TipConfig
+  answerFormats?: AnswerMode[]
 }
 
 export type Operation = 'addition' | 'subtraction' | 'multiplication' | 'division'
@@ -37,6 +65,7 @@ export type PracticeQuestion = {
   answerFormat?: AnswerFormat
   acceptedAnswers?: string[]
   decimalPlaces?: number
+  mathTypeLabel?: string
 }
 
 export type PracticeAttempt = {

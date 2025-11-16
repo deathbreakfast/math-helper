@@ -1,18 +1,18 @@
 import { AnimatePresence, motion } from 'framer-motion'
+import type { RefObject } from 'react'
 import type { PracticeQuestion } from '../types'
-import { RefObject } from 'react'
 import { GradientSurface, PillButton } from '../../../components/ui'
 import { renderProblemLayout } from '../layouts/ProblemLayouts'
 
 type PracticeDeckProps = {
-  practiceSectionRef: RefObject<HTMLDivElement>
+  practiceSectionRef: RefObject<HTMLDivElement | null>
   question: PracticeQuestion
   userAnswer: string
   onAnswerChange: (value: string) => void
   onSubmit: () => void
   feedback: 'correct' | 'incorrect' | null
   showAnswer: boolean
-  inputRef: RefObject<HTMLInputElement>
+  inputRef: RefObject<HTMLInputElement | null>
 }
 
 const PracticeDeck = ({

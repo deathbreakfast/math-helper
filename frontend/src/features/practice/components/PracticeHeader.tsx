@@ -16,8 +16,12 @@ const PracticeHeader = ({
   progressPercent,
 }: PracticeHeaderProps) => {
   const learnerLabel = selectedUser
-    ? `${selectedUser.name} • Level ${selectedUser.level}${currentQuestion ? ` • Single Digit ${currentQuestion.operation}` : ''}`
+    ? `${selectedUser.name} • Level ${selectedUser.level ?? 1}`
     : 'Share a learner link to begin'
+
+  const operationLabel = currentQuestion
+    ? currentQuestion.operation.charAt(0).toUpperCase() + currentQuestion.operation.slice(1)
+    : null
 
   return (
     <header className="mb-10 w-full space-y-4">
@@ -36,13 +40,20 @@ const PracticeHeader = ({
               <p className="text-base text-slate-600">{learnerLabel}</p>
             </div>
           </div>
-          <div className="text-right">
+          <div className="text-right space-y-2">
             <p className="text-3xl font-bold text-slate-900">{cardCounterDisplay}</p>
             {currentQuestion && (
-              <Badge tone="amber" className="text-xs">
-                <Award className="h-3 w-3" />
-                {currentQuestion.operation}
-              </Badge>
+              <div className="flex flex-col items-end gap-1 text-right">
+                <Badge tone="amber" className="text-xs">
+                  <Award className="h-3 w-3" />
+                  {operationLabel}
+                </Badge>
+                {currentQuestion.mathTypeLabel && (
+                  <span className="text-xs font-semibold uppercase tracking-wide text-indigo-500">
+                    {currentQuestion.mathTypeLabel}
+                  </span>
+                )}
+              </div>
             )}
           </div>
         </div>

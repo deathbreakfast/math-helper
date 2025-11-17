@@ -66,6 +66,7 @@ export type PracticeQuestion = {
   acceptedAnswers?: string[]
   decimalPlaces?: number
   mathTypeLabel?: string
+  question_id?: number | string
 }
 
 export type PracticeAttempt = {
@@ -75,6 +76,7 @@ export type PracticeAttempt = {
   correctAnswer: string
   isCorrect: boolean
   awardedPoints: number
+  elapsedMs?: number
 }
 
 export type PracticeSessionSummary = {

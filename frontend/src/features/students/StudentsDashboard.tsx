@@ -10,6 +10,7 @@ import SpeedChart from './components/SpeedChart'
 import AchievementsList from './components/AchievementsList'
 import AddStudentModal from './modals/AddStudentModal'
 import PINVerificationModal from './modals/PINVerificationModal'
+import JourneyModal from './modals/JourneyModal'
 import { useStudents } from './hooks/useStudents'
 import { PillButton } from '../../components/ui'
 
@@ -42,6 +43,7 @@ const StudentsDashboard = () => {
   } = useStudents()
 
   const [showPinModal, setShowPinModal] = useState(false)
+  const [showJourneyModal, setShowJourneyModal] = useState(false)
 
   const handleOpenModal = () => {
     setCreationError(null)
@@ -128,7 +130,7 @@ const StudentsDashboard = () => {
               </PillButton>
             }
           >
-            <StudentStatsCards user={selectedUser} />
+            <StudentStatsCards user={selectedUser} onLevelCardClick={() => setShowJourneyModal(true)} />
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 xl:grid-cols-6">
               <div className="lg:col-span-2 xl:col-span-4">
@@ -178,6 +180,8 @@ const StudentsDashboard = () => {
         onVerified={handlePinVerified}
         selectedUser={selectedUser}
       />
+
+      <JourneyModal isOpen={showJourneyModal} onClose={() => setShowJourneyModal(false)} user={selectedUser} />
     </>
   )
 }

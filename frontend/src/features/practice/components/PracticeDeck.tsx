@@ -63,13 +63,14 @@ const PracticeDeck = ({
               value={userAnswer}
               onChange={(event) => onAnswerChange(event.target.value)}
               placeholder="?"
+              disabled={showAnswer}
               className={`w-full max-w-sm rounded-2xl border-4 px-6 py-4 text-center text-4xl font-bold outline-none transition ${
                 feedback === 'correct'
                   ? 'border-green-500 bg-green-50 text-green-700'
                   : feedback === 'incorrect'
                     ? 'border-red-500 bg-red-50 text-red-700'
                     : 'border-blue-200 bg-white text-slate-900 focus:border-blue-500'
-              }`}
+              } ${showAnswer ? 'cursor-not-allowed opacity-75' : ''}`}
             />
             {showAnswer && feedback === 'incorrect' && (
               <div className="text-sm font-semibold text-slate-600">
@@ -77,8 +78,8 @@ const PracticeDeck = ({
                 <span className="text-base text-green-600">{question.correctAnswer}</span>
               </div>
             )}
-            <PillButton type="submit" tone="indigo" disabled={!userAnswer.trim()} className="px-10 py-4 text-lg">
-              Check Answer
+            <PillButton type="submit" tone="indigo" disabled={!userAnswer.trim() || showAnswer} className="px-10 py-4 text-lg">
+              {showAnswer ? 'Answer Locked' : 'Check Answer'}
             </PillButton>
             <p className="text-sm text-slate-400">Press Enter to submit</p>
           </form>

@@ -1,88 +1,15 @@
 import { useEffect, useRef } from 'react'
 
 /* eslint-disable react-hooks/set-state-in-effect */
-import { ChevronLeft, ChevronRight, Flag } from 'lucide-react'
-import { PillButton } from '../../components/ui'
 import { useLearners } from '../../lib/learners/hooks'
 import PracticeDeck from './components/PracticeDeck'
 import PracticeHeader from './components/PracticeHeader'
 import LongDivisionWorksheet from './components/LongDivisionWorksheet'
 import PartialProductsWorksheet from './components/PartialProductsWorksheet'
+import { PracticeModeToggle } from './components/PracticeModeToggle'
+import { PracticeFooterControls } from './components/PracticeFooterControls'
 import { usePracticeRouting } from './hooks/usePracticeRouting'
 import { usePracticeSession } from './hooks/usePracticeSession'
-
-const PracticeModeToggle = ({
-  practiceMode,
-  onChange,
-}: {
-  practiceMode: 'standard' | 'multiplication' | 'division'
-  onChange: (mode: 'standard' | 'multiplication' | 'division') => void
-}) => (
-  <div className="mb-8 flex flex-wrap items-center justify-center gap-3">
-    <PillButton
-      variant={practiceMode === 'standard' ? 'solid' : 'surface'}
-      tone="indigo"
-      onClick={() => onChange('standard')}
-    >
-      Standard Practice
-    </PillButton>
-    <PillButton
-      variant={practiceMode === 'multiplication' ? 'solid' : 'surface'}
-      tone="rose"
-      onClick={() => onChange('multiplication')}
-    >
-      Multiplication Demo
-    </PillButton>
-    <PillButton
-      variant={practiceMode === 'division' ? 'solid' : 'surface'}
-      tone="amber"
-      onClick={() => onChange('division')}
-    >
-      Division Demo
-    </PillButton>
-  </div>
-)
-
-const PracticeFooterControls = ({
-  currentQuestionIndex,
-  problemsLength,
-  isFlagged,
-  onMove,
-  onToggleFlag,
-}: {
-  currentQuestionIndex: number
-  problemsLength: number
-  isFlagged: boolean
-  onMove: (direction: 'next' | 'prev') => void
-  onToggleFlag: () => void
-}) => (
-  <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
-    <PillButton
-      variant="surface"
-      onClick={() => onMove('prev')}
-      disabled={currentQuestionIndex === 0}
-      leftIcon={<ChevronLeft className="h-4 w-4" />}
-    >
-      Previous
-    </PillButton>
-    <PillButton
-      variant={isFlagged ? 'solid' : 'surface'}
-      tone="amber"
-      onClick={onToggleFlag}
-      leftIcon={<Flag className="h-4 w-4" />}
-    >
-      {isFlagged ? 'Flagged' : 'Flag for Review'}
-    </PillButton>
-    <PillButton
-      tone="emerald"
-      onClick={() => onMove('next')}
-      disabled={currentQuestionIndex >= problemsLength - 1}
-      rightIcon={<ChevronRight className="h-4 w-4" />}
-    >
-      {currentQuestionIndex >= problemsLength - 1 ? 'Complete' : 'Next'}
-    </PillButton>
-  </div>
-)
 
 const PracticeSessionPage = () => {
   const { learners, isLoading: isLoadingLearners, error: learnersError } = useLearners()
@@ -105,8 +32,11 @@ const PracticeSessionPage = () => {
     cardCounterDisplay,
     handleAnswerChange,
     handleCheckAnswer,
+    handleSetAnswer,
     handleMove,
     toggleFlag,
+    canSubmit,
+    handleSubmit,
   } = usePracticeSession({
     selectedUser,
     practiceMode,
@@ -157,6 +87,10 @@ const PracticeSessionPage = () => {
                   <PartialProductsWorksheet
                     question={currentQuestion}
                     mode={currentQuestion.layout?.partialProductsMode ?? 'easy'}
+                    onComplete={(isCorrect) => {
+                      // For partial products, use the final answer or correct answer
+                      handleSetAnswer(currentQuestion.id, currentQuestion.correctAnswer, isCorrect)
+                    }}
                   />
                 ) : isLongDivision ? (
                   <LongDivisionWorksheet
@@ -164,6 +98,10 @@ const PracticeSessionPage = () => {
                     notice={currentQuestion.layout?.notice}
                     tip={currentQuestion.layout?.tip}
                     answerFormats={currentQuestion.layout?.answerFormats}
+                    onComplete={(isCorrect) => {
+                      // For long division, use the correct answer from question
+                      handleSetAnswer(currentQuestion.id, currentQuestion.correctAnswer, isCorrect)
+                    }}
                   />
                 ) : (
                   <PracticeDeck
@@ -182,8 +120,10 @@ const PracticeSessionPage = () => {
                   currentQuestionIndex={currentQuestionIndex}
                   problemsLength={problems.length}
                   isFlagged={isFlagged}
+                  canSubmit={canSubmit}
                   onMove={handleMove}
                   onToggleFlag={toggleFlag}
+                  onSubmit={handleSubmit}
                 />
               </>
             )

@@ -1,0 +1,491 @@
+"""Question service for generating questions with solutions and work steps."""
+
+from __future__ import annotations
+
+import json
+import math
+import random
+from fractions import Fraction
+from typing import Any
+
+from ..database import log_query
+from ..services.level_config_service import LevelConfigService
+from ..services.practice_service import PracticeService
+
+
+class QuestionService:
+    """Service for question generation and solving."""
+
+    OPERATIONS = ["addition", "subtraction", "multiplication", "division"]
+
+    @staticmethod
+    def get_operation_symbol(operation: str) -> str:
+        """Get the symbol for an operation."""
+        symbols = {
+            "addition": "+",
+            "subtraction": "-",
+            "multiplication": "×",
+            "division": "÷",
+        }
+        return symbols.get(operation, "+")
+
+    @staticmethod
+    def solve(operation: str, a: int, b: int) -> int:
+        """Solve a math operation."""
+        if operation == "addition":
+            return a + b
+        elif operation == "subtraction":
+            return a - b
+        elif operation == "multiplication":
+            return a * b
+        elif operation == "division":
+            return a // b
+        else:
+            raise ValueError(f"Unknown operation: {operation}")
+
+    @staticmethod
+    def format_answer(
+        operation: str,
+        operand1: int,
+        operand2: int,
+        answer_format: str,
+    ) -> str:
+        """Format answer based on answer format type."""
+        if operation != "division":
+            return str(QuestionService.solve(operation, operand1, operand2))
+        
+        quotient = operand1 // operand2
+        remainder = operand1 % operand2
+        
+        if answer_format == "integer":
+            return str(quotient)
+        elif answer_format == "remainder":
+            if remainder == 0:
+                return str(quotient)
+            return f"{quotient} R {remainder}"
+        elif answer_format == "fraction":
+            # Simplify fraction
+            frac = Fraction(operand1, operand2)
+            return f"{frac.numerator}/{frac.denominator}"
+        elif answer_format == "decimal":
+            # Calculate decimal with appropriate precision
+            result = operand1 / operand2
+            if operand2 < 10:
+                # Single digit divisor: 2 decimal places
+                return f"{result:.2f}".rstrip('0').rstrip('.')
+            else:
+                # Double digit divisor: 4 decimal places
+                return f"{result:.4f}".rstrip('0').rstrip('.')
+        else:
+            return str(quotient)
+
+    @staticmethod
+    def validate_constraints(
+        operation: str,
+        operand1: int,
+        operand2: int,
+        constraints: dict[str, Any],
+    ) -> bool:
+        """Validate operands against constraints."""
+        # Check exclude_zeros
+        if constraints.get("exclude_zeros"):
+            if operand1 == 0 or operand2 == 0:
+                return False
+        
+        # Check fixed operand2
+        if "fixed_operand2" in constraints:
+            if operand2 != constraints["fixed_operand2"]:
+                return False
+        
+        # Check multiple_of constraint
+        if "multiple_of" in constraints:
+            multiple = constraints["multiple_of"]
+            if operand1 % multiple != 0:
+                return False
+        
+        # Check no_remainder for division
+        if operation == "division" and constraints.get("no_remainder"):
+            if operand1 % operand2 != 0:
+                return False
+        
+        # Check answer_min
+        if "answer_min" in constraints:
+            answer = QuestionService.solve(operation, operand1, operand2)
+            if answer < constraints["answer_min"]:
+                return False
+        
+        return True
+
+    @staticmethod
+    def generate_operands_with_constraints(
+        operation: str,
+        level: int,
+        test_constraints: dict[str, Any] | None = None,
+        max_attempts: int = 100,
+    ) -> tuple[int, int]:
+        """Generate operands that satisfy level constraints."""
+        config = LevelConfigService.get_level_config(level)
+        if not config:
+            raise ValueError(f"Level {level} configuration not found")
+        
+        constraints = config.get("constraints", {})
+        op1_range = config["operand1_range"]
+        op2_range = config["operand2_range"]
+        
+        # Handle test constraints (override level config)
+        if test_constraints:
+            if test_constraints.get("multiplication_table"):
+                operand2 = test_constraints["multiplication_table"]
+                operand1 = random.randint(op1_range["min"], op1_range["max"])
+                return operand1, operand2
+            
+            if test_constraints.get("division_table"):
+                operand2 = test_constraints["division_table"]
+                # Generate operand1 as multiple of operand2
+                min_quotient = max(1, op1_range["min"] // operand2)
+                max_quotient = op1_range["max"] // operand2
+                quotient = random.randint(min_quotient, max_quotient)
+                operand1 = operand2 * quotient
+                return operand1, operand2
+        
+        # Handle fixed operand2 from level config
+        if "fixed_operand2" in constraints:
+            operand2 = constraints["fixed_operand2"]
+            operand1 = random.randint(op1_range["min"], op1_range["max"])
+            
+            # For division with fixed divisor and no remainder, ensure operand1 is multiple
+            if operation == "division" and constraints.get("no_remainder"):
+                min_quotient = max(1, op1_range["min"] // operand2)
+                max_quotient = op1_range["max"] // operand2
+                quotient = random.randint(min_quotient, max_quotient)
+                operand1 = operand2 * quotient
+            
+            # For multiple_of constraint
+            if "multiple_of" in constraints:
+                multiple = constraints["multiple_of"]
+                # Generate operand1 as multiple
+                min_multiple = max(1, op1_range["min"] // multiple)
+                max_multiple = op1_range["max"] // multiple
+                multiplier = random.randint(min_multiple, max_multiple)
+                operand1 = multiple * multiplier
+            
+            return operand1, operand2
+        
+        # Regular generation with constraints
+        for _ in range(max_attempts):
+            operand1 = random.randint(op1_range["min"], op1_range["max"])
+            operand2 = random.randint(op2_range["min"], op2_range["max"])
+            
+            # For division, ensure it divides evenly if no_remainder
+            if operation == "division" and constraints.get("no_remainder"):
+                operand1 = operand2 * random.randint(
+                    max(1, op1_range["min"] // operand2),
+                    op1_range["max"] // operand2
+                )
+            
+            # For multiple_of constraint
+            if "multiple_of" in constraints:
+                multiple = constraints["multiple_of"]
+                min_multiple = max(1, op1_range["min"] // multiple)
+                max_multiple = op1_range["max"] // multiple
+                multiplier = random.randint(min_multiple, max_multiple)
+                operand1 = multiple * multiplier
+            
+            if QuestionService.validate_constraints(operation, operand1, operand2, constraints):
+                return operand1, operand2
+        
+        # Fallback: return valid operands even if constraints aren't perfect
+        operand1 = random.randint(op1_range["min"], op1_range["max"])
+        operand2 = random.randint(op2_range["min"], op2_range["max"])
+        return operand1, operand2
+
+    @staticmethod
+    def create_work_steps(operation: str, operand1: int, operand2: int, result: int) -> list[dict[str, Any]]:
+        """Generate work steps for showing how to solve the problem."""
+        steps = []
+        
+        if operation == "addition":
+            # Simple addition - show carrying if needed
+            op1_str = str(operand1)
+            op2_str = str(operand2)
+            max_len = max(len(op1_str), len(op2_str))
+            op1_str = op1_str.zfill(max_len)
+            op2_str = op2_str.zfill(max_len)
+            
+            carry = 0
+            for i in range(max_len - 1, -1, -1):
+                d1 = int(op1_str[i])
+                d2 = int(op2_str[i])
+                sum_digit = d1 + d2 + carry
+                if sum_digit >= 10:
+                    steps.append({
+                        "id": f"step-{max_len - i}",
+                        "description": f"Add {d1} + {d2} + {carry} = {sum_digit}. Write {sum_digit % 10}, carry {sum_digit // 10}.",
+                        "value": str(sum_digit % 10),
+                    })
+                    carry = sum_digit // 10
+                else:
+                    steps.append({
+                        "id": f"step-{max_len - i}",
+                        "description": f"Add {d1} + {d2} + {carry} = {sum_digit}.",
+                        "value": str(sum_digit),
+                    })
+                    carry = 0
+            if carry > 0:
+                steps.append({
+                    "id": f"step-{max_len + 1}",
+                    "description": f"Carry {carry} to the next column.",
+                    "value": str(carry),
+                })
+                
+        elif operation == "subtraction":
+            # Simple subtraction - show borrowing if needed
+            op1_str = str(operand1)
+            op2_str = str(operand2)
+            max_len = max(len(op1_str), len(op2_str))
+            op1_str = op1_str.zfill(max_len)
+            op2_str = op2_str.zfill(max_len)
+            
+            borrow = 0
+            for i in range(max_len - 1, -1, -1):
+                d1 = int(op1_str[i]) - borrow
+                d2 = int(op2_str[i])
+                if d1 < d2:
+                    d1 += 10
+                    borrow = 1
+                    steps.append({
+                        "id": f"step-{max_len - i}",
+                        "description": f"Borrow from next column. {d1} - {d2} = {d1 - d2}.",
+                        "value": str(d1 - d2),
+                    })
+                else:
+                    steps.append({
+                        "id": f"step-{max_len - i}",
+                        "description": f"Subtract {d1} - {d2} = {d1 - d2}.",
+                        "value": str(d1 - d2),
+                    })
+                    borrow = 0
+                    
+        elif operation == "multiplication":
+            # Multiplication - show partial products
+            op2_str = str(operand2)
+            for i, digit in enumerate(reversed(op2_str)):
+                d = int(digit)
+                partial = operand1 * d
+                place_value = 10 ** i
+                steps.append({
+                    "id": f"step-{i + 1}",
+                    "description": f"Multiply {operand1} × {d} = {partial} (place value: {place_value}).",
+                    "value": str(partial * place_value),
+                })
+            steps.append({
+                "id": f"step-{len(op2_str) + 1}",
+                "description": f"Add all partial products to get {result}.",
+                "value": str(result),
+            })
+            
+        elif operation == "division":
+            # Long division steps
+            steps.append({
+                "id": "step-1",
+                "description": f"Divide {operand1} by {operand2}.",
+                "value": str(result),
+            })
+            remainder = operand1 % operand2
+            if remainder > 0:
+                steps.append({
+                    "id": "step-2",
+                    "description": f"Remainder: {remainder}.",
+                    "value": str(remainder),
+                })
+        
+        return steps
+
+    @staticmethod
+    def create_layout_config(
+        operation: str,
+        level: int,
+        operand1: int,
+        operand2: int,
+        answer_format: str = "integer",
+        test_constraints: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Create layout configuration matching frontend ProblemLayoutConfig type."""
+        # Get level config to determine layout type
+        config = LevelConfigService.get_level_config(level)
+        layout_type = config.get("layout_type", "vertical") if config else "vertical"
+        partial_mode = config.get("partial_products_mode", "easy") if config else "easy"
+        
+        layout_config: dict[str, Any] = {"type": layout_type}
+        
+        if layout_type == "partialProducts":
+            layout_config = {
+                "type": "partialProducts",
+                "showWork": True,
+                "partialProductsMode": partial_mode,
+            }
+            # Add work steps
+            result = QuestionService.solve(operation, operand1, operand2)
+            work_steps = QuestionService.create_work_steps(operation, operand1, operand2, result)
+            layout_config["workSteps"] = work_steps
+        
+        elif layout_type == "longDivision":
+            answer_formats = []
+            if answer_format == "remainder":
+                answer_formats = ["remainder"]
+            elif answer_format == "fraction":
+                answer_formats = ["fraction"]
+            elif answer_format == "decimal":
+                answer_formats = ["decimal"]
+            else:
+                answer_formats = [answer_format] if answer_format != "integer" else ["remainder"]
+            
+            format_label = answer_format.capitalize() if answer_format != "integer" else "Remainder"
+            layout_config = {
+                "type": "longDivision",
+                "notice": {
+                    "tone": "orange",
+                    "icon": "lightbulb",
+                    "title": "Long Division",
+                    "body": f"Use the long division algorithm to solve {operand1} ÷ {operand2}.",
+                },
+                "tip": {
+                    "icon": "lightbulb",
+                    "title": "Long Division Tip",
+                    "body": "Remember the cycle: Divide, Multiply, Subtract, then Bring Down the next digit.",
+                },
+                "answerFormats": answer_formats[:1] if answer_formats else ["remainder"],
+            }
+            # Add work steps
+            result = QuestionService.solve(operation, operand1, operand2)
+            work_steps = QuestionService.create_work_steps(operation, operand1, operand2, result)
+            layout_config["workSteps"] = work_steps
+        
+        return layout_config
+
+    @staticmethod
+    def serialize_work_steps(work_steps: list[dict[str, Any]]) -> str:
+        """Serialize work steps to JSON string."""
+        return json.dumps(work_steps)
+
+    @staticmethod
+    @log_query
+    def generate_question(
+        operation: str,
+        level: int,
+        test_constraints: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        """Generate a question with solution and work steps.
+        
+        Args:
+            operation: The operation type (addition, subtraction, multiplication, division)
+            level: The difficulty level
+            test_constraints: Optional constraints for test sessions (e.g., {"multiplication_table": 5})
+        
+        Returns:
+            Dictionary with question data including id, prompt, operands, correct_answer, layout, etc.
+        """
+        # Get level configuration
+        config = LevelConfigService.get_level_config(level)
+        if not config:
+            raise ValueError(f"Level {level} configuration not found")
+        
+        # Override operation from config if test_constraints don't specify
+        if not test_constraints or "operation" not in test_constraints:
+            operation = config["operation"]
+        
+        # Generate operands with constraints
+        operand1, operand2 = QuestionService.generate_operands_with_constraints(
+            operation, level, test_constraints
+        )
+        
+        # Get answer format from config
+        answer_format = config.get("answer_format", "integer")
+        
+        # Format answer based on format type
+        correct_answer = QuestionService.format_answer(operation, operand1, operand2, answer_format)
+        
+        # Generate prompt
+        prompt = f"{operand1} {QuestionService.get_operation_symbol(operation)} {operand2}"
+        
+        # Get layout type from config
+        layout_type = config.get("layout_type", "vertical")
+        partial_mode = config.get("partial_products_mode", "easy")
+        
+        # Create layout config
+        layout_config = QuestionService.create_layout_config(
+            operation, level, operand1, operand2, answer_format, test_constraints
+        )
+        
+        # Override layout type if specified in config
+        if layout_type == "partialProducts":
+            layout_config = {
+                "type": "partialProducts",
+                "showWork": True,
+                "partialProductsMode": partial_mode,
+            }
+            # Add work steps
+            result = QuestionService.solve(operation, operand1, operand2)
+            work_steps = QuestionService.create_work_steps(operation, operand1, operand2, result)
+            layout_config["workSteps"] = work_steps
+        
+        # Generate hint and math type label
+        hint = "Stack the digits and carry if needed."
+        math_type_label = f"{operation.capitalize()} (Standard)"
+        
+        if operation == "multiplication":
+            if layout_config.get("type") == "partialProducts":
+                mode = layout_config.get("partialProductsMode", "easy")
+                math_type_label = f"Multiplication • Partial Products ({mode.capitalize()})"
+                hint = (
+                    "Break the multiplier into ones and tens. Fill each row before you add."
+                    if mode == "easy"
+                    else "Add rows for every digit in the multiplier, then total the partial products."
+                )
+            else:
+                math_type_label = "Multiplication • Normal Up To 12 × 12"
+                hint = "Stack the digits and carry when needed."
+        elif operation == "division":
+            format_label = answer_format.capitalize()
+            math_type_label = f"Division • Long Division • {format_label}"
+            hint = "Use the long division algorithm: divide, multiply, subtract, bring down."
+        
+        # Create question in database
+        difficulty = f"Level {level}"
+        target_ms = 4000 + level * 500
+        
+        question = PracticeService.create_question(
+            operation=operation,
+            operand1=operand1,
+            operand2=operand2,
+            correct_answer=correct_answer,
+            prompt=prompt,
+            required_level=level,
+            difficulty=difficulty,
+            level_tag=str(level),
+            target_ms=target_ms,
+            hint=hint,
+            answer_format=answer_format,
+            accepted_answers=None,  # Can be enhanced later
+            layout_type=layout_config.get("type"),
+            layout_config=layout_config,
+            math_type_label=math_type_label,
+        )
+        
+        # Return question data matching frontend format
+        return {
+            "id": str(question.id),
+            "prompt": prompt,
+            "operation": operation,
+            "operand1": operand1,
+            "operand2": operand2,
+            "correctAnswer": correct_answer,
+            "difficulty": difficulty,
+            "targetMs": target_ms,
+            "hint": hint,
+            "layout": layout_config,
+            "answerFormat": answer_format,
+            "mathTypeLabel": math_type_label,
+            "question_id": question.id,  # For backend use
+        }
+

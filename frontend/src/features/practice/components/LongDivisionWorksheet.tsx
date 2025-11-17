@@ -19,6 +19,7 @@ type LongDivisionWorksheetProps = {
   notice?: NoticeConfig
   tip?: TipConfig
   answerFormats?: AnswerMode[]
+  onComplete?: (isCorrect: boolean) => void
 }
 
 const defaultNotice: NoticeConfig = {
@@ -39,6 +40,7 @@ const LongDivisionWorksheet = ({
   notice = defaultNotice,
   tip = defaultTip,
   answerFormats: answerFormatOptions,
+  onComplete,
 }: LongDivisionWorksheetProps) => {
   const formats = useMemo<AnswerMode[]>(
     () => (answerFormatOptions && answerFormatOptions.length > 0 ? answerFormatOptions : ['remainder']),
@@ -73,6 +75,7 @@ const LongDivisionWorksheet = ({
     dividend,
     divisor,
     answerMode,
+    onComplete,
   })
 
   const answerDisplay = getAnswerDisplay(dividend, divisor, answerMode)

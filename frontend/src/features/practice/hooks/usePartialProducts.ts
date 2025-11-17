@@ -157,8 +157,10 @@ export const usePartialProducts = ({ question, mode, onComplete }: UsePartialPro
       message,
     })
 
-    if (partialsMatch && finalCorrect && onComplete) {
-      setTimeout(() => onComplete(true), 1200)
+    // Always call onComplete when verified (not just when correct)
+    if (onComplete) {
+      const isCorrect = partialsMatch && finalCorrect
+      setTimeout(() => onComplete(isCorrect), 1200)
     }
   }
 

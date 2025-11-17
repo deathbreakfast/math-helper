@@ -6,7 +6,7 @@ type ModalShellProps = {
   isOpen: boolean
   onClose: () => void
   children: ReactNode
-  maxWidth?: 'sm' | 'md' | 'lg'
+  maxWidth?: 'sm' | 'md' | 'lg' | 'xl'
   paddingClassName?: string
   showCloseButton?: boolean
   closeButtonAriaLabel?: string
@@ -20,6 +20,7 @@ const WIDTH_MAP: Record<NonNullable<ModalShellProps['maxWidth']>, string> = {
   sm: 'max-w-md',
   md: 'max-w-2xl',
   lg: 'max-w-3xl',
+  xl: 'max-w-7xl',
 }
 
 const ModalShell = ({

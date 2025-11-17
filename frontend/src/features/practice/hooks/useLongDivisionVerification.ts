@@ -18,9 +18,10 @@ type UseLongDivisionVerificationProps = {
   dividend: number
   divisor: number
   answerMode: AnswerMode
+  onComplete?: (isCorrect: boolean) => void
 }
 
-export const useLongDivisionVerification = ({ dividend, divisor, answerMode }: UseLongDivisionVerificationProps) => {
+export const useLongDivisionVerification = ({ dividend, divisor, answerMode, onComplete }: UseLongDivisionVerificationProps) => {
   const expectedSteps = buildDivisionSteps(dividend, divisor)
   const { expectedQuotient, expectedRemainder, expectedDecimalPart } = calculateExpectedAnswers(dividend, divisor)
 
@@ -153,6 +154,11 @@ export const useLongDivisionVerification = ({ dividend, divisor, answerMode }: U
       stepsCorrect,
       message,
     })
+
+    // Always call onComplete when verified
+    if (onComplete) {
+      setTimeout(() => onComplete(allCorrect), 1200)
+    }
   }
 
   const reset = (inputRefs: Record<string, HTMLInputElement | null>) => {

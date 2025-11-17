@@ -1,0 +1,215 @@
+import { useMemo } from 'react'
+import type { PracticeSessionSummary } from '../types'
+import { parsePrompt } from '../utils/summaryUtils'
+import { useLearners } from '../../../lib/learners/hooks'
+
+export type FilterType = 'all' | 'correct' | 'incorrect' | 'flagged'
+
+export interface ProblemResult {
+  id: string
+  operand1: number
+  operand2: number
+  operation: 'addition' | 'subtraction' | 'multiplication' | 'division'
+  correctAnswer: number
+  userAnswer?: number
+  isCorrect: boolean
+  isMarkedForReview: boolean
+  timeSpent: number
+  difficulty: number
+}
+
+export interface AchievementBadge {
+  id: string
+  title: string
+  description: string
+  icon: string
+  category: 'speed' | 'accuracy' | 'streak' | 'milestone'
+  earnedAt?: Date
+}
+
+export interface SummaryMetrics {
+  totalProblems: number
+  correctProblems: number
+  incorrectProblems: number
+  flaggedProblems: number
+  accuracy: number
+  totalTime: number
+  averageSpeed: number
+  previousBestAccuracy: number
+  previousBestSpeed: number
+  currentStreak: number
+  isNewBestAccuracy: boolean
+  isNewBestSpeed: boolean
+}
+
+export const useSummaryData = (filter: FilterType) => {
+  const { learners } = useLearners()
+
+  // Get session data from URL parameters or localStorage
+  const sessionSummary = useMemo<PracticeSessionSummary | null>(() => {
+    const params = new URLSearchParams(window.location.search)
+    const sessionParam = params.get('session')
+
+    if (sessionParam) {
+      try {
+        return JSON.parse(decodeURIComponent(sessionParam)) as PracticeSessionSummary
+      } catch {
+        // Invalid JSON
+      }
+    }
+
+    const savedSession = localStorage.getItem('lastPracticeSession')
+    if (savedSession) {
+      try {
+        return JSON.parse(savedSession) as PracticeSessionSummary
+      } catch {
+        // Invalid JSON
+      }
+    }
+
+    return null
+  }, [])
+
+  // Find user data
+  const user = useMemo(() => {
+    if (!sessionSummary?.user) return null
+    return learners.find((l) => l.id === String(sessionSummary.user.id)) || null
+  }, [sessionSummary, learners])
+
+  // Transform attempts to ProblemResult format
+  const problems = useMemo<ProblemResult[]>(() => {
+    if (!sessionSummary) return []
+    return sessionSummary.attempts.map((attempt, index) => {
+      const parsed = parsePrompt(attempt.prompt)
+      return {
+        id: attempt.questionId || `problem-${index}`,
+        operand1: parsed.operand1,
+        operand2: parsed.operand2,
+        operation: parsed.operation,
+        correctAnswer: Number(attempt.correctAnswer),
+        userAnswer: attempt.submittedAnswer ? Number(attempt.submittedAnswer) : undefined,
+        isCorrect: attempt.isCorrect,
+        isMarkedForReview: false, // We don't track this in current data structure
+        timeSpent: attempt.elapsedMs ? attempt.elapsedMs / 1000 : 0,
+        difficulty: 1, // Default difficulty, could be enhanced
+      }
+    })
+  }, [sessionSummary])
+
+  // Calculate metrics
+  const metrics = useMemo<SummaryMetrics>(() => {
+    const totalProblems = problems.length
+    const correctProblems = problems.filter((p) => p.isCorrect).length
+    const incorrectProblems = problems.filter((p) => !p.isCorrect).length
+    const flaggedProblems = problems.filter((p) => p.isMarkedForReview).length
+    const accuracy = totalProblems > 0 ? Math.round((correctProblems / totalProblems) * 100) : 0
+    const totalTime = problems.reduce((sum, p) => sum + p.timeSpent, 0)
+    const averageSpeed = totalProblems > 0 ? Math.round((totalTime / totalProblems) * 10) / 10 : 0
+
+    // Get previous bests from user stats
+    const previousBestAccuracy = user?.stats?.additionAccuracy || 0
+    const previousBestSpeed = user?.averageSpeed || 0
+    const currentStreak = user?.stats?.currentStreak || 0
+
+    // Check if this is a new personal best
+    const isNewBestAccuracy = accuracy > previousBestAccuracy
+    const isNewBestSpeed = averageSpeed < previousBestSpeed || previousBestSpeed === 0
+
+    return {
+      totalProblems,
+      correctProblems,
+      incorrectProblems,
+      flaggedProblems,
+      accuracy,
+      totalTime,
+      averageSpeed,
+      previousBestAccuracy,
+      previousBestSpeed,
+      currentStreak,
+      isNewBestAccuracy,
+      isNewBestSpeed,
+    }
+  }, [problems, user])
+
+  // Calculate performance by difficulty
+  const performanceByDifficulty = useMemo(() => {
+    return problems.reduce(
+      (acc, problem) => {
+        if (!acc[problem.difficulty]) {
+          acc[problem.difficulty] = { correct: 0, total: 0 }
+        }
+        acc[problem.difficulty].total++
+        if (problem.isCorrect) acc[problem.difficulty].correct++
+        return acc
+      },
+      {} as Record<number, { correct: number; total: number }>
+    )
+  }, [problems])
+
+  // Generate achievements
+  const achievements = useMemo<AchievementBadge[]>(() => {
+    const earned: AchievementBadge[] = []
+    if (metrics.accuracy >= 90) {
+      earned.push({
+        id: 'accuracy-ace',
+        title: 'Accuracy Ace',
+        description: `Achieved ${metrics.accuracy}% accuracy in this session!`,
+        icon: '🎯',
+        category: 'accuracy',
+        earnedAt: new Date(),
+      })
+    }
+    if (metrics.correctProblems >= 10) {
+      earned.push({
+        id: 'practice-master',
+        title: 'Practice Master',
+        description: `Completed ${metrics.totalProblems} questions with ${metrics.correctProblems} correct answers!`,
+        icon: '🌟',
+        category: 'milestone',
+        earnedAt: new Date(),
+      })
+    }
+    if (metrics.averageSpeed > 0 && metrics.averageSpeed <= 5) {
+      earned.push({
+        id: 'speed-demon',
+        title: 'Speed Demon',
+        description: `Average response time of ${metrics.averageSpeed} seconds per question!`,
+        icon: '⚡',
+        category: 'speed',
+        earnedAt: new Date(),
+      })
+    }
+    if (earned.length === 0) {
+      earned.push({
+        id: 'session-complete',
+        title: 'Session Complete',
+        description: `Great job completing ${metrics.totalProblems} questions!`,
+        icon: '✅',
+        category: 'milestone',
+        earnedAt: new Date(),
+      })
+    }
+    return earned
+  }, [metrics])
+
+  // Filter problems
+  const filteredProblems = useMemo(() => {
+    return problems.filter((problem) => {
+      if (filter === 'correct') return problem.isCorrect
+      if (filter === 'incorrect') return !problem.isCorrect
+      if (filter === 'flagged') return problem.isMarkedForReview
+      return true
+    })
+  }, [problems, filter])
+
+  return {
+    sessionSummary,
+    user,
+    problems,
+    metrics,
+    performanceByDifficulty,
+    achievements,
+    filteredProblems,
+  }
+}
+

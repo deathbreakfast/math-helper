@@ -1,0 +1,141 @@
+"""User service for CRUD operations, PIN verification, and level management."""
+
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any
+
+from sqlalchemy import func
+
+from ..database import log_query, transaction
+from ..models import Achievement, LevelProgression, User, db
+
+
+class UserService:
+    """Service for user-related operations."""
+
+    @staticmethod
+    @log_query
+    def create_user(display_name: str, pin: str, avatar: str | None = None) -> tuple[User, list[str]]:
+        """Create a new user with validation.
+
+        Returns:
+            Tuple of (User object, list of error messages)
+        """
+        errors: list[str] = []
+
+        if len(display_name.strip()) < 2:
+            errors.append("Name must be at least 2 characters long.")
+        if not pin.isdigit() or len(pin) != 4:
+            errors.append("PIN must be a 4-digit number.")
+
+        if errors:
+            return None, errors  # type: ignore
+
+        # Check for duplicate name
+        existing = User.query.filter_by(display_name=display_name).first()
+        if existing:
+            errors.append("Name is already taken.")
+            return None, errors  # type: ignore
+
+        with transaction():
+            user = User(avatar=avatar, display_name=display_name.strip(), pin=pin, level=1)
+            db.session.add(user)
+            db.session.flush()  # Get the ID without committing
+
+        return user, []
+
+    @staticmethod
+    @log_query
+    def get_user(user_id: int) -> User | None:
+        """Get a user by ID."""
+        return User.query.get(user_id)
+
+    @staticmethod
+    @log_query
+    def get_user_by_name(display_name: str) -> User | None:
+        """Get a user by display name (case-insensitive)."""
+        return User.query.filter(func.lower(User.display_name) == display_name.lower()).first()
+
+    @staticmethod
+    @log_query
+    def list_users() -> list[User]:
+        """List all users ordered by creation date."""
+        return User.query.order_by(User.created_at.asc()).all()
+
+    @staticmethod
+    @log_query
+    def verify_pin(user: User, pin: str) -> bool:
+        """Verify a PIN for a user."""
+        return user.pin == pin
+
+    @staticmethod
+    @log_query
+    def can_level_up(user: User, target_level: int) -> tuple[bool, list[str]]:
+        """Check if a user can level up to the target level.
+
+        Returns:
+            Tuple of (can_level_up: bool, missing_achievements: list[str])
+        """
+        if target_level <= user.level:
+            return False, ["Target level must be greater than current level."]
+
+        if target_level == 1:
+            return True, []  # Level 1 has no requirements
+
+        # Get required achievements for target level
+        requirements = (
+            LevelProgression.query.filter_by(target_level=target_level)
+            .order_by(LevelProgression.order.asc())
+            .all()
+        )
+
+        if not requirements:
+            # No requirements defined, allow level up
+            return True, []
+
+        # Get user's achievement codes
+        user_achievements = {a.code for a in user.achievements}
+
+        # Check which requirements are missing
+        missing = [
+            req.required_achievement_code
+            for req in requirements
+            if req.required_achievement_code not in user_achievements
+        ]
+
+        return len(missing) == 0, missing
+
+    @staticmethod
+    @log_query
+    def level_up(user: User, target_level: int) -> tuple[bool, list[str]]:
+        """Level up a user to the target level if requirements are met.
+
+        Returns:
+            Tuple of (success: bool, error_messages: list[str])
+        """
+        can_up, missing = UserService.can_level_up(user, target_level)
+
+        if not can_up:
+            return False, [f"Missing required achievements: {', '.join(missing)}"]
+
+        with transaction():
+            user.level = target_level
+            user.updated_at = datetime.utcnow()
+            db.session.add(user)
+
+        return True, []
+
+    @staticmethod
+    @log_query
+    def update_user(user: User, **kwargs: Any) -> User:
+        """Update user fields."""
+        with transaction():
+            for key, value in kwargs.items():
+                if hasattr(user, key):
+                    setattr(user, key, value)
+            user.updated_at = datetime.utcnow()
+            db.session.add(user)
+
+        return user
+

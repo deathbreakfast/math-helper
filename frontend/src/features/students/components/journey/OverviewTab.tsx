@@ -1,14 +1,76 @@
 import { motion } from 'framer-motion'
-import { Calculator } from 'lucide-react'
+import { Trophy, RotateCcw } from 'lucide-react'
+import { useState, useMemo } from 'react'
 import { AchievementCard } from '../AchievementCard'
+import { PillButton } from '../../../../components/ui'
 import type { Achievement } from '../../data/achievements'
+import type { UserProgressData } from '../../utils/progressMapping'
 
 type OverviewTabProps = {
-  testAchievements: Achievement[]
+  allAchievements: Achievement[]
   onViewAllTests: () => void
+  userData?: UserProgressData
+  onRefresh?: () => void
 }
 
-export const OverviewTab = ({ testAchievements, onViewAllTests }: OverviewTabProps) => {
+export const OverviewTab = ({ allAchievements, onViewAllTests, userData, onRefresh }: OverviewTabProps) => {
+  const [isResetting, setIsResetting] = useState(false)
+
+  // Check if dev mode is enabled via URL parameter
+  const isDevMode = useMemo(() => {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('env') === 'dev'
+  }, [])
+
+  // Get all recent achievements (not just test achievements)
+  const recentAchievements = allAchievements
+    .filter((a) => a.status === 'unlocked' && !a.isHidden)
+    .sort((a, b) => (b.lastEarnedAt?.getTime() || b.unlockedAt?.getTime() || 0) - (a.lastEarnedAt?.getTime() || a.unlockedAt?.getTime() || 0))
+    .slice(0, 6)
+
+  const handleResetUser = async () => {
+    if (!userData || !isDevMode) return
+    
+    const confirmed = window.confirm(
+      `⚠️ DEV MODE: This will permanently delete ALL data for ${userData.name}:\n\n` +
+      `- All achievements\n` +
+      `- All practice sessions\n` +
+      `- All answered questions\n` +
+      `- All daily stats\n` +
+      `- Reset level to 1\n\n` +
+      `This cannot be undone. Continue?`
+    )
+    
+    if (!confirmed) return
+
+    setIsResetting(true)
+    try {
+      const response = await fetch(`/api/users/${userData.id}/reset`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to reset user data')
+      }
+
+      // Refresh data if callback provided, otherwise reload page
+      if (onRefresh) {
+        await onRefresh()
+      } else {
+        window.location.reload()
+      }
+      
+      // Show success message
+      alert(`✅ User data reset successfully! ${userData.name} has been reset to level 1.`)
+    } catch (error) {
+      console.error('Error resetting user:', error)
+      alert(`❌ Failed to reset user data: ${error instanceof Error ? error.message : 'Unknown error'}`)
+    } finally {
+      setIsResetting(false)
+    }
+  }
+
   return (
     <motion.div
       key="overview"
@@ -26,30 +88,43 @@ export const OverviewTab = ({ testAchievements, onViewAllTests }: OverviewTabPro
       }}
       className="space-y-8"
     >
-      {/* Recent Test Achievements */}
-      <div>
+      {/* Recent Achievements */}
+      <div data-testid="testid-recent-achievements">
         <h2 className="mb-6 flex items-center gap-3 text-2xl font-bold text-gray-900">
-          <Calculator className="h-7 w-7 text-purple-600" />
-          Recent Test Achievements
+          <Trophy className="h-7 w-7 text-purple-600" />
+          Recent Achievements
         </h2>
-        <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {testAchievements
-            .filter((a) => a.status === 'unlocked')
-            .sort((a, b) => (b.lastEarnedAt?.getTime() || b.unlockedAt?.getTime() || 0) - (a.lastEarnedAt?.getTime() || a.unlockedAt?.getTime() || 0))
-            .slice(0, 6)
-            .map((achievement, index) => (
+        {recentAchievements.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {recentAchievements.map((achievement, index) => (
               <AchievementCard key={achievement.id} achievement={achievement} index={index} />
             ))}
-        </div>
+          </div>
+        ) : (
+          <div className="rounded-2xl border-2 border-gray-200 bg-gray-50 p-8 text-center text-gray-500">
+            No achievements unlocked yet. Keep practicing to earn achievements!
+          </div>
+        )}
       </div>
 
-      {/* View All Tests Button */}
-      <div className="text-center">
+      {/* Action Buttons */}
+      <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+        {isDevMode && userData && (
+          <PillButton
+            onClick={handleResetUser}
+            tone="rose"
+            disabled={isResetting}
+            leftIcon={<RotateCcw className="h-4 w-4" />}
+          >
+            {isResetting ? 'Resetting...' : 'Reset User (Dev)'}
+          </PillButton>
+        )}
         <button
+          data-testid="testid-view-all-achievements-button"
           onClick={onViewAllTests}
           className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 px-8 py-4 font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
         >
-          View All Test Achievements
+          View All Achievements
         </button>
       </div>
     </motion.div>

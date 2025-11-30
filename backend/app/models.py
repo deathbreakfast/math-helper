@@ -46,6 +46,7 @@ class PracticeSession(db.Model):
     correct_count = db.Column(db.Integer, default=0, nullable=False)
     accuracy = db.Column(db.Float, default=0.0, nullable=False)
     total_duration_ms = db.Column(db.Integer, nullable=True)
+    question_ids = db.Column(db.Text, nullable=True)  # JSON array of question IDs: [1, 2, 3, ...]
 
     user = db.relationship("User", back_populates="practice_sessions")
     responses = db.relationship("Response", back_populates="session", cascade="all, delete")
@@ -176,3 +177,19 @@ class LevelProblemConfig(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     __table_args__ = (db.UniqueConstraint("level", "operation", name="uq_level_problem_config"),)
+
+
+class TestAttempt(db.Model):
+    __tablename__ = "test_attempts"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    level = db.Column(db.Integer, nullable=False, index=True)
+    test_type = db.Column(db.String(64), nullable=False, index=True)  # e.g., "level_1", "multiplication_1"
+    score = db.Column(db.Float, nullable=False)  # Accuracy percentage (0.0 to 1.0)
+    avg_time_per_question_ms = db.Column(db.Integer, nullable=True)  # Average time per question in milliseconds
+    total_duration_ms = db.Column(db.Integer, nullable=True)  # Total test duration in milliseconds
+    passed = db.Column(db.Boolean, nullable=False, index=True)  # True if score >= passing threshold
+    attempted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+
+    user = db.relationship("User", backref="test_attempts")

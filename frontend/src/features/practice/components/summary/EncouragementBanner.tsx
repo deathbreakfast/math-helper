@@ -1,13 +1,17 @@
 import { motion } from 'framer-motion'
 import { getEncouragementMessage } from '../../utils/summaryUtils'
+import type { LevelUpResult } from '../../types'
 
 type EncouragementBannerProps = {
   accuracy: number
   totalProblems: number
   totalTime: number
+  levelUp: LevelUpResult | null
 }
 
-export const EncouragementBanner = ({ accuracy, totalProblems, totalTime }: EncouragementBannerProps) => {
+export const EncouragementBanner = ({ accuracy, totalProblems, totalTime, levelUp }: EncouragementBannerProps) => {
+  const hasLeveledUp = levelUp?.new_level !== undefined
+
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.9 }}
@@ -21,12 +25,28 @@ export const EncouragementBanner = ({ accuracy, totalProblems, totalTime }: Enco
         transition={{ delay: 0.4, type: 'spring', stiffness: 200 }}
         className="text-6xl mb-4"
       >
-        {accuracy === 100 ? '🏆' : accuracy >= 80 ? '⭐' : '💪'}
+        {hasLeveledUp ? '🎉' : accuracy === 100 ? '🏆' : accuracy >= 80 ? '⭐' : '💪'}
       </motion.div>
-      <h2 className="text-3xl sm:text-4xl font-bold mb-2">{getEncouragementMessage(accuracy)}</h2>
-      <p className="text-white/90 text-lg">
-        You completed {totalProblems} problems in {Math.round(totalTime)} seconds
-      </p>
+      {hasLeveledUp ? (
+        <>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-2">
+            🎉 Congratulations! You've Leveled Up! 🎉
+          </h2>
+          <p className="text-white/90 text-lg mb-2">
+            You've reached Level {levelUp.new_level}! Outstanding work!
+          </p>
+          <p className="text-white/80 text-base">
+            You completed {totalProblems} problems in {Math.round(totalTime)} seconds
+          </p>
+        </>
+      ) : (
+        <>
+          <h2 className="text-3xl sm:text-4xl font-bold mb-2">{getEncouragementMessage(accuracy)}</h2>
+          <p className="text-white/90 text-lg">
+            You completed {totalProblems} problems in {Math.round(totalTime)} seconds
+          </p>
+        </>
+      )}
     </motion.div>
   )
 }

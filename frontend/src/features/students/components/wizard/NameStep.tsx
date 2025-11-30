@@ -35,6 +35,7 @@ export const NameStep = ({ name, nameError, maxLength, isSubmitting, onChange, o
             }
           }}
           maxLength={maxLength}
+          data-testid="testid-learner-name-input"
           className={`mt-2 w-full rounded-2xl border-2 px-5 py-4 text-lg font-medium text-slate-900 shadow-sm focus:border-transparent focus:outline-none focus:ring-2 focus:ring-blue-500 ${
             nameError ? 'border-red-300 bg-red-50' : 'border-slate-200 bg-white'
           }`}
@@ -56,7 +57,14 @@ export const NameStep = ({ name, nameError, maxLength, isSubmitting, onChange, o
           )}
         </AnimatePresence>
       </div>
-      <PillButton type="button" onClick={onNext} disabled={!name.trim() || isSubmitting} fullWidth className="mt-6 text-base">
+      <PillButton 
+        type="button" 
+        onClick={onNext} 
+        disabled={!name.trim() || isSubmitting} 
+        fullWidth 
+        className="mt-6 text-base"
+        data-testid="testid-name-step-next-button"
+      >
         Next: Choose Avatar
       </PillButton>
     </div>

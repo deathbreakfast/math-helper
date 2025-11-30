@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import functools
 import logging
+import os
 import time
 from contextlib import contextmanager
 from typing import Any, Callable, Generator, TypeVar
@@ -22,9 +23,18 @@ F = TypeVar("F", bound=Callable[..., Any])
 
 @event.listens_for(Engine, "connect")
 def set_sqlite_pragma(dbapi_conn, connection_record):
-    """Enable foreign key constraints in SQLite."""
+    """Configure SQLite connection with optimized settings for performance and concurrency."""
     cursor = dbapi_conn.cursor()
+    # Enable foreign key constraints
     cursor.execute("PRAGMA foreign_keys=ON")
+    # Enable WAL mode for better concurrent read/write performance
+    cursor.execute("PRAGMA journal_mode=WAL")
+    # Set busy timeout to 30 seconds (prevents hanging on lock contention)
+    cursor.execute("PRAGMA busy_timeout=30000")
+    # Use NORMAL synchronous mode (good balance of safety and performance)
+    cursor.execute("PRAGMA synchronous=NORMAL")
+    # Set cache size to 64MB (negative value means KB, so -64000 = 64MB)
+    cursor.execute("PRAGMA cache_size=-64000")
     cursor.close()
 
 
@@ -91,9 +101,61 @@ def get_session():
 def init_db(app):
     """Initialize database with foreign key support."""
     with app.app_context():
-        # Enable foreign keys for SQLite
+        # Check if we should clear DB on startup (for testing)
+        if os.getenv("CLEAR_DB_ON_START", "false").lower() == "true":
+            logger.info("CLEAR_DB_ON_START is set - clearing database on startup")
+            from .models import (
+                Achievement,
+                DailyStat,
+                FlaggedQuestion,
+                LevelProblemConfig,
+                LevelProgression,
+                PracticeSession,
+                Question,
+                Response,
+                TestAttempt,
+                User,
+            )
+            # Note: db is already imported at module level, don't re-import it
+            
+            # Delete all data in proper order to respect foreign key constraints
+            with transaction():
+                # Delete child records first (order matters for foreign keys)
+                TestAttempt.query.delete()
+                DailyStat.query.delete()
+                FlaggedQuestion.query.delete()
+                Response.query.delete()
+                Achievement.query.delete()
+                PracticeSession.query.delete()
+                
+                # Delete parent records
+                User.query.delete()
+                Question.query.delete()
+                
+                # Delete config tables (optional - these can be re-seeded)
+                LevelProblemConfig.query.delete()
+                LevelProgression.query.delete()
+            
+            logger.info("Database cleared successfully")
+        
+        # Configure SQLite with optimized settings
         db.session.execute(text("PRAGMA foreign_keys=ON"))
+        db.session.execute(text("PRAGMA journal_mode=WAL"))
+        db.session.execute(text("PRAGMA busy_timeout=30000"))
+        db.session.execute(text("PRAGMA synchronous=NORMAL"))
+        db.session.execute(text("PRAGMA cache_size=-64000"))
         db.session.commit()
+        
+        # Verify WAL mode is enabled
+        wal_result = db.session.execute(text("PRAGMA journal_mode")).scalar()
+        if wal_result and wal_result.upper() == "WAL":
+            logger.info(f"SQLite WAL mode enabled successfully (journal_mode={wal_result})")
+        else:
+            logger.warning(f"SQLite WAL mode may not be enabled (journal_mode={wal_result})")
+        
+        # Log cache size for debugging
+        cache_size = db.session.execute(text("PRAGMA cache_size")).scalar()
+        logger.info(f"SQLite cache_size configured: {cache_size} pages")
         
         # Run migrations to ensure schema is up to date
         # Only run if database exists (migration handles new DB creation)
@@ -119,9 +181,27 @@ def init_db(app):
                         sys.path.insert(0, str(backend_dir))
                     from migrate import migrate_database
                     migrate_database(app)  # Pass the app instance to avoid creating new context
+                    
+                    # Verify composite indexes are created
+                    expected_indexes = [
+                        "ix_responses_user_correct_answered",
+                        "ix_achievements_user_category_earned",
+                        "ix_sessions_user_test_completed",
+                        "ix_questions_operation_level",
+                        "ix_responses_user_question_correct",
+                    ]
+                    for index_name in expected_indexes:
+                        result = db.session.execute(
+                            text("SELECT name FROM sqlite_master WHERE type='index' AND name=:name"),
+                            {"name": index_name}
+                        ).scalar()
+                        if result:
+                            logger.debug(f"Composite index verified: {index_name}")
+                        else:
+                            logger.warning(f"Composite index not found: {index_name} (may be created on next migration)")
         except Exception as e:
             logger.warning(f"Migration check failed: {e}")
         
         db.create_all()
-        logger.info("Database initialized with foreign key support")
+        logger.info("Database initialized with foreign key support and performance optimizations")
 

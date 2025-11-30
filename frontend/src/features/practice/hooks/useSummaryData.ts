@@ -146,51 +146,33 @@ export const useSummaryData = (filter: FilterType) => {
     )
   }, [problems])
 
-  // Generate achievements
+  // Use achievements from backend (earned during this session)
+  // Convert backend achievement format to AchievementBadge format
   const achievements = useMemo<AchievementBadge[]>(() => {
-    const earned: AchievementBadge[] = []
-    if (metrics.accuracy >= 90) {
-      earned.push({
-        id: 'accuracy-ace',
-        title: 'Accuracy Ace',
-        description: `Achieved ${metrics.accuracy}% accuracy in this session!`,
-        icon: '🎯',
-        category: 'accuracy',
-        earnedAt: new Date(),
-      })
-    }
-    if (metrics.correctProblems >= 10) {
-      earned.push({
-        id: 'practice-master',
-        title: 'Practice Master',
-        description: `Completed ${metrics.totalProblems} questions with ${metrics.correctProblems} correct answers!`,
-        icon: '🌟',
-        category: 'milestone',
-        earnedAt: new Date(),
-      })
-    }
-    if (metrics.averageSpeed > 0 && metrics.averageSpeed <= 5) {
-      earned.push({
-        id: 'speed-demon',
-        title: 'Speed Demon',
-        description: `Average response time of ${metrics.averageSpeed} seconds per question!`,
-        icon: '⚡',
-        category: 'speed',
-        earnedAt: new Date(),
-      })
-    }
-    if (earned.length === 0) {
-      earned.push({
+    if (!sessionSummary?.achievements || sessionSummary.achievements.length === 0) {
+      // Fallback: show session complete if no achievements
+      return [{
         id: 'session-complete',
         title: 'Session Complete',
         description: `Great job completing ${metrics.totalProblems} questions!`,
         icon: '✅',
         category: 'milestone',
         earnedAt: new Date(),
-      })
+      }]
     }
-    return earned
-  }, [metrics])
+    
+    // Convert backend achievements to AchievementBadge format
+    return sessionSummary.achievements.map((backendAchievement: any) => ({
+      id: backendAchievement.code || backendAchievement.id || `achievement-${Date.now()}`,
+      title: backendAchievement.title || 'Achievement',
+      description: backendAchievement.description || '',
+      icon: backendAchievement.icon || '🏆',
+      category: (backendAchievement.category === 'consistency' ? 'streak' : 
+                 backendAchievement.category === 'speed' ? 'speed' :
+                 backendAchievement.category === 'accuracy' ? 'accuracy' : 'milestone') as AchievementBadge['category'],
+      earnedAt: backendAchievement.earnedAt ? new Date(backendAchievement.earnedAt) : new Date(),
+    }))
+  }, [sessionSummary, metrics.totalProblems])
 
   // Filter problems
   const filteredProblems = useMemo(() => {
@@ -202,6 +184,11 @@ export const useSummaryData = (filter: FilterType) => {
     })
   }, [problems, filter])
 
+  // Extract level up information
+  const levelUp = useMemo(() => {
+    return sessionSummary?.level_up || null
+  }, [sessionSummary])
+
   return {
     sessionSummary,
     user,
@@ -210,6 +197,7 @@ export const useSummaryData = (filter: FilterType) => {
     performanceByDifficulty,
     achievements,
     filteredProblems,
+    levelUp,
   }
 }
 

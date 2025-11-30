@@ -6,7 +6,7 @@ import PracticeDeck from './components/PracticeDeck'
 import PracticeHeader from './components/PracticeHeader'
 import LongDivisionWorksheet from './components/LongDivisionWorksheet'
 import PartialProductsWorksheet from './components/PartialProductsWorksheet'
-import { PracticeModeToggle } from './components/PracticeModeToggle'
+import { MathTypeDisplay } from './components/MathTypeDisplay'
 import { PracticeFooterControls } from './components/PracticeFooterControls'
 import { usePracticeRouting } from './hooks/usePracticeRouting'
 import { usePracticeSession } from './hooks/usePracticeSession'
@@ -15,8 +15,9 @@ const PracticeSessionPage = () => {
   const { learners, isLoading: isLoadingLearners, error: learnersError } = useLearners()
   const practiceSectionRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const nextButtonRef = useRef<HTMLButtonElement | null>(null)
 
-  const { selectedUser, practiceMode, setPracticeMode } = usePracticeRouting(learners)
+  const { selectedUser, practiceMode } = usePracticeRouting(learners)
 
   const {
     problems,
@@ -30,6 +31,7 @@ const PracticeSessionPage = () => {
     isLongDivision,
     progressPercent,
     cardCounterDisplay,
+    sessionMode,
     handleAnswerChange,
     handleCheckAnswer,
     handleSetAnswer,
@@ -45,14 +47,52 @@ const PracticeSessionPage = () => {
   const loadError = learnersError
   const isLoadingUsers = isLoadingLearners
 
+  // Focus input when question changes (prioritize this over Next button focus)
   useEffect(() => {
-    inputRef.current?.focus()
-  }, [currentQuestionIndex])
+    // When question changes, blur any focused buttons immediately
+    if (nextButtonRef.current && nextButtonRef.current === document.activeElement) {
+      nextButtonRef.current.blur()
+    }
+    
+    // Only focus if we have a current question and answer is not shown
+    if (!currentQuestion || showAnswer) return
+    
+    // Try to focus with increasing delays to handle async state updates
+    const timers: ReturnType<typeof setTimeout>[] = []
+    
+    for (let i = 0; i < 3; i++) {
+      const timer = setTimeout(() => {
+        if (inputRef.current && !inputRef.current.disabled) {
+          inputRef.current.focus()
+        }
+      }, 200 + i * 100) // 200ms, 300ms, 400ms
+      timers.push(timer)
+    }
+    
+    return () => {
+      timers.forEach(timer => clearTimeout(timer))
+    }
+  }, [currentQuestionIndex, currentQuestion?.id, showAnswer])
 
   useEffect(() => {
     if (!selectedUser || !practiceSectionRef.current) return
     practiceSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
   }, [selectedUser])
+
+  // Focus Next button when answer is checked (but only if we're not changing questions)
+  useEffect(() => {
+    // Only focus Next button if showAnswer becomes true
+    // Use a longer delay to ensure question change focus doesn't interfere
+    if (showAnswer && nextButtonRef.current && !canSubmit && currentQuestion) {
+      const timer = setTimeout(() => {
+        // Double-check that showAnswer is still true, input is disabled, and we haven't changed questions
+        if (showAnswer && inputRef.current?.disabled && nextButtonRef.current) {
+          nextButtonRef.current.focus()
+        }
+      }, 250)
+      return () => clearTimeout(timer)
+    }
+  }, [showAnswer, canSubmit, currentQuestion])
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
@@ -64,7 +104,9 @@ const PracticeSessionPage = () => {
           progressPercent={progressPercent}
         />
 
-        <PracticeModeToggle practiceMode={practiceMode} onChange={setPracticeMode} />
+        {currentQuestion && (
+          <MathTypeDisplay mode={sessionMode} operation={currentQuestion.operation} />
+        )}
 
         {loadError && (
           <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{loadError}</div>
@@ -113,6 +155,8 @@ const PracticeSessionPage = () => {
                     feedback={feedback}
                     showAnswer={showAnswer}
                     inputRef={inputRef}
+                    onMoveNext={() => handleMove('next')}
+                    canMoveNext={currentQuestionIndex < problems.length - 1}
                   />
                 )}
 
@@ -124,6 +168,8 @@ const PracticeSessionPage = () => {
                   onMove={handleMove}
                   onToggleFlag={toggleFlag}
                   onSubmit={handleSubmit}
+                  showAnswer={showAnswer}
+                  nextButtonRef={nextButtonRef}
                 />
               </>
             )

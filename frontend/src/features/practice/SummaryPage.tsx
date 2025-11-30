@@ -23,6 +23,7 @@ const SummaryPage = () => {
     performanceByDifficulty,
     achievements,
     filteredProblems,
+    levelUp,
   } = useSummaryData(filter)
 
   // Show achievements animation
@@ -89,6 +90,7 @@ const SummaryPage = () => {
           accuracy={metrics.accuracy}
           totalProblems={metrics.totalProblems}
           totalTime={metrics.totalTime}
+          levelUp={levelUp}
         />
 
         <SummaryStatsCards metrics={metrics} />
@@ -109,6 +111,7 @@ const SummaryPage = () => {
         <SummaryActionButtons
           sessionSummary={sessionSummary}
           metrics={metrics}
+          levelUp={levelUp}
           onBackToDashboard={handleBackToDashboard}
           onPracticeAgain={handlePracticeAgain}
           onTryNextLevel={handleTryNextLevel}

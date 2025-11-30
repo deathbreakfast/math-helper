@@ -4,7 +4,9 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..config.levels_config import ACHIEVEMENTS_CONFIG, LEVELS_CONFIG, LEVEL_PROGRESSION_CONFIG
+from ..config.achievements import ACHIEVEMENTS_CONFIG
+from ..config.level_progression_config import LEVEL_PROGRESSION_CONFIG
+from ..config.levels_config import LEVELS_CONFIG
 from ..database import log_query, transaction
 from ..models import LevelProblemConfig, LevelProgression, db
 from .practice_service import PracticeService

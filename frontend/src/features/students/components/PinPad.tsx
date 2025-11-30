@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Check, Delete, X } from 'lucide-react'
 import { PillButton } from '../../../components/ui'
@@ -48,11 +48,13 @@ const PinPad = ({
   disabled = false,
 }: PinPadProps) => {
   const [pin, setPin] = useState(value)
+  const pinRef = useRef(pin)
   const [activeButton, setActiveButton] = useState<string | null>(null)
   const [localError, setLocalError] = useState('')
 
   useEffect(() => {
     setPin(value)
+    pinRef.current = value
   }, [value])
 
   useEffect(() => {
@@ -67,11 +69,21 @@ const PinPad = ({
     (next: string) => {
       if (disabled) return
       setPin(next)
+      pinRef.current = next
       setLocalError('')
       onChange?.(next)
     },
     [disabled, onChange],
   )
+
+  const handleComplete = useCallback(() => {
+    if (disabled) return
+    // Use ref to get the latest pin value, avoiding stale closure issues
+    const currentPin = pinRef.current
+    if (currentPin.length === maxDigits) {
+      onComplete?.(currentPin)
+    }
+  }, [disabled, maxDigits, onComplete])
 
   const handleNumberPress = useCallback(
     (digit: string) => {
@@ -263,7 +275,7 @@ const PinPad = ({
         ))}
       </div>
 
-      <p className="mt-4 text-center text-sm text-slate-500">
+      <p className="mt-4 text-center text-sm text-slate-500" data-testid="testid-pin-display">
         {pin.length} / {maxDigits} digits entered
       </p>
 
@@ -275,7 +287,8 @@ const PinPad = ({
             disabled={!isComplete || disabled}
             fullWidth
             className="mt-6 text-base"
-            onClick={() => (isComplete && !disabled ? onComplete?.(pin) : null)}
+            data-testid="testid-pin-complete-button"
+            onClick={handleComplete}
           >
             {continueLabel}
           </PillButton>

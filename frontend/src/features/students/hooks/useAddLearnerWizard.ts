@@ -79,14 +79,17 @@ export const useAddLearnerWizard = ({ initialUser, onComplete }: UseAddLearnerWi
 
   const handlePinComplete = async (pin: string) => {
     if (isSubmitting || pin.length !== 4) return false
-    if (newUser.pin !== pin) {
-      setNewUser({ ...newUser, pin })
-    }
+    
+    // Update state synchronously before calling onComplete
+    const updatedUser = { ...newUser, pin }
+    setNewUser(updatedUser)
+    
     if (onComplete) {
       setIsSubmitting(true)
       setError(null)
       try {
-        await onComplete({ ...newUser, pin })
+        // Use the updated user object directly instead of relying on state
+        await onComplete(updatedUser)
         return true
       } catch (err) {
         const message = err instanceof Error ? err.message : 'Unable to create learner.'

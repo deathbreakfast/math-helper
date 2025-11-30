@@ -276,6 +276,136 @@ class PracticeService:
         return config
 
     @staticmethod
+    @log_query
+    def get_incomplete_session(user_id: int, mode: str | None = None) -> tuple[PracticeSession | None, int, int]:
+        """Get the most recent incomplete session for a user.
+        
+        Returns:
+            Tuple of (session, total_responses_count, None)
+            Only returns session if it has unanswered questions (responses exist but session not completed).
+        """
+        query = PracticeSession.query.filter_by(
+            user_id=user_id,
+            completed_at=None  # Incomplete sessions have null completed_at
+        )
+        
+        if mode:
+            query = query.filter_by(mode=mode)
+        
+        session = query.order_by(PracticeSession.started_at.desc()).first()
+        
+        if not session:
+            return None, 0, 0
+        
+        # Get response count for this session
+        responses = Response.query.filter_by(session_id=session.id).all()
+        response_count = len(responses)
+        
+        # For now, if there are any responses, we consider the session incomplete
+        # But we'll let the frontend decide based on localStorage question list
+        return session, response_count, response_count
+    
+    @staticmethod
+    @log_query
+    def get_session_with_details(session_id: int) -> dict[str, Any] | None:
+        """Get a session with its questions and responses.
+        
+        Uses stored question_ids from session to fetch all questions.
+        Orders questions: answered first (by answered_at time), then unanswered.
+        Falls back to inferring from responses if question_ids is NULL (backward compatibility).
+        """
+        session = PracticeSession.query.get(session_id)
+        if not session:
+            return None
+        
+        # Get all responses for this session
+        responses = Response.query.filter_by(session_id=session_id).all()
+        response_map = {r.question_id: r for r in responses if r.question_id}
+        
+        # Get question IDs - use stored question_ids if available, otherwise infer from responses
+        question_id_list = []
+        if session.question_ids:
+            try:
+                question_id_list = json.loads(session.question_ids)
+            except (json.JSONDecodeError, TypeError):
+                # Invalid JSON, fall back to inferring from responses
+                question_id_list = list(response_map.keys())
+        else:
+            # Backward compatibility: infer from responses
+            question_id_list = list(response_map.keys())
+        
+        # Get all questions for this session
+        questions = []
+        if question_id_list:
+            questions = Question.query.filter(Question.id.in_(question_id_list)).all()
+            # Create a map for quick lookup
+            question_map = {q.id: q for q in questions}
+            # Reorder to match question_id_list order
+            questions = [question_map[qid] for qid in question_id_list if qid in question_map]
+        
+        # Separate answered and unanswered questions
+        answered_questions = []
+        unanswered_questions = []
+        
+        for question in questions:
+            response = response_map.get(question.id)
+            if response:
+                answered_questions.append((question, response))
+            else:
+                unanswered_questions.append((question, None))
+        
+        # Sort answered questions by answered_at time (most recent first)
+        answered_questions.sort(key=lambda x: x[1].answered_at if x[1] and x[1].answered_at else datetime.min, reverse=True)
+        
+        # Combine: answered first, then unanswered
+        ordered_questions = [q for q, _ in answered_questions] + [q for q, _ in unanswered_questions]
+        
+        # Serialize questions with their responses
+        questions_data = []
+        for question in ordered_questions:
+            response = response_map.get(question.id)
+            question_data = {
+                "id": f"q-{question.id}",
+                "question_id": question.id,
+                "prompt": question.prompt,
+                "correctAnswer": question.correct_answer,
+                "operation": question.operation,
+                "operand1": question.operand1,
+                "operand2": question.operand2,
+                "layout": {
+                    "type": question.layout_type,
+                    "config": json.loads(question.layout_config) if question.layout_config else None,
+                } if question.layout_type else None,
+                "hint": question.hint,
+                "answer_format": question.answer_format,
+                "math_type_label": question.math_type_label,
+            }
+            
+            if response:
+                question_data["response"] = {
+                    "submitted_answer": response.submitted_answer,
+                    "is_correct": response.is_correct,
+                    "duration_ms": response.duration_ms,
+                    "answered_at": response.answered_at.isoformat() if response.answered_at else None,
+                }
+            
+            questions_data.append(question_data)
+        
+        return {
+            "session": {
+                "id": session.id,
+                "user_id": session.user_id,
+                "mode": session.mode,
+                "level": session.level,
+                "is_test": session.is_test,
+                "test_type": session.test_type,
+                "started_at": session.started_at.isoformat() if session.started_at else None,
+                "completed_at": session.completed_at.isoformat() if session.completed_at else None,
+            },
+            "questions": questions_data,
+        }
+    
+    @staticmethod
     def validate_answer(question: Question, submitted_answer: str) -> bool:
         """Validate a submitted answer against the question's correct answer and accepted answers.
         

@@ -3,27 +3,34 @@ import type { Achievement, AchievementType, AchievementStatus, PerformanceTier }
 
 type UseFilteredAchievementsProps = {
   achievements: Achievement[]
-  achievementFilter: 'all' | AchievementType
+  achievementFilter: 'all' | AchievementType | string
   statusFilter: 'all' | AchievementStatus
-  testFilter: 'all' | 'addition' | 'subtraction' | 'multiplication' | 'division'
   tierFilter: 'all' | PerformanceTier
+  textFilter: string
 }
 
 export const useFilteredAchievements = ({
   achievements,
   achievementFilter,
   statusFilter,
-  testFilter,
   tierFilter,
+  textFilter,
 }: UseFilteredAchievementsProps) => {
   // Filter achievements
   const filteredAchievements = useMemo(() => {
+    const lowerTextFilter = textFilter.toLowerCase()
     return achievements.filter((achievement) => {
-      const typeMatch = achievementFilter === 'all' || achievement.type === achievementFilter
+      // Support both type and category filtering
+      const typeMatch = achievementFilter === 'all' || 
+        achievement.type === achievementFilter || 
+        achievement.category === achievementFilter
       const statusMatch = statusFilter === 'all' || achievement.status === statusFilter
-      return typeMatch && statusMatch
+      const textMatch = !textFilter || 
+        achievement.title.toLowerCase().includes(lowerTextFilter) ||
+        achievement.description.toLowerCase().includes(lowerTextFilter)
+      return typeMatch && statusMatch && textMatch
     })
-  }, [achievements, achievementFilter, statusFilter])
+  }, [achievements, achievementFilter, statusFilter, textFilter])
 
   // Filter test achievements
   const testAchievements = useMemo(() => {
@@ -31,13 +38,16 @@ export const useFilteredAchievements = ({
   }, [achievements])
 
   const filteredTestAchievements = useMemo(() => {
+    const lowerTextFilter = textFilter.toLowerCase()
     return testAchievements.filter((achievement) => {
-      const testTypeMatch = testFilter === 'all' || achievement.testType?.startsWith(testFilter) || false
       const tierMatch = tierFilter === 'all' || achievement.performanceTier === tierFilter
       const statusMatch = statusFilter === 'all' || achievement.status === statusFilter
-      return testTypeMatch && tierMatch && statusMatch
+      const textMatch = !textFilter || 
+        achievement.title.toLowerCase().includes(lowerTextFilter) ||
+        achievement.description.toLowerCase().includes(lowerTextFilter)
+      return tierMatch && statusMatch && textMatch
     })
-  }, [testAchievements, testFilter, tierFilter, statusFilter])
+  }, [testAchievements, tierFilter, statusFilter, textFilter])
 
   // Calculate stats
   const totalAchievements = achievements.filter((a) => !a.isHidden || a.status === 'unlocked').length

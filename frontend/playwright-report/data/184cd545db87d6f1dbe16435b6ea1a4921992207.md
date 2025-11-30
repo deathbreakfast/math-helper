@@ -1,0 +1,1807 @@
+# Page snapshot
+
+```yaml
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - generic [ref=e6]:
+          - heading "Math Helper" [level=1] [ref=e7]
+          - paragraph [ref=e8]: Choose your learner to begin practice
+        - button "Add Learner" [ref=e9] [cursor=pointer]:
+          - img [ref=e10]
+          - text: Add Learner
+      - heading "Select Learner" [level=2] [ref=e11]
+      - generic [ref=e12]:
+        - button "🐯 TestUser_Test_1764534616402_i8pa Level 1" [ref=e13] [cursor=pointer]:
+          - generic [ref=e14]: 🐯
+          - generic [ref=e15]: TestUser_Test_1764534616402_i8pa
+          - generic [ref=e16]: Level 1
+        - button "🐯 TestUser_Test_1764534616405_wtgq Level 1" [ref=e17] [cursor=pointer]:
+          - generic [ref=e18]: 🐯
+          - generic [ref=e19]: TestUser_Test_1764534616405_wtgq
+          - generic [ref=e20]: Level 1
+        - button "🐯 TestUser_Test_1764534616399_nyom Level 1" [ref=e21] [cursor=pointer]:
+          - generic [ref=e22]: 🐯
+          - generic [ref=e23]: TestUser_Test_1764534616399_nyom
+          - generic [ref=e24]: Level 1
+        - button "🐯 TestUser_Test_1764534616422_2jas Level 1" [ref=e25] [cursor=pointer]:
+          - generic [ref=e26]: 🐯
+          - generic [ref=e27]: TestUser_Test_1764534616422_2jas
+          - generic [ref=e28]: Level 1
+        - button "🐯 TestUser_Test_1764534616409_3oko Level 1" [ref=e29] [cursor=pointer]:
+          - generic [ref=e30]: 🐯
+          - generic [ref=e31]: TestUser_Test_1764534616409_3oko
+          - generic [ref=e32]: Level 1
+        - button "🐯 TestUser_Test_1764534616399_ti2m Level 2" [ref=e33] [cursor=pointer]:
+          - generic [ref=e34]: 🐯
+          - generic [ref=e35]: TestUser_Test_1764534616399_ti2m
+          - generic [ref=e36]: Level 2
+        - button "🐯 TestUser_Test_1764534846601_y9ul Level 1" [ref=e37] [cursor=pointer]:
+          - generic [ref=e38]: 🐯
+          - generic [ref=e39]: TestUser_Test_1764534846601_y9ul
+          - generic [ref=e40]: Level 1
+        - button "🐯 TestUser_Test_1764534916413_elyy Level 1" [ref=e41] [cursor=pointer]:
+          - generic [ref=e42]: 🐯
+          - generic [ref=e43]: TestUser_Test_1764534916413_elyy
+          - generic [ref=e44]: Level 1
+        - button "🐯 TestUser_Test_1764535017379_x2ok Level 1" [ref=e45] [cursor=pointer]:
+          - generic [ref=e46]: 🐯
+          - generic [ref=e47]: TestUser_Test_1764535017379_x2ok
+          - generic [ref=e48]: Level 1
+        - button "🐯 TestUser_Test_1764535906504_nsqh Level 10" [ref=e49] [cursor=pointer]:
+          - generic [ref=e50]: 🐯
+          - generic [ref=e51]: TestUser_Test_1764535906504_nsqh
+          - generic [ref=e52]: Level 10
+        - button "🐯 TestUser_Test_1764535906509_aifo Level 1" [ref=e53] [cursor=pointer]:
+          - generic [ref=e54]: 🐯
+          - generic [ref=e55]: TestUser_Test_1764535906509_aifo
+          - generic [ref=e56]: Level 1
+        - button "🐯 TestUser_Test_1764535906516_s36e Level 1" [ref=e57] [cursor=pointer]:
+          - generic [ref=e58]: 🐯
+          - generic [ref=e59]: TestUser_Test_1764535906516_s36e
+          - generic [ref=e60]: Level 1
+        - button "🐯 TestUser_Test_1764535906534_mpcz Level 1" [ref=e61] [cursor=pointer]:
+          - generic [ref=e62]: 🐯
+          - generic [ref=e63]: TestUser_Test_1764535906534_mpcz
+          - generic [ref=e64]: Level 1
+          - img [ref=e66]
+        - button "🐯 TestUser_Test_1764535906573_rvgy Level 1" [ref=e68] [cursor=pointer]:
+          - generic [ref=e69]: 🐯
+          - generic [ref=e70]: TestUser_Test_1764535906573_rvgy
+          - generic [ref=e71]: Level 1
+      - generic [ref=e72]:
+        - generic [ref=e73]:
+          - heading "TestUser_Test_1764535906534_mpcz's progress" [level=2] [ref=e74]
+          - button "Start Practice" [ref=e76] [cursor=pointer]
+        - generic [ref=e77]:
+          - generic [ref=e78]:
+            - generic [ref=e80] [cursor=pointer]:
+              - generic [ref=e81]:
+                - img [ref=e83]
+                - generic [ref=e87]: Current Level
+              - generic [ref=e88]: "1"
+              - generic [ref=e89]: Multi-digit operations
+            - button "View Journey" [ref=e90] [cursor=pointer]:
+              - img [ref=e91]
+          - generic [ref=e97]:
+            - generic [ref=e98]:
+              - img [ref=e100]
+              - generic [ref=e103]: Questions Answered
+            - generic [ref=e104]: "0"
+            - generic [ref=e105]: Keep the momentum going
+          - generic [ref=e108]:
+            - generic [ref=e109]:
+              - img [ref=e111]
+              - generic [ref=e114]: Avg Speed
+            - generic [ref=e115]: 0s
+            - generic [ref=e116]: Per question
+          - generic [ref=e119]:
+            - generic [ref=e120]:
+              - img [ref=e122]
+              - generic [ref=e124]: Current Streak
+            - generic [ref=e125]: "0"
+            - generic [ref=e126]: "Best: 0 days"
+        - generic [ref=e127]:
+          - generic [ref=e129]:
+            - generic [ref=e130]:
+              - heading "Accuracy by operation" [level=3] [ref=e131]
+              - generic [ref=e132]:
+                - img [ref=e133]
+                - combobox [ref=e135]:
+                  - option "All levels" [selected]
+                  - option "Level 1"
+                  - option "Level 2"
+                  - option "Level 3"
+                  - option "Level 4"
+                  - option "Level 5+"
+            - generic [ref=e138]:
+              - list [ref=e140]:
+                - listitem [ref=e141]:
+                  - img "Addition legend icon" [ref=e142]
+                  - text: Addition
+                - listitem [ref=e143]:
+                  - img "Division legend icon" [ref=e144]
+                  - text: Division
+                - listitem [ref=e145]:
+                  - img "Multiplication legend icon" [ref=e146]
+                  - text: Multiplication
+                - listitem [ref=e147]:
+                  - img "Subtraction legend icon" [ref=e148]
+                  - text: Subtraction
+              - application [ref=e149]:
+                - generic [ref=e189]:
+                  - generic [ref=e190]:
+                    - generic [ref=e192]: Jan 1
+                    - generic [ref=e194]: Jan 8
+                    - generic [ref=e196]: Jan 15
+                    - generic [ref=e198]: Jan 22
+                    - generic [ref=e200]: Jan 29
+                    - generic [ref=e202]: Feb 5
+                    - generic [ref=e204]: Feb 12
+                  - generic [ref=e205]:
+                    - generic [ref=e207]: "0"
+                    - generic [ref=e209]: "20"
+                    - generic [ref=e211]: "40"
+                    - generic [ref=e213]: "60"
+                    - generic [ref=e215]: "80"
+                    - generic [ref=e217]: "100"
+                  - generic [ref=e218]: Accuracy (%)
+          - generic [ref=e220]:
+            - generic [ref=e221]:
+              - heading "Speed by operation" [level=3] [ref=e222]
+              - generic [ref=e223]:
+                - img [ref=e224]
+                - combobox [ref=e226]:
+                  - option "All levels" [selected]
+                  - option "Level 1"
+                  - option "Level 2"
+                  - option "Level 3"
+                  - option "Level 4"
+                  - option "Level 5+"
+            - generic [ref=e229]:
+              - list [ref=e231]:
+                - listitem [ref=e232]:
+                  - img "Addition legend icon" [ref=e233]
+                  - text: Addition
+                - listitem [ref=e234]:
+                  - img "Division legend icon" [ref=e235]
+                  - text: Division
+                - listitem [ref=e236]:
+                  - img "Multiplication legend icon" [ref=e237]
+                  - text: Multiplication
+                - listitem [ref=e238]:
+                  - img "Subtraction legend icon" [ref=e239]
+                  - text: Subtraction
+              - application [ref=e240]:
+                - generic [ref=e282]:
+                  - generic [ref=e283]:
+                    - generic [ref=e285]: Jan 1
+                    - generic [ref=e287]: Jan 8
+                    - generic [ref=e289]: Jan 15
+                    - generic [ref=e291]: Jan 22
+                    - generic [ref=e293]: Jan 29
+                    - generic [ref=e295]: Feb 5
+                    - generic [ref=e297]: Feb 12
+                  - generic [ref=e298]:
+                    - generic [ref=e300]: "0"
+                    - generic [ref=e302]: "2"
+                    - generic [ref=e304]: "4"
+                    - generic [ref=e306]: "6"
+                    - generic [ref=e308]: "8"
+                    - generic [ref=e310]: "10"
+                  - generic [ref=e311]: Speed (seconds)
+          - generic [ref=e313]:
+            - generic [ref=e314]:
+              - heading "Recent achievements" [level=3] [ref=e315]
+              - generic [ref=e316]:
+                - button "all" [ref=e317] [cursor=pointer]
+                - button "speed" [ref=e318] [cursor=pointer]
+                - button "consistency" [ref=e319] [cursor=pointer]
+                - button "milestone" [ref=e320] [cursor=pointer]
+            - generic [ref=e321]:
+              - img [ref=e322]
+              - paragraph [ref=e328]: No achievements yet. Keep practicing!
+    - dialog [ref=e329]:
+      - generic [ref=e333]:
+        - generic [ref=e334]:
+          - generic [ref=e335]:
+            - button [ref=e336] [cursor=pointer]:
+              - img [ref=e337]
+            - generic [ref=e339]:
+              - heading "🐯 TestUser_Test_1764535906534_mpcz's Journey" [level=1] [ref=e340]:
+                - generic [ref=e341]: 🐯
+                - text: TestUser_Test_1764535906534_mpcz's Journey
+              - paragraph [ref=e342]: Track your achievements and level progression
+          - generic [ref=e343]:
+            - generic [ref=e344]: Current Level
+            - generic [ref=e345]: "1"
+        - generic [ref=e346]:
+          - generic [ref=e347]:
+            - generic [ref=e348]:
+              - img [ref=e350]
+              - generic [ref=e356]: Achievements
+            - generic [ref=e357]: "0"
+            - generic [ref=e358]: of 218 unlocked
+          - generic [ref=e359]:
+            - generic [ref=e360]:
+              - img [ref=e362]
+              - generic [ref=e364]: Test Achievements
+            - generic [ref=e365]: "0"
+            - generic [ref=e366]: 0 SSS rank
+          - generic [ref=e367]:
+            - generic [ref=e368]:
+              - img [ref=e370]
+              - generic [ref=e372]: Current Streak
+            - generic [ref=e373]: "0"
+            - generic [ref=e374]: "Best: 0 days"
+          - generic [ref=e375]:
+            - generic [ref=e376]:
+              - img [ref=e378]
+              - generic [ref=e382]: In Progress
+            - generic [ref=e383]: "0"
+            - generic [ref=e384]: achievements active
+        - generic [ref=e385]:
+          - button "Overview" [ref=e386] [cursor=pointer]:
+            - img [ref=e387]
+            - text: Overview
+          - button "All Achievements" [active] [ref=e390] [cursor=pointer]:
+            - img [ref=e391]
+            - text: All Achievements
+          - button "Level Requirements" [ref=e394] [cursor=pointer]:
+            - img [ref=e395]
+            - text: Level Requirements
+        - generic [ref=e397]:
+          - generic [ref=e399]:
+            - generic [ref=e400]:
+              - generic [ref=e401]: Category
+              - combobox [ref=e402]:
+                - option "All Categories" [selected]
+                - option "Milestones"
+                - option "Accuracy"
+                - option "Progression"
+                - option "Consistency"
+                - option "Speed"
+                - option "Test"
+                - option "Test Mastery"
+            - generic [ref=e403]:
+              - generic [ref=e404]: Status
+              - combobox [ref=e405]:
+                - option "All Status" [selected]
+                - option "Unlocked"
+                - option "In Progress"
+                - option "Locked"
+            - generic [ref=e406]:
+              - generic [ref=e407]: Search
+              - generic [ref=e408]:
+                - img [ref=e409]
+                - textbox "Search achievements..." [ref=e412]
+          - generic [ref=e413]:
+            - generic [ref=e414]:
+              - img [ref=e416]
+              - generic [ref=e419]: 🎯
+              - generic [ref=e420]: Silver
+              - heading "Accuracy Ace" [level=3] [ref=e421]
+              - paragraph [ref=e422]: Maintained 95%+ accuracy in at least one operation
+              - generic [ref=e423]: "Requirement: Maintained 95%+ accuracy in at least one operation"
+            - generic [ref=e424]:
+              - img [ref=e426]
+              - generic [ref=e429]: 📗
+              - generic [ref=e430]: A
+              - heading "1-Digit Addition - Rank A" [level=3] [ref=e431]
+              - paragraph [ref=e432]: 100% accuracy (under 30 questions)
+              - generic [ref=e433]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e434]:
+              - img [ref=e436]
+              - generic [ref=e439]: 📘
+              - generic [ref=e440]: B
+              - heading "1-Digit Addition - Rank B" [level=3] [ref=e441]
+              - paragraph [ref=e442]: Complete test
+              - generic [ref=e443]: "Requirement: Complete test"
+            - generic [ref=e444]:
+              - img [ref=e446]
+              - generic [ref=e449]: ⭐
+              - generic [ref=e450]: S
+              - heading "1-Digit Addition - Rank S" [level=3] [ref=e451]
+              - paragraph [ref=e452]: Perfect score with speed
+              - generic [ref=e453]: "Requirement: Perfect score with speed"
+            - generic [ref=e454]:
+              - img [ref=e456]
+              - generic [ref=e459]: 🌟
+              - generic [ref=e460]: SS
+              - heading "1-Digit Addition - Rank SS" [level=3] [ref=e461]
+              - paragraph [ref=e462]: Elite performance
+              - generic [ref=e463]: "Requirement: Elite performance"
+            - generic [ref=e464]:
+              - img [ref=e466]
+              - generic [ref=e469]: 💎
+              - generic [ref=e470]: SSS
+              - heading "1-Digit Addition - Rank SSS" [level=3] [ref=e471]
+              - paragraph [ref=e472]: Legendary mastery
+              - generic [ref=e473]: "Requirement: Legendary mastery"
+            - generic [ref=e474]:
+              - img [ref=e476]
+              - generic [ref=e479]: 📗
+              - generic [ref=e480]: A
+              - heading "2-Digit Addition - Rank A" [level=3] [ref=e481]
+              - paragraph [ref=e482]: 100% accuracy (under 30 questions)
+              - generic [ref=e483]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e484]:
+              - img [ref=e486]
+              - generic [ref=e489]: 📘
+              - generic [ref=e490]: B
+              - heading "2-Digit Addition - Rank B" [level=3] [ref=e491]
+              - paragraph [ref=e492]: Complete test
+              - generic [ref=e493]: "Requirement: Complete test"
+            - generic [ref=e494]:
+              - img [ref=e496]
+              - generic [ref=e499]: ⭐
+              - generic [ref=e500]: S
+              - heading "2-Digit Addition - Rank S" [level=3] [ref=e501]
+              - paragraph [ref=e502]: Perfect score with speed
+              - generic [ref=e503]: "Requirement: Perfect score with speed"
+            - generic [ref=e504]:
+              - img [ref=e506]
+              - generic [ref=e509]: 🌟
+              - generic [ref=e510]: SS
+              - heading "2-Digit Addition - Rank SS" [level=3] [ref=e511]
+              - paragraph [ref=e512]: Elite performance
+              - generic [ref=e513]: "Requirement: Elite performance"
+            - generic [ref=e514]:
+              - img [ref=e516]
+              - generic [ref=e519]: 💎
+              - generic [ref=e520]: SSS
+              - heading "2-Digit Addition - Rank SSS" [level=3] [ref=e521]
+              - paragraph [ref=e522]: Legendary mastery
+              - generic [ref=e523]: "Requirement: Legendary mastery"
+            - generic [ref=e524]:
+              - img [ref=e526]
+              - generic [ref=e529]: 📗
+              - generic [ref=e530]: A
+              - heading "3-Digit Addition - Rank A" [level=3] [ref=e531]
+              - paragraph [ref=e532]: 100% accuracy (under 30 questions)
+              - generic [ref=e533]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e534]:
+              - img [ref=e536]
+              - generic [ref=e539]: 📘
+              - generic [ref=e540]: B
+              - heading "3-Digit Addition - Rank B" [level=3] [ref=e541]
+              - paragraph [ref=e542]: Complete test
+              - generic [ref=e543]: "Requirement: Complete test"
+            - generic [ref=e544]:
+              - img [ref=e546]
+              - generic [ref=e549]: ⭐
+              - generic [ref=e550]: S
+              - heading "3-Digit Addition - Rank S" [level=3] [ref=e551]
+              - paragraph [ref=e552]: Perfect score with speed
+              - generic [ref=e553]: "Requirement: Perfect score with speed"
+            - generic [ref=e554]:
+              - img [ref=e556]
+              - generic [ref=e559]: 🌟
+              - generic [ref=e560]: SS
+              - heading "3-Digit Addition - Rank SS" [level=3] [ref=e561]
+              - paragraph [ref=e562]: Elite performance
+              - generic [ref=e563]: "Requirement: Elite performance"
+            - generic [ref=e564]:
+              - img [ref=e566]
+              - generic [ref=e569]: 💎
+              - generic [ref=e570]: SSS
+              - heading "3-Digit Addition - Rank SSS" [level=3] [ref=e571]
+              - paragraph [ref=e572]: Legendary mastery
+              - generic [ref=e573]: "Requirement: Legendary mastery"
+            - generic [ref=e574]:
+              - img [ref=e576]
+              - generic [ref=e579]: ⭐
+              - generic [ref=e580]: Bronze
+              - heading "Addition Basics" [level=3] [ref=e581]
+              - paragraph [ref=e582]: Complete Level 1 with 80%+ accuracy
+              - generic [ref=e583]: "Requirement: Complete Level 1 with 80%+ accuracy"
+            - generic [ref=e584]:
+              - img [ref=e586]
+              - generic [ref=e589]: 💎
+              - generic [ref=e590]: Bronze
+              - heading "Addition Mastery" [level=3] [ref=e591]
+              - paragraph [ref=e592]: Earn 50 platinum or higher level achievements on basic addition (1-digit)
+              - generic [ref=e593]: "Requirement: Earn 50 platinum or higher level achievements on basic addition (1-digit)"
+            - generic [ref=e594]:
+              - img [ref=e596]
+              - generic [ref=e599]: 💎
+              - generic [ref=e600]: Bronze
+              - heading "Advanced Addition & Subtraction Mastery" [level=3] [ref=e601]
+              - paragraph [ref=e602]: Earn 100 gold or higher level achievements on addition and subtraction (outside of basic 1-digit)
+              - generic [ref=e603]: "Requirement: Earn 100 gold or higher level achievements on addition and subtraction (outside of basic 1-digit)"
+            - generic [ref=e604]:
+              - img [ref=e606]
+              - generic [ref=e609]: 📝
+              - generic [ref=e610]: Bronze
+              - heading "Basic Math Test" [level=3] [ref=e611]
+              - paragraph [ref=e612]: Complete basic math test (50 problems covering levels 1-4)
+              - generic [ref=e613]: "Requirement: Complete basic math test (50 problems covering levels 1-4)"
+            - generic [ref=e614]:
+              - img [ref=e616]
+              - generic [ref=e619]: 💯
+              - generic [ref=e620]: Gold
+              - heading "Century Club" [level=3] [ref=e621]
+              - paragraph [ref=e622]: Answered 100+ questions
+              - generic [ref=e623]: "Requirement: Answered 100+ questions"
+            - generic [ref=e624]:
+              - img [ref=e626]
+              - generic [ref=e629]: ➗
+              - generic [ref=e630]: Bronze
+              - heading "Divide by Eight" [level=3] [ref=e631]
+              - paragraph [ref=e632]: Complete Level 32 test (20 questions, 90%+)
+              - generic [ref=e633]: "Requirement: Complete Level 32 test (20 questions, 90%+)"
+            - generic [ref=e634]:
+              - img [ref=e636]
+              - generic [ref=e639]: ➗
+              - generic [ref=e640]: Bronze
+              - heading "Divide by Eleven" [level=3] [ref=e641]
+              - paragraph [ref=e642]: Complete Level 35 test (20 questions, 90%+)
+              - generic [ref=e643]: "Requirement: Complete Level 35 test (20 questions, 90%+)"
+            - generic [ref=e644]:
+              - img [ref=e646]
+              - generic [ref=e649]: ➗
+              - generic [ref=e650]: Bronze
+              - heading "Divide by Five" [level=3] [ref=e651]
+              - paragraph [ref=e652]: Complete Level 29 test (20 questions, 90%+)
+              - generic [ref=e653]: "Requirement: Complete Level 29 test (20 questions, 90%+)"
+            - generic [ref=e654]:
+              - img [ref=e656]
+              - generic [ref=e659]: ➗
+              - generic [ref=e660]: Bronze
+              - heading "Divide by Four" [level=3] [ref=e661]
+              - paragraph [ref=e662]: Complete Level 28 test (20 questions, 90%+)
+              - generic [ref=e663]: "Requirement: Complete Level 28 test (20 questions, 90%+)"
+            - generic [ref=e664]:
+              - img [ref=e666]
+              - generic [ref=e669]: ➗
+              - generic [ref=e670]: Bronze
+              - heading "Divide by Nine" [level=3] [ref=e671]
+              - paragraph [ref=e672]: Complete Level 33 test (20 questions, 90%+)
+              - generic [ref=e673]: "Requirement: Complete Level 33 test (20 questions, 90%+)"
+            - generic [ref=e674]:
+              - img [ref=e676]
+              - generic [ref=e679]: ➗
+              - generic [ref=e680]: Bronze
+              - heading "Divide by One" [level=3] [ref=e681]
+              - paragraph [ref=e682]: Complete Level 25 with 80%+ accuracy
+              - generic [ref=e683]: "Requirement: Complete Level 25 with 80%+ accuracy"
+            - generic [ref=e684]:
+              - img [ref=e686]
+              - generic [ref=e689]: ➗
+              - generic [ref=e690]: Bronze
+              - heading "Divide by Seven" [level=3] [ref=e691]
+              - paragraph [ref=e692]: Complete Level 31 test (20 questions, 90%+)
+              - generic [ref=e693]: "Requirement: Complete Level 31 test (20 questions, 90%+)"
+            - generic [ref=e694]:
+              - img [ref=e696]
+              - generic [ref=e699]: ➗
+              - generic [ref=e700]: Bronze
+              - heading "Divide by Six" [level=3] [ref=e701]
+              - paragraph [ref=e702]: Complete Level 30 test (20 questions, 90%+)
+              - generic [ref=e703]: "Requirement: Complete Level 30 test (20 questions, 90%+)"
+            - generic [ref=e704]:
+              - img [ref=e706]
+              - generic [ref=e709]: ➗
+              - generic [ref=e710]: Bronze
+              - heading "Divide by Ten" [level=3] [ref=e711]
+              - paragraph [ref=e712]: Complete Level 34 test (20 questions, 90%+)
+              - generic [ref=e713]: "Requirement: Complete Level 34 test (20 questions, 90%+)"
+            - generic [ref=e714]:
+              - img [ref=e716]
+              - generic [ref=e719]: ➗
+              - generic [ref=e720]: Bronze
+              - heading "Divide by Three" [level=3] [ref=e721]
+              - paragraph [ref=e722]: Complete Level 27 test (20 questions, 90%+)
+              - generic [ref=e723]: "Requirement: Complete Level 27 test (20 questions, 90%+)"
+            - generic [ref=e724]:
+              - img [ref=e726]
+              - generic [ref=e729]: ➗
+              - generic [ref=e730]: Bronze
+              - heading "Divide by Twelve" [level=3] [ref=e731]
+              - paragraph [ref=e732]: Complete Level 36 test (20 questions, 90%+)
+              - generic [ref=e733]: "Requirement: Complete Level 36 test (20 questions, 90%+)"
+            - generic [ref=e734]:
+              - img [ref=e736]
+              - generic [ref=e739]: ➗
+              - generic [ref=e740]: Bronze
+              - heading "Divide by Two" [level=3] [ref=e741]
+              - paragraph [ref=e742]: Complete Level 26 test (20 questions, 90%+)
+              - generic [ref=e743]: "Requirement: Complete Level 26 test (20 questions, 90%+)"
+            - generic [ref=e744]:
+              - img [ref=e746]
+              - generic [ref=e749]: 📗
+              - generic [ref=e750]: A
+              - heading "1-Digit Division - Rank A" [level=3] [ref=e751]
+              - paragraph [ref=e752]: 100% accuracy (under 30 questions)
+              - generic [ref=e753]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e754]:
+              - img [ref=e756]
+              - generic [ref=e759]: 📘
+              - generic [ref=e760]: B
+              - heading "1-Digit Division - Rank B" [level=3] [ref=e761]
+              - paragraph [ref=e762]: Complete test
+              - generic [ref=e763]: "Requirement: Complete test"
+            - generic [ref=e764]:
+              - img [ref=e766]
+              - generic [ref=e769]: ⭐
+              - generic [ref=e770]: S
+              - heading "1-Digit Division - Rank S" [level=3] [ref=e771]
+              - paragraph [ref=e772]: Perfect score with speed
+              - generic [ref=e773]: "Requirement: Perfect score with speed"
+            - generic [ref=e774]:
+              - img [ref=e776]
+              - generic [ref=e779]: 🌟
+              - generic [ref=e780]: SS
+              - heading "1-Digit Division - Rank SS" [level=3] [ref=e781]
+              - paragraph [ref=e782]: Elite performance
+              - generic [ref=e783]: "Requirement: Elite performance"
+            - generic [ref=e784]:
+              - img [ref=e786]
+              - generic [ref=e789]: 💎
+              - generic [ref=e790]: SSS
+              - heading "1-Digit Division - Rank SSS" [level=3] [ref=e791]
+              - paragraph [ref=e792]: Legendary mastery
+              - generic [ref=e793]: "Requirement: Legendary mastery"
+            - generic [ref=e794]:
+              - img [ref=e796]
+              - generic [ref=e799]: 📗
+              - generic [ref=e800]: A
+              - heading "2-Digit Division - Rank A" [level=3] [ref=e801]
+              - paragraph [ref=e802]: 100% accuracy (under 30 questions)
+              - generic [ref=e803]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e804]:
+              - img [ref=e806]
+              - generic [ref=e809]: 📘
+              - generic [ref=e810]: B
+              - heading "2-Digit Division - Rank B" [level=3] [ref=e811]
+              - paragraph [ref=e812]: Complete test
+              - generic [ref=e813]: "Requirement: Complete test"
+            - generic [ref=e814]:
+              - img [ref=e816]
+              - generic [ref=e819]: ⭐
+              - generic [ref=e820]: S
+              - heading "2-Digit Division - Rank S" [level=3] [ref=e821]
+              - paragraph [ref=e822]: Perfect score with speed
+              - generic [ref=e823]: "Requirement: Perfect score with speed"
+            - generic [ref=e824]:
+              - img [ref=e826]
+              - generic [ref=e829]: 🌟
+              - generic [ref=e830]: SS
+              - heading "2-Digit Division - Rank SS" [level=3] [ref=e831]
+              - paragraph [ref=e832]: Elite performance
+              - generic [ref=e833]: "Requirement: Elite performance"
+            - generic [ref=e834]:
+              - img [ref=e836]
+              - generic [ref=e839]: 💎
+              - generic [ref=e840]: SSS
+              - heading "2-Digit Division - Rank SSS" [level=3] [ref=e841]
+              - paragraph [ref=e842]: Legendary mastery
+              - generic [ref=e843]: "Requirement: Legendary mastery"
+            - generic [ref=e844]:
+              - img [ref=e846]
+              - generic [ref=e849]: 📗
+              - generic [ref=e850]: A
+              - heading "3-Digit Division - Rank A" [level=3] [ref=e851]
+              - paragraph [ref=e852]: 100% accuracy (under 30 questions)
+              - generic [ref=e853]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e854]:
+              - img [ref=e856]
+              - generic [ref=e859]: 📘
+              - generic [ref=e860]: B
+              - heading "3-Digit Division - Rank B" [level=3] [ref=e861]
+              - paragraph [ref=e862]: Complete test
+              - generic [ref=e863]: "Requirement: Complete test"
+            - generic [ref=e864]:
+              - img [ref=e866]
+              - generic [ref=e869]: ⭐
+              - generic [ref=e870]: S
+              - heading "3-Digit Division - Rank S" [level=3] [ref=e871]
+              - paragraph [ref=e872]: Perfect score with speed
+              - generic [ref=e873]: "Requirement: Perfect score with speed"
+            - generic [ref=e874]:
+              - img [ref=e876]
+              - generic [ref=e879]: 🌟
+              - generic [ref=e880]: SS
+              - heading "3-Digit Division - Rank SS" [level=3] [ref=e881]
+              - paragraph [ref=e882]: Elite performance
+              - generic [ref=e883]: "Requirement: Elite performance"
+            - generic [ref=e884]:
+              - img [ref=e886]
+              - generic [ref=e889]: 💎
+              - generic [ref=e890]: SSS
+              - heading "3-Digit Division - Rank SSS" [level=3] [ref=e891]
+              - paragraph [ref=e892]: Legendary mastery
+              - generic [ref=e893]: "Requirement: Legendary mastery"
+            - generic [ref=e894]:
+              - img [ref=e896]
+              - generic [ref=e899]: ➗
+              - generic [ref=e900]: Bronze
+              - heading "Division Decimal" [level=3] [ref=e901]
+              - paragraph [ref=e902]: Complete Level 40 with 20 correct answers
+              - generic [ref=e903]: "Requirement: Complete Level 40 with 20 correct answers"
+            - generic [ref=e904]:
+              - img [ref=e906]
+              - generic [ref=e909]: ➗
+              - generic [ref=e910]: Bronze
+              - heading "Division Double Decimal" [level=3] [ref=e911]
+              - paragraph [ref=e912]: Complete Level 44 with 80%+ accuracy
+              - generic [ref=e913]: "Requirement: Complete Level 44 with 80%+ accuracy"
+            - generic [ref=e914]:
+              - img [ref=e916]
+              - generic [ref=e919]: ➗
+              - generic [ref=e920]: Bronze
+              - heading "Division Double Fraction" [level=3] [ref=e921]
+              - paragraph [ref=e922]: Complete Level 40 with 80%+ accuracy
+              - generic [ref=e923]: "Requirement: Complete Level 40 with 80%+ accuracy"
+            - generic [ref=e924]:
+              - img [ref=e926]
+              - generic [ref=e929]: ➗
+              - generic [ref=e930]: Bronze
+              - heading "Division Double Remainder" [level=3] [ref=e931]
+              - paragraph [ref=e932]: Complete Level 38 with 80%+ accuracy
+              - generic [ref=e933]: "Requirement: Complete Level 38 with 80%+ accuracy"
+            - generic [ref=e934]:
+              - img [ref=e936]
+              - generic [ref=e939]: ➗
+              - generic [ref=e940]: Bronze
+              - heading "Division Fraction" [level=3] [ref=e941]
+              - paragraph [ref=e942]: Complete Level 38 with 20 correct answers
+              - generic [ref=e943]: "Requirement: Complete Level 38 with 20 correct answers"
+            - generic [ref=e944]:
+              - img [ref=e946]
+              - generic [ref=e949]: ➗
+              - generic [ref=e950]: Bronze
+              - heading "Division Remainder" [level=3] [ref=e951]
+              - paragraph [ref=e952]: Complete Level 37 with 30 correct answers
+              - generic [ref=e953]: "Requirement: Complete Level 37 with 30 correct answers"
+            - generic [ref=e954]:
+              - img [ref=e956]
+              - generic [ref=e959]: ➗
+              - generic [ref=e960]: Bronze
+              - heading "Division Triple Fraction" [level=3] [ref=e961]
+              - paragraph [ref=e962]: Complete Level 41 with 80%+ accuracy
+              - generic [ref=e963]: "Requirement: Complete Level 41 with 80%+ accuracy"
+            - generic [ref=e964]:
+              - img [ref=e966]
+              - generic [ref=e969]: ➕
+              - generic [ref=e970]: Bronze
+              - heading "Double Addition" [level=3] [ref=e971]
+              - paragraph [ref=e972]: Complete Level 5 with 80%+ accuracy
+              - generic [ref=e973]: "Requirement: Complete Level 5 with 80%+ accuracy"
+            - generic [ref=e974]:
+              - img [ref=e976]
+              - generic [ref=e979]: ➖
+              - generic [ref=e980]: Bronze
+              - heading "Double Subtraction" [level=3] [ref=e981]
+              - paragraph [ref=e982]: Complete Level 6 with 80%+ accuracy
+              - generic [ref=e983]: "Requirement: Complete Level 6 with 80%+ accuracy"
+            - generic [ref=e984]:
+              - img [ref=e986]
+              - generic [ref=e989]: 🚀
+              - generic [ref=e990]: Gold
+              - heading "Fast Answer (Bronze)" [level=3] [ref=e991]
+              - paragraph [ref=e992]: Answer 10 questions in a row with average time under 4 seconds
+              - generic [ref=e993]: "Requirement: Answer 10 questions in a row with average time under 4 seconds"
+            - generic [ref=e994]:
+              - img [ref=e996]
+              - generic [ref=e999]: 🚀
+              - generic [ref=e1000]: Gold
+              - heading "Fast Answer (Champion)" [level=3] [ref=e1001]
+              - paragraph [ref=e1002]: Answer 50 questions in a row with average time under 1.5 seconds
+              - generic [ref=e1003]: "Requirement: Answer 50 questions in a row with average time under 1.5 seconds"
+            - generic [ref=e1004]:
+              - img [ref=e1006]
+              - generic [ref=e1009]: 🚀
+              - generic [ref=e1010]: Gold
+              - heading "Fast Answer (Diamond)" [level=3] [ref=e1011]
+              - paragraph [ref=e1012]: Answer 30 questions in a row with average time under 2 seconds
+              - generic [ref=e1013]: "Requirement: Answer 30 questions in a row with average time under 2 seconds"
+            - generic [ref=e1014]:
+              - img [ref=e1016]
+              - generic [ref=e1019]: 🚀
+              - generic [ref=e1020]: Gold
+              - heading "Fast Answer (Gold)" [level=3] [ref=e1021]
+              - paragraph [ref=e1022]: Answer 20 questions in a row with average time under 3 seconds
+              - generic [ref=e1023]: "Requirement: Answer 20 questions in a row with average time under 3 seconds"
+            - generic [ref=e1024]:
+              - img [ref=e1026]
+              - generic [ref=e1029]: 🚀
+              - generic [ref=e1030]: Gold
+              - heading "Fast Answer (Platinum)" [level=3] [ref=e1031]
+              - paragraph [ref=e1032]: Answer 25 questions in a row with average time under 2.5 seconds
+              - generic [ref=e1033]: "Requirement: Answer 25 questions in a row with average time under 2.5 seconds"
+            - generic [ref=e1034]:
+              - img [ref=e1036]
+              - generic [ref=e1039]: 🚀
+              - generic [ref=e1040]: Gold
+              - heading "Fast Answer (Silver)" [level=3] [ref=e1041]
+              - paragraph [ref=e1042]: Answer 15 questions in a row with average time under 3.5 seconds
+              - generic [ref=e1043]: "Requirement: Answer 15 questions in a row with average time under 3.5 seconds"
+            - generic [ref=e1044]:
+              - img [ref=e1046]
+              - generic [ref=e1049]: ⚡
+              - generic [ref=e1050]: Gold
+              - heading "Fast Session (Bronze)" [level=3] [ref=e1051]
+              - paragraph [ref=e1052]: Complete a session with average time under 5 seconds per question
+              - generic [ref=e1053]: "Requirement: Complete a session with average time under 5 seconds per question"
+            - generic [ref=e1054]:
+              - img [ref=e1056]
+              - generic [ref=e1059]: ⚡
+              - generic [ref=e1060]: Gold
+              - heading "Fast Session (Champion)" [level=3] [ref=e1061]
+              - paragraph [ref=e1062]: Complete a session with average time under 1.5 seconds per question
+              - generic [ref=e1063]: "Requirement: Complete a session with average time under 1.5 seconds per question"
+            - generic [ref=e1064]:
+              - img [ref=e1066]
+              - generic [ref=e1069]: ⚡
+              - generic [ref=e1070]: Gold
+              - heading "Fast Session (Diamond)" [level=3] [ref=e1071]
+              - paragraph [ref=e1072]: Complete a session with average time under 2 seconds per question
+              - generic [ref=e1073]: "Requirement: Complete a session with average time under 2 seconds per question"
+            - generic [ref=e1074]:
+              - img [ref=e1076]
+              - generic [ref=e1079]: ⚡
+              - generic [ref=e1080]: Gold
+              - heading "Fast Session (Gold)" [level=3] [ref=e1081]
+              - paragraph [ref=e1082]: Complete a session with average time under 3 seconds per question
+              - generic [ref=e1083]: "Requirement: Complete a session with average time under 3 seconds per question"
+            - generic [ref=e1084]:
+              - img [ref=e1086]
+              - generic [ref=e1089]: ⚡
+              - generic [ref=e1090]: Gold
+              - heading "Fast Session (Platinum)" [level=3] [ref=e1091]
+              - paragraph [ref=e1092]: Complete a session with average time under 2.5 seconds per question
+              - generic [ref=e1093]: "Requirement: Complete a session with average time under 2.5 seconds per question"
+            - generic [ref=e1094]:
+              - img [ref=e1096]
+              - generic [ref=e1099]: ⚡
+              - generic [ref=e1100]: Gold
+              - heading "Fast Session (Silver)" [level=3] [ref=e1101]
+              - paragraph [ref=e1102]: Complete a session with average time under 4 seconds per question
+              - generic [ref=e1103]: "Requirement: Complete a session with average time under 4 seconds per question"
+            - generic [ref=e1104]:
+              - img [ref=e1106]
+              - generic [ref=e1109]: 👣
+              - generic [ref=e1110]: Bronze
+              - heading "First Steps" [level=3] [ref=e1111]
+              - paragraph [ref=e1112]: Complete 10 addition problems
+              - generic [ref=e1113]: "Requirement: Complete 10 addition problems"
+            - generic [ref=e1114]:
+              - img [ref=e1116]
+              - generic [ref=e1119]: 🎯
+              - generic [ref=e1120]: Bronze
+              - heading "First Victory" [level=3] [ref=e1121]
+              - paragraph [ref=e1122]: Answer your first question
+              - generic [ref=e1123]: "Requirement: Answer your first question"
+            - generic [ref=e1124]:
+              - img [ref=e1126]
+              - generic [ref=e1129]: ⭐
+              - generic [ref=e1130]: Bronze
+              - heading "Level 10 Mastery" [level=3] [ref=e1131]
+              - paragraph [ref=e1132]: Complete Level 10 test with 95%+ accuracy (25 questions) AND answer 80 level 10 questions correct in a row
+              - generic [ref=e1133]: "Requirement: Complete Level 10 test with 95%+ accuracy (25 questions) AND answer 80 level 10 questions correct in a row"
+            - generic [ref=e1134]:
+              - img [ref=e1136]
+              - generic [ref=e1139]: ⭐
+              - generic [ref=e1140]: Bronze
+              - heading "Level 11 Mastery" [level=3] [ref=e1141]
+              - paragraph [ref=e1142]: Complete Level 11 test with 95%+ accuracy (25 questions) AND answer 80 level 11 questions correct in a row
+              - generic [ref=e1143]: "Requirement: Complete Level 11 test with 95%+ accuracy (25 questions) AND answer 80 level 11 questions correct in a row"
+            - generic [ref=e1144]:
+              - img [ref=e1146]
+              - generic [ref=e1149]: ⭐
+              - generic [ref=e1150]: Bronze
+              - heading "Level 12 Mastery" [level=3] [ref=e1151]
+              - paragraph [ref=e1152]: Complete Level 12 test with 95%+ accuracy (25 questions) AND answer 80 level 12 questions correct in a row
+              - generic [ref=e1153]: "Requirement: Complete Level 12 test with 95%+ accuracy (25 questions) AND answer 80 level 12 questions correct in a row"
+            - generic [ref=e1154]:
+              - img [ref=e1156]
+              - generic [ref=e1159]: ⭐
+              - generic [ref=e1160]: Bronze
+              - heading "Level 13 Mastery" [level=3] [ref=e1161]
+              - paragraph [ref=e1162]: Complete Level 13 test with 95%+ accuracy (25 questions) AND answer 80 level 13 questions correct in a row
+              - generic [ref=e1163]: "Requirement: Complete Level 13 test with 95%+ accuracy (25 questions) AND answer 80 level 13 questions correct in a row"
+            - generic [ref=e1164]:
+              - img [ref=e1166]
+              - generic [ref=e1169]: ⭐
+              - generic [ref=e1170]: Bronze
+              - heading "Level 14 Mastery" [level=3] [ref=e1171]
+              - paragraph [ref=e1172]: Complete Level 14 test with 95%+ accuracy (25 questions) AND answer 80 level 14 questions correct in a row
+              - generic [ref=e1173]: "Requirement: Complete Level 14 test with 95%+ accuracy (25 questions) AND answer 80 level 14 questions correct in a row"
+            - generic [ref=e1174]:
+              - img [ref=e1176]
+              - generic [ref=e1179]: ⭐
+              - generic [ref=e1180]: Bronze
+              - heading "Level 15 Mastery" [level=3] [ref=e1181]
+              - paragraph [ref=e1182]: Complete Level 15 test with 95%+ accuracy (25 questions) AND answer 80 level 15 questions correct in a row
+              - generic [ref=e1183]: "Requirement: Complete Level 15 test with 95%+ accuracy (25 questions) AND answer 80 level 15 questions correct in a row"
+            - generic [ref=e1184]:
+              - img [ref=e1186]
+              - generic [ref=e1189]: ⭐
+              - generic [ref=e1190]: Bronze
+              - heading "Level 16 Mastery" [level=3] [ref=e1191]
+              - paragraph [ref=e1192]: Complete Level 16 test with 95%+ accuracy (25 questions) AND answer 80 level 16 questions correct in a row
+              - generic [ref=e1193]: "Requirement: Complete Level 16 test with 95%+ accuracy (25 questions) AND answer 80 level 16 questions correct in a row"
+            - generic [ref=e1194]:
+              - img [ref=e1196]
+              - generic [ref=e1199]: ⭐
+              - generic [ref=e1200]: Bronze
+              - heading "Level 17 Mastery" [level=3] [ref=e1201]
+              - paragraph [ref=e1202]: Complete Level 17 test with 95%+ accuracy (25 questions) AND answer 80 level 17 questions correct in a row
+              - generic [ref=e1203]: "Requirement: Complete Level 17 test with 95%+ accuracy (25 questions) AND answer 80 level 17 questions correct in a row"
+            - generic [ref=e1204]:
+              - img [ref=e1206]
+              - generic [ref=e1209]: ⭐
+              - generic [ref=e1210]: Bronze
+              - heading "Level 18 Mastery" [level=3] [ref=e1211]
+              - paragraph [ref=e1212]: Complete Level 18 test with 95%+ accuracy (25 questions) AND answer 80 level 18 questions correct in a row
+              - generic [ref=e1213]: "Requirement: Complete Level 18 test with 95%+ accuracy (25 questions) AND answer 80 level 18 questions correct in a row"
+            - generic [ref=e1214]:
+              - img [ref=e1216]
+              - generic [ref=e1219]: ⭐
+              - generic [ref=e1220]: Bronze
+              - heading "Level 19 Mastery" [level=3] [ref=e1221]
+              - paragraph [ref=e1222]: Complete Level 19 test with 95%+ accuracy (25 questions) AND answer 80 level 19 questions correct in a row
+              - generic [ref=e1223]: "Requirement: Complete Level 19 test with 95%+ accuracy (25 questions) AND answer 80 level 19 questions correct in a row"
+            - generic [ref=e1224]:
+              - img [ref=e1226]
+              - generic [ref=e1229]: ⭐
+              - generic [ref=e1230]: Bronze
+              - heading "Level 2 Mastery" [level=3] [ref=e1231]
+              - paragraph [ref=e1232]: Complete 4 sessions with 90%+ accuracy and answer 10 level 2 questions correct in a row
+              - generic [ref=e1233]: "Requirement: Complete 4 sessions with 90%+ accuracy and answer 10 level 2 questions correct in a row"
+            - generic [ref=e1234]:
+              - img [ref=e1236]
+              - generic [ref=e1239]: ⭐
+              - generic [ref=e1240]: Bronze
+              - heading "Level 20 Mastery" [level=3] [ref=e1241]
+              - paragraph [ref=e1242]: Complete Level 20 test with 95%+ accuracy (25 questions) AND answer 80 level 20 questions correct in a row
+              - generic [ref=e1243]: "Requirement: Complete Level 20 test with 95%+ accuracy (25 questions) AND answer 80 level 20 questions correct in a row"
+            - generic [ref=e1244]:
+              - img [ref=e1246]
+              - generic [ref=e1249]: ⭐
+              - generic [ref=e1250]: Bronze
+              - heading "Level 21 Mastery" [level=3] [ref=e1251]
+              - paragraph [ref=e1252]: Complete Level 21 test with 95%+ accuracy (25 questions) AND answer 80 level 21 questions correct in a row
+              - generic [ref=e1253]: "Requirement: Complete Level 21 test with 95%+ accuracy (25 questions) AND answer 80 level 21 questions correct in a row"
+            - generic [ref=e1254]:
+              - img [ref=e1256]
+              - generic [ref=e1259]: ⭐
+              - generic [ref=e1260]: Bronze
+              - heading "Level 22 Mastery" [level=3] [ref=e1261]
+              - paragraph [ref=e1262]: Complete Level 22 with 95%+ accuracy (minimum 40 questions) AND answer 50 level 22 questions correct in a row
+              - generic [ref=e1263]: "Requirement: Complete Level 22 with 95%+ accuracy (minimum 40 questions) AND answer 50 level 22 questions correct in a row"
+            - generic [ref=e1264]:
+              - img [ref=e1266]
+              - generic [ref=e1269]: ⭐
+              - generic [ref=e1270]: Bronze
+              - heading "Level 23 Mastery" [level=3] [ref=e1271]
+              - paragraph [ref=e1272]: Complete Level 23 with 95%+ accuracy (minimum 40 questions) AND answer 50 level 23 questions correct in a row
+              - generic [ref=e1273]: "Requirement: Complete Level 23 with 95%+ accuracy (minimum 40 questions) AND answer 50 level 23 questions correct in a row"
+            - generic [ref=e1274]:
+              - img [ref=e1276]
+              - generic [ref=e1279]: ⭐
+              - generic [ref=e1280]: Bronze
+              - heading "Level 24 Mastery" [level=3] [ref=e1281]
+              - paragraph [ref=e1282]: Complete Level 24 with 95%+ accuracy (minimum 40 questions) AND answer 50 level 24 questions correct in a row
+              - generic [ref=e1283]: "Requirement: Complete Level 24 with 95%+ accuracy (minimum 40 questions) AND answer 50 level 24 questions correct in a row"
+            - generic [ref=e1284]:
+              - img [ref=e1286]
+              - generic [ref=e1289]: ⭐
+              - generic [ref=e1290]: Bronze
+              - heading "Level 25 Mastery" [level=3] [ref=e1291]
+              - paragraph [ref=e1292]: Complete Level 25 with 95%+ accuracy (minimum 40 questions) AND answer 100 level 25 questions correct in a row
+              - generic [ref=e1293]: "Requirement: Complete Level 25 with 95%+ accuracy (minimum 40 questions) AND answer 100 level 25 questions correct in a row"
+            - generic [ref=e1294]:
+              - img [ref=e1296]
+              - generic [ref=e1299]: ⭐
+              - generic [ref=e1300]: Bronze
+              - heading "Level 5 Mastery" [level=3] [ref=e1301]
+              - paragraph [ref=e1302]: Complete Level 5 with 90%+ accuracy (minimum 15 questions) AND answer 50 level 5 questions correct in a row
+              - generic [ref=e1303]: "Requirement: Complete Level 5 with 90%+ accuracy (minimum 15 questions) AND answer 50 level 5 questions correct in a row"
+            - generic [ref=e1304]:
+              - img [ref=e1306]
+              - generic [ref=e1309]: ⭐
+              - generic [ref=e1310]: Bronze
+              - heading "Level 6 Mastery" [level=3] [ref=e1311]
+              - paragraph [ref=e1312]: Complete Level 6 with 90%+ accuracy (minimum 20 questions) AND answer 50 level 6 questions correct in a row
+              - generic [ref=e1313]: "Requirement: Complete Level 6 with 90%+ accuracy (minimum 20 questions) AND answer 50 level 6 questions correct in a row"
+            - generic [ref=e1314]:
+              - img [ref=e1316]
+              - generic [ref=e1319]: ⭐
+              - generic [ref=e1320]: Bronze
+              - heading "Level 7 Mastery" [level=3] [ref=e1321]
+              - paragraph [ref=e1322]: Complete Level 7 with 90%+ accuracy (minimum 25 questions) AND answer 50 level 7 questions correct in a row
+              - generic [ref=e1323]: "Requirement: Complete Level 7 with 90%+ accuracy (minimum 25 questions) AND answer 50 level 7 questions correct in a row"
+            - generic [ref=e1324]:
+              - img [ref=e1326]
+              - generic [ref=e1329]: ⭐
+              - generic [ref=e1330]: Bronze
+              - heading "Level 8 Mastery" [level=3] [ref=e1331]
+              - paragraph [ref=e1332]: Complete Level 8 with 95%+ accuracy (minimum 30 questions) AND answer 80 level 8 questions correct in a row
+              - generic [ref=e1333]: "Requirement: Complete Level 8 with 95%+ accuracy (minimum 30 questions) AND answer 80 level 8 questions correct in a row"
+            - generic [ref=e1334]:
+              - img [ref=e1336]
+              - generic [ref=e1339]: ⭐
+              - generic [ref=e1340]: Bronze
+              - heading "Level 9 Mastery" [level=3] [ref=e1341]
+              - paragraph [ref=e1342]: Complete Level 9 with 95%+ accuracy (minimum 35 questions) AND answer 80 level 9 questions correct in a row
+              - generic [ref=e1343]: "Requirement: Complete Level 9 with 95%+ accuracy (minimum 35 questions) AND answer 80 level 9 questions correct in a row"
+            - generic [ref=e1344]:
+              - img [ref=e1346]
+              - generic [ref=e1349]: ➕
+              - generic [ref=e1350]: Bronze
+              - heading "Mixed Addition" [level=3] [ref=e1351]
+              - paragraph [ref=e1352]: Complete Level 2 with 20 correct answers
+              - generic [ref=e1353]: "Requirement: Complete Level 2 with 20 correct answers"
+            - generic [ref=e1354]:
+              - img [ref=e1356]
+              - generic [ref=e1359]: ➖
+              - generic [ref=e1360]: Bronze
+              - heading "Mixed Subtraction" [level=3] [ref=e1361]
+              - paragraph [ref=e1362]: Complete Level 4 with 20 correct answers
+              - generic [ref=e1363]: "Requirement: Complete Level 4 with 20 correct answers"
+            - generic [ref=e1364]:
+              - img [ref=e1366]
+              - generic [ref=e1369]: 📗
+              - generic [ref=e1370]: A
+              - heading "Times Table ×10 - Rank A" [level=3] [ref=e1371]
+              - paragraph [ref=e1372]: 100% accuracy (under 30 questions)
+              - generic [ref=e1373]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1374]:
+              - img [ref=e1376]
+              - generic [ref=e1379]: 📘
+              - generic [ref=e1380]: B
+              - heading "Times Table ×10 - Rank B" [level=3] [ref=e1381]
+              - paragraph [ref=e1382]: Complete test
+              - generic [ref=e1383]: "Requirement: Complete test"
+            - generic [ref=e1384]:
+              - img [ref=e1386]
+              - generic [ref=e1389]: ⭐
+              - generic [ref=e1390]: S
+              - heading "Times Table ×10 - Rank S" [level=3] [ref=e1391]
+              - paragraph [ref=e1392]: Perfect score with speed
+              - generic [ref=e1393]: "Requirement: Perfect score with speed"
+            - generic [ref=e1394]:
+              - img [ref=e1396]
+              - generic [ref=e1399]: 🌟
+              - generic [ref=e1400]: SS
+              - heading "Times Table ×10 - Rank SS" [level=3] [ref=e1401]
+              - paragraph [ref=e1402]: Elite performance
+              - generic [ref=e1403]: "Requirement: Elite performance"
+            - generic [ref=e1404]:
+              - img [ref=e1406]
+              - generic [ref=e1409]: 💎
+              - generic [ref=e1410]: SSS
+              - heading "Times Table ×10 - Rank SSS" [level=3] [ref=e1411]
+              - paragraph [ref=e1412]: Legendary mastery
+              - generic [ref=e1413]: "Requirement: Legendary mastery"
+            - generic [ref=e1414]:
+              - img [ref=e1416]
+              - generic [ref=e1419]: 📗
+              - generic [ref=e1420]: A
+              - heading "Times Table ×11 - Rank A" [level=3] [ref=e1421]
+              - paragraph [ref=e1422]: 100% accuracy (under 30 questions)
+              - generic [ref=e1423]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1424]:
+              - img [ref=e1426]
+              - generic [ref=e1429]: 📘
+              - generic [ref=e1430]: B
+              - heading "Times Table ×11 - Rank B" [level=3] [ref=e1431]
+              - paragraph [ref=e1432]: Complete test
+              - generic [ref=e1433]: "Requirement: Complete test"
+            - generic [ref=e1434]:
+              - img [ref=e1436]
+              - generic [ref=e1439]: ⭐
+              - generic [ref=e1440]: S
+              - heading "Times Table ×11 - Rank S" [level=3] [ref=e1441]
+              - paragraph [ref=e1442]: Perfect score with speed
+              - generic [ref=e1443]: "Requirement: Perfect score with speed"
+            - generic [ref=e1444]:
+              - img [ref=e1446]
+              - generic [ref=e1449]: 🌟
+              - generic [ref=e1450]: SS
+              - heading "Times Table ×11 - Rank SS" [level=3] [ref=e1451]
+              - paragraph [ref=e1452]: Elite performance
+              - generic [ref=e1453]: "Requirement: Elite performance"
+            - generic [ref=e1454]:
+              - img [ref=e1456]
+              - generic [ref=e1459]: 💎
+              - generic [ref=e1460]: SSS
+              - heading "Times Table ×11 - Rank SSS" [level=3] [ref=e1461]
+              - paragraph [ref=e1462]: Legendary mastery
+              - generic [ref=e1463]: "Requirement: Legendary mastery"
+            - generic [ref=e1464]:
+              - img [ref=e1466]
+              - generic [ref=e1469]: 📗
+              - generic [ref=e1470]: A
+              - heading "Times Table ×12 - Rank A" [level=3] [ref=e1471]
+              - paragraph [ref=e1472]: 100% accuracy (under 30 questions)
+              - generic [ref=e1473]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1474]:
+              - img [ref=e1476]
+              - generic [ref=e1479]: 📘
+              - generic [ref=e1480]: B
+              - heading "Times Table ×12 - Rank B" [level=3] [ref=e1481]
+              - paragraph [ref=e1482]: Complete test
+              - generic [ref=e1483]: "Requirement: Complete test"
+            - generic [ref=e1484]:
+              - img [ref=e1486]
+              - generic [ref=e1489]: ⭐
+              - generic [ref=e1490]: S
+              - heading "Times Table ×12 - Rank S" [level=3] [ref=e1491]
+              - paragraph [ref=e1492]: Perfect score with speed
+              - generic [ref=e1493]: "Requirement: Perfect score with speed"
+            - generic [ref=e1494]:
+              - img [ref=e1496]
+              - generic [ref=e1499]: 🌟
+              - generic [ref=e1500]: SS
+              - heading "Times Table ×12 - Rank SS" [level=3] [ref=e1501]
+              - paragraph [ref=e1502]: Elite performance
+              - generic [ref=e1503]: "Requirement: Elite performance"
+            - generic [ref=e1504]:
+              - img [ref=e1506]
+              - generic [ref=e1509]: 💎
+              - generic [ref=e1510]: SSS
+              - heading "Times Table ×12 - Rank SSS" [level=3] [ref=e1511]
+              - paragraph [ref=e1512]: Legendary mastery
+              - generic [ref=e1513]: "Requirement: Legendary mastery"
+            - generic [ref=e1514]:
+              - img [ref=e1516]
+              - generic [ref=e1519]: 📗
+              - generic [ref=e1520]: A
+              - heading "Times Table ×2 - Rank A" [level=3] [ref=e1521]
+              - paragraph [ref=e1522]: 100% accuracy (under 30 questions)
+              - generic [ref=e1523]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1524]:
+              - img [ref=e1526]
+              - generic [ref=e1529]: 📘
+              - generic [ref=e1530]: B
+              - heading "Times Table ×2 - Rank B" [level=3] [ref=e1531]
+              - paragraph [ref=e1532]: Complete test
+              - generic [ref=e1533]: "Requirement: Complete test"
+            - generic [ref=e1534]:
+              - img [ref=e1536]
+              - generic [ref=e1539]: ⭐
+              - generic [ref=e1540]: S
+              - heading "Times Table ×2 - Rank S" [level=3] [ref=e1541]
+              - paragraph [ref=e1542]: Perfect score with speed
+              - generic [ref=e1543]: "Requirement: Perfect score with speed"
+            - generic [ref=e1544]:
+              - img [ref=e1546]
+              - generic [ref=e1549]: 🌟
+              - generic [ref=e1550]: SS
+              - heading "Times Table ×2 - Rank SS" [level=3] [ref=e1551]
+              - paragraph [ref=e1552]: Elite performance
+              - generic [ref=e1553]: "Requirement: Elite performance"
+            - generic [ref=e1554]:
+              - img [ref=e1556]
+              - generic [ref=e1559]: 💎
+              - generic [ref=e1560]: SSS
+              - heading "Times Table ×2 - Rank SSS" [level=3] [ref=e1561]
+              - paragraph [ref=e1562]: Legendary mastery
+              - generic [ref=e1563]: "Requirement: Legendary mastery"
+            - generic [ref=e1564]:
+              - img [ref=e1566]
+              - generic [ref=e1569]: 📗
+              - generic [ref=e1570]: A
+              - heading "2-Digit Multiplication - Rank A" [level=3] [ref=e1571]
+              - paragraph [ref=e1572]: 100% accuracy (under 30 questions)
+              - generic [ref=e1573]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1574]:
+              - img [ref=e1576]
+              - generic [ref=e1579]: 📘
+              - generic [ref=e1580]: B
+              - heading "2-Digit Multiplication - Rank B" [level=3] [ref=e1581]
+              - paragraph [ref=e1582]: Complete test
+              - generic [ref=e1583]: "Requirement: Complete test"
+            - generic [ref=e1584]:
+              - img [ref=e1586]
+              - generic [ref=e1589]: ⭐
+              - generic [ref=e1590]: S
+              - heading "2-Digit Multiplication - Rank S" [level=3] [ref=e1591]
+              - paragraph [ref=e1592]: Perfect score with speed
+              - generic [ref=e1593]: "Requirement: Perfect score with speed"
+            - generic [ref=e1594]:
+              - img [ref=e1596]
+              - generic [ref=e1599]: 🌟
+              - generic [ref=e1600]: SS
+              - heading "2-Digit Multiplication - Rank SS" [level=3] [ref=e1601]
+              - paragraph [ref=e1602]: Elite performance
+              - generic [ref=e1603]: "Requirement: Elite performance"
+            - generic [ref=e1604]:
+              - img [ref=e1606]
+              - generic [ref=e1609]: 💎
+              - generic [ref=e1610]: SSS
+              - heading "2-Digit Multiplication - Rank SSS" [level=3] [ref=e1611]
+              - paragraph [ref=e1612]: Legendary mastery
+              - generic [ref=e1613]: "Requirement: Legendary mastery"
+            - generic [ref=e1614]:
+              - img [ref=e1616]
+              - generic [ref=e1619]: 📗
+              - generic [ref=e1620]: A
+              - heading "Times Table ×3 - Rank A" [level=3] [ref=e1621]
+              - paragraph [ref=e1622]: 100% accuracy (under 30 questions)
+              - generic [ref=e1623]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1624]:
+              - img [ref=e1626]
+              - generic [ref=e1629]: 📘
+              - generic [ref=e1630]: B
+              - heading "Times Table ×3 - Rank B" [level=3] [ref=e1631]
+              - paragraph [ref=e1632]: Complete test
+              - generic [ref=e1633]: "Requirement: Complete test"
+            - generic [ref=e1634]:
+              - img [ref=e1636]
+              - generic [ref=e1639]: ⭐
+              - generic [ref=e1640]: S
+              - heading "Times Table ×3 - Rank S" [level=3] [ref=e1641]
+              - paragraph [ref=e1642]: Perfect score with speed
+              - generic [ref=e1643]: "Requirement: Perfect score with speed"
+            - generic [ref=e1644]:
+              - img [ref=e1646]
+              - generic [ref=e1649]: 🌟
+              - generic [ref=e1650]: SS
+              - heading "Times Table ×3 - Rank SS" [level=3] [ref=e1651]
+              - paragraph [ref=e1652]: Elite performance
+              - generic [ref=e1653]: "Requirement: Elite performance"
+            - generic [ref=e1654]:
+              - img [ref=e1656]
+              - generic [ref=e1659]: 💎
+              - generic [ref=e1660]: SSS
+              - heading "Times Table ×3 - Rank SSS" [level=3] [ref=e1661]
+              - paragraph [ref=e1662]: Legendary mastery
+              - generic [ref=e1663]: "Requirement: Legendary mastery"
+            - generic [ref=e1664]:
+              - img [ref=e1666]
+              - generic [ref=e1669]: 📗
+              - generic [ref=e1670]: A
+              - heading "3-Digit Multiplication - Rank A" [level=3] [ref=e1671]
+              - paragraph [ref=e1672]: 100% accuracy (under 30 questions)
+              - generic [ref=e1673]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1674]:
+              - img [ref=e1676]
+              - generic [ref=e1679]: 📘
+              - generic [ref=e1680]: B
+              - heading "3-Digit Multiplication - Rank B" [level=3] [ref=e1681]
+              - paragraph [ref=e1682]: Complete test
+              - generic [ref=e1683]: "Requirement: Complete test"
+            - generic [ref=e1684]:
+              - img [ref=e1686]
+              - generic [ref=e1689]: ⭐
+              - generic [ref=e1690]: S
+              - heading "3-Digit Multiplication - Rank S" [level=3] [ref=e1691]
+              - paragraph [ref=e1692]: Perfect score with speed
+              - generic [ref=e1693]: "Requirement: Perfect score with speed"
+            - generic [ref=e1694]:
+              - img [ref=e1696]
+              - generic [ref=e1699]: 🌟
+              - generic [ref=e1700]: SS
+              - heading "3-Digit Multiplication - Rank SS" [level=3] [ref=e1701]
+              - paragraph [ref=e1702]: Elite performance
+              - generic [ref=e1703]: "Requirement: Elite performance"
+            - generic [ref=e1704]:
+              - img [ref=e1706]
+              - generic [ref=e1709]: 💎
+              - generic [ref=e1710]: SSS
+              - heading "3-Digit Multiplication - Rank SSS" [level=3] [ref=e1711]
+              - paragraph [ref=e1712]: Legendary mastery
+              - generic [ref=e1713]: "Requirement: Legendary mastery"
+            - generic [ref=e1714]:
+              - img [ref=e1716]
+              - generic [ref=e1719]: 📗
+              - generic [ref=e1720]: A
+              - heading "Times Table ×4 - Rank A" [level=3] [ref=e1721]
+              - paragraph [ref=e1722]: 100% accuracy (under 30 questions)
+              - generic [ref=e1723]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1724]:
+              - img [ref=e1726]
+              - generic [ref=e1729]: 📘
+              - generic [ref=e1730]: B
+              - heading "Times Table ×4 - Rank B" [level=3] [ref=e1731]
+              - paragraph [ref=e1732]: Complete test
+              - generic [ref=e1733]: "Requirement: Complete test"
+            - generic [ref=e1734]:
+              - img [ref=e1736]
+              - generic [ref=e1739]: ⭐
+              - generic [ref=e1740]: S
+              - heading "Times Table ×4 - Rank S" [level=3] [ref=e1741]
+              - paragraph [ref=e1742]: Perfect score with speed
+              - generic [ref=e1743]: "Requirement: Perfect score with speed"
+            - generic [ref=e1744]:
+              - img [ref=e1746]
+              - generic [ref=e1749]: 🌟
+              - generic [ref=e1750]: SS
+              - heading "Times Table ×4 - Rank SS" [level=3] [ref=e1751]
+              - paragraph [ref=e1752]: Elite performance
+              - generic [ref=e1753]: "Requirement: Elite performance"
+            - generic [ref=e1754]:
+              - img [ref=e1756]
+              - generic [ref=e1759]: 💎
+              - generic [ref=e1760]: SSS
+              - heading "Times Table ×4 - Rank SSS" [level=3] [ref=e1761]
+              - paragraph [ref=e1762]: Legendary mastery
+              - generic [ref=e1763]: "Requirement: Legendary mastery"
+            - generic [ref=e1764]:
+              - img [ref=e1766]
+              - generic [ref=e1769]: 📗
+              - generic [ref=e1770]: A
+              - heading "Times Table ×5 - Rank A" [level=3] [ref=e1771]
+              - paragraph [ref=e1772]: 100% accuracy (under 30 questions)
+              - generic [ref=e1773]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1774]:
+              - img [ref=e1776]
+              - generic [ref=e1779]: 📘
+              - generic [ref=e1780]: B
+              - heading "Times Table ×5 - Rank B" [level=3] [ref=e1781]
+              - paragraph [ref=e1782]: Complete test
+              - generic [ref=e1783]: "Requirement: Complete test"
+            - generic [ref=e1784]:
+              - img [ref=e1786]
+              - generic [ref=e1789]: ⭐
+              - generic [ref=e1790]: S
+              - heading "Times Table ×5 - Rank S" [level=3] [ref=e1791]
+              - paragraph [ref=e1792]: Perfect score with speed
+              - generic [ref=e1793]: "Requirement: Perfect score with speed"
+            - generic [ref=e1794]:
+              - img [ref=e1796]
+              - generic [ref=e1799]: 🌟
+              - generic [ref=e1800]: SS
+              - heading "Times Table ×5 - Rank SS" [level=3] [ref=e1801]
+              - paragraph [ref=e1802]: Elite performance
+              - generic [ref=e1803]: "Requirement: Elite performance"
+            - generic [ref=e1804]:
+              - img [ref=e1806]
+              - generic [ref=e1809]: 💎
+              - generic [ref=e1810]: SSS
+              - heading "Times Table ×5 - Rank SSS" [level=3] [ref=e1811]
+              - paragraph [ref=e1812]: Legendary mastery
+              - generic [ref=e1813]: "Requirement: Legendary mastery"
+            - generic [ref=e1814]:
+              - img [ref=e1816]
+              - generic [ref=e1819]: 📗
+              - generic [ref=e1820]: A
+              - heading "Times Table ×6 - Rank A" [level=3] [ref=e1821]
+              - paragraph [ref=e1822]: 100% accuracy (under 30 questions)
+              - generic [ref=e1823]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1824]:
+              - img [ref=e1826]
+              - generic [ref=e1829]: 📘
+              - generic [ref=e1830]: B
+              - heading "Times Table ×6 - Rank B" [level=3] [ref=e1831]
+              - paragraph [ref=e1832]: Complete test
+              - generic [ref=e1833]: "Requirement: Complete test"
+            - generic [ref=e1834]:
+              - img [ref=e1836]
+              - generic [ref=e1839]: ⭐
+              - generic [ref=e1840]: S
+              - heading "Times Table ×6 - Rank S" [level=3] [ref=e1841]
+              - paragraph [ref=e1842]: Perfect score with speed
+              - generic [ref=e1843]: "Requirement: Perfect score with speed"
+            - generic [ref=e1844]:
+              - img [ref=e1846]
+              - generic [ref=e1849]: 🌟
+              - generic [ref=e1850]: SS
+              - heading "Times Table ×6 - Rank SS" [level=3] [ref=e1851]
+              - paragraph [ref=e1852]: Elite performance
+              - generic [ref=e1853]: "Requirement: Elite performance"
+            - generic [ref=e1854]:
+              - img [ref=e1856]
+              - generic [ref=e1859]: 💎
+              - generic [ref=e1860]: SSS
+              - heading "Times Table ×6 - Rank SSS" [level=3] [ref=e1861]
+              - paragraph [ref=e1862]: Legendary mastery
+              - generic [ref=e1863]: "Requirement: Legendary mastery"
+            - generic [ref=e1864]:
+              - img [ref=e1866]
+              - generic [ref=e1869]: 📗
+              - generic [ref=e1870]: A
+              - heading "Times Table ×7 - Rank A" [level=3] [ref=e1871]
+              - paragraph [ref=e1872]: 100% accuracy (under 30 questions)
+              - generic [ref=e1873]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1874]:
+              - img [ref=e1876]
+              - generic [ref=e1879]: 📘
+              - generic [ref=e1880]: B
+              - heading "Times Table ×7 - Rank B" [level=3] [ref=e1881]
+              - paragraph [ref=e1882]: Complete test
+              - generic [ref=e1883]: "Requirement: Complete test"
+            - generic [ref=e1884]:
+              - img [ref=e1886]
+              - generic [ref=e1889]: ⭐
+              - generic [ref=e1890]: S
+              - heading "Times Table ×7 - Rank S" [level=3] [ref=e1891]
+              - paragraph [ref=e1892]: Perfect score with speed
+              - generic [ref=e1893]: "Requirement: Perfect score with speed"
+            - generic [ref=e1894]:
+              - img [ref=e1896]
+              - generic [ref=e1899]: 🌟
+              - generic [ref=e1900]: SS
+              - heading "Times Table ×7 - Rank SS" [level=3] [ref=e1901]
+              - paragraph [ref=e1902]: Elite performance
+              - generic [ref=e1903]: "Requirement: Elite performance"
+            - generic [ref=e1904]:
+              - img [ref=e1906]
+              - generic [ref=e1909]: 💎
+              - generic [ref=e1910]: SSS
+              - heading "Times Table ×7 - Rank SSS" [level=3] [ref=e1911]
+              - paragraph [ref=e1912]: Legendary mastery
+              - generic [ref=e1913]: "Requirement: Legendary mastery"
+            - generic [ref=e1914]:
+              - img [ref=e1916]
+              - generic [ref=e1919]: 📗
+              - generic [ref=e1920]: A
+              - heading "Times Table ×8 - Rank A" [level=3] [ref=e1921]
+              - paragraph [ref=e1922]: 100% accuracy (under 30 questions)
+              - generic [ref=e1923]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1924]:
+              - img [ref=e1926]
+              - generic [ref=e1929]: 📘
+              - generic [ref=e1930]: B
+              - heading "Times Table ×8 - Rank B" [level=3] [ref=e1931]
+              - paragraph [ref=e1932]: Complete test
+              - generic [ref=e1933]: "Requirement: Complete test"
+            - generic [ref=e1934]:
+              - img [ref=e1936]
+              - generic [ref=e1939]: ⭐
+              - generic [ref=e1940]: S
+              - heading "Times Table ×8 - Rank S" [level=3] [ref=e1941]
+              - paragraph [ref=e1942]: Perfect score with speed
+              - generic [ref=e1943]: "Requirement: Perfect score with speed"
+            - generic [ref=e1944]:
+              - img [ref=e1946]
+              - generic [ref=e1949]: 🌟
+              - generic [ref=e1950]: SS
+              - heading "Times Table ×8 - Rank SS" [level=3] [ref=e1951]
+              - paragraph [ref=e1952]: Elite performance
+              - generic [ref=e1953]: "Requirement: Elite performance"
+            - generic [ref=e1954]:
+              - img [ref=e1956]
+              - generic [ref=e1959]: 💎
+              - generic [ref=e1960]: SSS
+              - heading "Times Table ×8 - Rank SSS" [level=3] [ref=e1961]
+              - paragraph [ref=e1962]: Legendary mastery
+              - generic [ref=e1963]: "Requirement: Legendary mastery"
+            - generic [ref=e1964]:
+              - img [ref=e1966]
+              - generic [ref=e1969]: 📗
+              - generic [ref=e1970]: A
+              - heading "Times Table ×9 - Rank A" [level=3] [ref=e1971]
+              - paragraph [ref=e1972]: 100% accuracy (under 30 questions)
+              - generic [ref=e1973]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e1974]:
+              - img [ref=e1976]
+              - generic [ref=e1979]: 📘
+              - generic [ref=e1980]: B
+              - heading "Times Table ×9 - Rank B" [level=3] [ref=e1981]
+              - paragraph [ref=e1982]: Complete test
+              - generic [ref=e1983]: "Requirement: Complete test"
+            - generic [ref=e1984]:
+              - img [ref=e1986]
+              - generic [ref=e1989]: ⭐
+              - generic [ref=e1990]: S
+              - heading "Times Table ×9 - Rank S" [level=3] [ref=e1991]
+              - paragraph [ref=e1992]: Perfect score with speed
+              - generic [ref=e1993]: "Requirement: Perfect score with speed"
+            - generic [ref=e1994]:
+              - img [ref=e1996]
+              - generic [ref=e1999]: 🌟
+              - generic [ref=e2000]: SS
+              - heading "Times Table ×9 - Rank SS" [level=3] [ref=e2001]
+              - paragraph [ref=e2002]: Elite performance
+              - generic [ref=e2003]: "Requirement: Elite performance"
+            - generic [ref=e2004]:
+              - img [ref=e2006]
+              - generic [ref=e2009]: 💎
+              - generic [ref=e2010]: SSS
+              - heading "Times Table ×9 - Rank SSS" [level=3] [ref=e2011]
+              - paragraph [ref=e2012]: Legendary mastery
+              - generic [ref=e2013]: "Requirement: Legendary mastery"
+            - generic [ref=e2014]:
+              - img [ref=e2016]
+              - generic [ref=e2019]: ✖️
+              - generic [ref=e2020]: Bronze
+              - heading "Multiplication Easy" [level=3] [ref=e2021]
+              - paragraph [ref=e2022]: Complete Level 21 test (20 questions, 90%+)
+              - generic [ref=e2023]: "Requirement: Complete Level 21 test (20 questions, 90%+)"
+            - generic [ref=e2024]:
+              - img [ref=e2026]
+              - generic [ref=e2029]: 💎
+              - generic [ref=e2030]: Bronze
+              - heading "Multiplication Mastery" [level=3] [ref=e2031]
+              - paragraph [ref=e2032]: Complete all multiplication tests 1-12 with Rank S (100% accuracy, 31-59 questions, <6s/question)
+              - generic [ref=e2033]: "Requirement: Complete all multiplication tests 1-12 with Rank S (100% accuracy, 31-59 questions, <6s/question)"
+            - generic [ref=e2034]:
+              - img [ref=e2036]
+              - generic [ref=e2039]: ✖️
+              - generic [ref=e2040]: Bronze
+              - heading "Multiplication Triple" [level=3] [ref=e2041]
+              - paragraph [ref=e2042]: Complete Level 25 with 50 correct answers
+              - generic [ref=e2043]: "Requirement: Complete Level 25 with 50 correct answers"
+            - generic [ref=e2044]:
+              - img [ref=e2046]
+              - generic [ref=e2049]: ✖️
+              - generic [ref=e2050]: Bronze
+              - heading "Multiplication Work" [level=3] [ref=e2051]
+              - paragraph [ref=e2052]: Complete Level 24 with 30 correct answers
+              - generic [ref=e2053]: "Requirement: Complete Level 24 with 30 correct answers"
+            - generic [ref=e2054]:
+              - img [ref=e2056]
+              - generic [ref=e2059]: ✖️
+              - generic [ref=e2060]: Bronze
+              - heading "Multiply by Eight" [level=3] [ref=e2061]
+              - paragraph [ref=e2062]: Complete Level 15 test (20 questions, 90%+)
+              - generic [ref=e2063]: "Requirement: Complete Level 15 test (20 questions, 90%+)"
+            - generic [ref=e2064]:
+              - img [ref=e2066]
+              - generic [ref=e2069]: 📗
+              - generic [ref=e2070]: A
+              - heading "Multiply by Eight Test (Rank A)" [level=3] [ref=e2071]
+              - paragraph [ref=e2072]: Complete Level 15 test (multiplication_7) with Rank A (100% accuracy, under 30 questions)
+              - generic [ref=e2073]: "Requirement: Complete Level 15 test (multiplication_7) with Rank A (100% accuracy, under 30 questions)"
+            - generic [ref=e2074]:
+              - img [ref=e2076]
+              - generic [ref=e2079]: ✖️
+              - generic [ref=e2080]: Bronze
+              - heading "Multiply by Eleven" [level=3] [ref=e2081]
+              - paragraph [ref=e2082]: Complete Level 19 test (20 questions, 90%+)
+              - generic [ref=e2083]: "Requirement: Complete Level 19 test (20 questions, 90%+)"
+            - generic [ref=e2084]:
+              - img [ref=e2086]
+              - generic [ref=e2089]: 📗
+              - generic [ref=e2090]: A
+              - heading "Multiply by Eleven Test (Rank A)" [level=3] [ref=e2091]
+              - paragraph [ref=e2092]: Complete Level 19 test (multiplication_11) with Rank A (100% accuracy, under 30 questions)
+              - generic [ref=e2093]: "Requirement: Complete Level 19 test (multiplication_11) with Rank A (100% accuracy, under 30 questions)"
+            - generic [ref=e2094]:
+              - img [ref=e2096]
+              - generic [ref=e2099]: ✖️
+              - generic [ref=e2100]: Bronze
+              - heading "Multiply by Five" [level=3] [ref=e2101]
+              - paragraph [ref=e2102]: Complete Level 12 test (20 questions, 90%+)
+              - generic [ref=e2103]: "Requirement: Complete Level 12 test (20 questions, 90%+)"
+            - generic [ref=e2104]:
+              - img [ref=e2106]
+              - generic [ref=e2109]: 📗
+              - generic [ref=e2110]: A
+              - heading "Multiply by Five Test (Rank A)" [level=3] [ref=e2111]
+              - paragraph [ref=e2112]: Complete Level 12 test (multiplication_4) with Rank A (100% accuracy, under 30 questions)
+              - generic [ref=e2113]: "Requirement: Complete Level 12 test (multiplication_4) with Rank A (100% accuracy, under 30 questions)"
+            - generic [ref=e2114]:
+              - img [ref=e2116]
+              - generic [ref=e2119]: ✖️
+              - generic [ref=e2120]: Bronze
+              - heading "Multiply by Four" [level=3] [ref=e2121]
+              - paragraph [ref=e2122]: Complete Level 11 test (20 questions, 90%+)
+              - generic [ref=e2123]: "Requirement: Complete Level 11 test (20 questions, 90%+)"
+            - generic [ref=e2124]:
+              - img [ref=e2126]
+              - generic [ref=e2129]: 📗
+              - generic [ref=e2130]: A
+              - heading "Multiply by Four Test (Rank A)" [level=3] [ref=e2131]
+              - paragraph [ref=e2132]: Complete Level 11 test (multiplication_3) with Rank A (100% accuracy, under 30 questions)
+              - generic [ref=e2133]: "Requirement: Complete Level 11 test (multiplication_3) with Rank A (100% accuracy, under 30 questions)"
+            - generic [ref=e2134]:
+              - img [ref=e2136]
+              - generic [ref=e2139]: ✖️
+              - generic [ref=e2140]: Bronze
+              - heading "Multiply by Nine" [level=3] [ref=e2141]
+              - paragraph [ref=e2142]: Complete Level 16 test (20 questions, 90%+)
+              - generic [ref=e2143]: "Requirement: Complete Level 16 test (20 questions, 90%+)"
+            - generic [ref=e2144]:
+              - img [ref=e2146]
+              - generic [ref=e2149]: 📗
+              - generic [ref=e2150]: A
+              - heading "Multiply by Nine Test (Rank A)" [level=3] [ref=e2151]
+              - paragraph [ref=e2152]: Complete Level 16 test (multiplication_8) with Rank A (100% accuracy, under 30 questions)
+              - generic [ref=e2153]: "Requirement: Complete Level 16 test (multiplication_8) with Rank A (100% accuracy, under 30 questions)"
+            - generic [ref=e2154]:
+              - img [ref=e2156]
+              - generic [ref=e2159]: ✖️
+              - generic [ref=e2160]: Bronze
+              - heading "Multiply by One" [level=3] [ref=e2161]
+              - paragraph [ref=e2162]: Complete Level 7 with 30 correct answers
+              - generic [ref=e2163]: "Requirement: Complete Level 7 with 30 correct answers"
+            - generic [ref=e2164]:
+              - img [ref=e2166]
+              - generic [ref=e2169]: ✖️
+              - generic [ref=e2170]: Bronze
+              - heading "Multiply by Seven" [level=3] [ref=e2171]
+              - paragraph [ref=e2172]: Complete Level 14 test (20 questions, 90%+)
+              - generic [ref=e2173]: "Requirement: Complete Level 14 test (20 questions, 90%+)"
+            - generic [ref=e2174]:
+              - img [ref=e2176]
+              - generic [ref=e2179]: 📗
+              - generic [ref=e2180]: A
+              - heading "Multiply by Seven Test (Rank A)" [level=3] [ref=e2181]
+              - paragraph [ref=e2182]: Complete Level 14 test (multiplication_6) with Rank A (100% accuracy, under 30 questions)
+              - generic [ref=e2183]: "Requirement: Complete Level 14 test (multiplication_6) with Rank A (100% accuracy, under 30 questions)"
+            - generic [ref=e2184]:
+              - img [ref=e2186]
+              - generic [ref=e2189]: ✖️
+              - generic [ref=e2190]: Bronze
+              - heading "Multiply by Six" [level=3] [ref=e2191]
+              - paragraph [ref=e2192]: Complete Level 13 test (20 questions, 90%+)
+              - generic [ref=e2193]: "Requirement: Complete Level 13 test (20 questions, 90%+)"
+            - generic [ref=e2194]:
+              - img [ref=e2196]
+              - generic [ref=e2199]: 📗
+              - generic [ref=e2200]: A
+              - heading "Multiply by Six Test (Rank A)" [level=3] [ref=e2201]
+              - paragraph [ref=e2202]: Complete Level 13 test (multiplication_5) with Rank A (100% accuracy, under 30 questions)
+              - generic [ref=e2203]: "Requirement: Complete Level 13 test (multiplication_5) with Rank A (100% accuracy, under 30 questions)"
+            - generic [ref=e2204]:
+              - img [ref=e2206]
+              - generic [ref=e2209]: ✖️
+              - generic [ref=e2210]: Bronze
+              - heading "Multiply by Ten" [level=3] [ref=e2211]
+              - paragraph [ref=e2212]: Complete Level 18 test (20 questions, 90%+)
+              - generic [ref=e2213]: "Requirement: Complete Level 18 test (20 questions, 90%+)"
+            - generic [ref=e2214]:
+              - img [ref=e2216]
+              - generic [ref=e2219]: 📗
+              - generic [ref=e2220]: A
+              - heading "Multiply by Ten Test (Rank A)" [level=3] [ref=e2221]
+              - paragraph [ref=e2222]: Complete Level 18 test (multiplication_10) with Rank A (100% accuracy, under 30 questions)
+              - generic [ref=e2223]: "Requirement: Complete Level 18 test (multiplication_10) with Rank A (100% accuracy, under 30 questions)"
+            - generic [ref=e2224]:
+              - img [ref=e2226]
+              - generic [ref=e2229]: ✖️
+              - generic [ref=e2230]: Bronze
+              - heading "Multiply by Three" [level=3] [ref=e2231]
+              - paragraph [ref=e2232]: Complete Level 10 test (20 questions, 90%+)
+              - generic [ref=e2233]: "Requirement: Complete Level 10 test (20 questions, 90%+)"
+            - generic [ref=e2234]:
+              - img [ref=e2236]
+              - generic [ref=e2239]: 📗
+              - generic [ref=e2240]: A
+              - heading "Multiply by Three Test (Rank A)" [level=3] [ref=e2241]
+              - paragraph [ref=e2242]: Complete Level 10 test (multiplication_2) with Rank A (100% accuracy, under 30 questions)
+              - generic [ref=e2243]: "Requirement: Complete Level 10 test (multiplication_2) with Rank A (100% accuracy, under 30 questions)"
+            - generic [ref=e2244]:
+              - img [ref=e2246]
+              - generic [ref=e2249]: ✖️
+              - generic [ref=e2250]: Bronze
+              - heading "Multiply by Twelve" [level=3] [ref=e2251]
+              - paragraph [ref=e2252]: Complete Level 20 test (20 questions, 90%+)
+              - generic [ref=e2253]: "Requirement: Complete Level 20 test (20 questions, 90%+)"
+            - generic [ref=e2254]:
+              - img [ref=e2256]
+              - generic [ref=e2259]: 📗
+              - generic [ref=e2260]: A
+              - heading "Multiply by Twelve Test (Rank A)" [level=3] [ref=e2261]
+              - paragraph [ref=e2262]: Complete Level 20 test (multiplication_12) with Rank A (100% accuracy, under 30 questions)
+              - generic [ref=e2263]: "Requirement: Complete Level 20 test (multiplication_12) with Rank A (100% accuracy, under 30 questions)"
+            - generic [ref=e2264]:
+              - img [ref=e2266]
+              - generic [ref=e2269]: ✖️
+              - generic [ref=e2270]: Bronze
+              - heading "Multiply by Two" [level=3] [ref=e2271]
+              - paragraph [ref=e2272]: Complete Level 9 test (20 questions, 90%+)
+              - generic [ref=e2273]: "Requirement: Complete Level 9 test (20 questions, 90%+)"
+            - generic [ref=e2274]:
+              - img [ref=e2276]
+              - generic [ref=e2279]: 📗
+              - generic [ref=e2280]: A
+              - heading "Multiply by Two Test (Rank A)" [level=3] [ref=e2281]
+              - paragraph [ref=e2282]: Complete Level 9 test (multiplication_1) with Rank A (100% accuracy, under 30 questions)
+              - generic [ref=e2283]: "Requirement: Complete Level 9 test (multiplication_1) with Rank A (100% accuracy, under 30 questions)"
+            - generic [ref=e2284]:
+              - img [ref=e2286]
+              - generic [ref=e2289]: ✖️
+              - generic [ref=e2290]: Bronze
+              - heading "Multiply by Zero" [level=3] [ref=e2291]
+              - paragraph [ref=e2292]: Complete Level 17 test (20 questions, 90%+)
+              - generic [ref=e2293]: "Requirement: Complete Level 17 test (20 questions, 90%+)"
+            - generic [ref=e2294]:
+              - img [ref=e2296]
+              - generic [ref=e2299]: 📗
+              - generic [ref=e2300]: A
+              - heading "Multiply by Zero Test (Rank A)" [level=3] [ref=e2301]
+              - paragraph [ref=e2302]: Complete Level 17 test (multiplication_9) with Rank A (100% accuracy, under 30 questions)
+              - generic [ref=e2303]: "Requirement: Complete Level 17 test (multiplication_9) with Rank A (100% accuracy, under 30 questions)"
+            - generic [ref=e2304]:
+              - img [ref=e2306]
+              - generic [ref=e2309]: 🔥
+              - generic [ref=e2310]: Bronze
+              - heading "Perfect Sessions (Diamond)" [level=3] [ref=e2311]
+              - paragraph [ref=e2312]: Complete 16 sessions in a row with 100% accuracy
+              - generic [ref=e2313]: "Requirement: Complete 16 sessions in a row with 100% accuracy"
+            - generic [ref=e2314]:
+              - img [ref=e2316]
+              - generic [ref=e2319]: 🔥
+              - generic [ref=e2320]: Bronze
+              - heading "Perfect Sessions (Bronze)" [level=3] [ref=e2321]
+              - paragraph [ref=e2322]: Complete 2 sessions in a row with 100% accuracy
+              - generic [ref=e2323]: "Requirement: Complete 2 sessions in a row with 100% accuracy"
+            - generic [ref=e2324]:
+              - img [ref=e2326]
+              - generic [ref=e2329]: 🔥
+              - generic [ref=e2330]: Bronze
+              - heading "Perfect Sessions (Silver)" [level=3] [ref=e2331]
+              - paragraph [ref=e2332]: Complete 4 sessions in a row with 100% accuracy
+              - generic [ref=e2333]: "Requirement: Complete 4 sessions in a row with 100% accuracy"
+            - generic [ref=e2334]:
+              - img [ref=e2336]
+              - generic [ref=e2339]: 🔥
+              - generic [ref=e2340]: Bronze
+              - heading "Perfect Sessions (Gold)" [level=3] [ref=e2341]
+              - paragraph [ref=e2342]: Complete 8 sessions in a row with 100% accuracy
+              - generic [ref=e2343]: "Requirement: Complete 8 sessions in a row with 100% accuracy"
+            - generic [ref=e2344]:
+              - img [ref=e2346]
+              - generic [ref=e2349]: 🌟
+              - generic [ref=e2350]: Bronze
+              - heading "Perfect Week" [level=3] [ref=e2351]
+              - paragraph [ref=e2352]: Practiced every day this week
+              - generic [ref=e2353]: "Requirement: Practiced every day this week"
+            - generic [ref=e2354]:
+              - img [ref=e2356]
+              - generic [ref=e2359]: ⚡
+              - generic [ref=e2360]: Gold
+              - heading "Speed Demon" [level=3] [ref=e2361]
+              - paragraph [ref=e2362]: Average response time under 3 seconds
+              - generic [ref=e2363]: "Requirement: Average response time under 3 seconds"
+            - generic [ref=e2364]:
+              - img [ref=e2366]
+              - generic [ref=e2369]: 🔥
+              - generic [ref=e2370]: Gold
+              - heading "Dedicated Learner" [level=3] [ref=e2371]
+              - paragraph [ref=e2372]: Complete a 10-day streak
+              - generic [ref=e2373]: "Requirement: Complete a 10-day streak"
+            - generic [ref=e2374]:
+              - img [ref=e2376]
+              - generic [ref=e2379]: 🔥
+              - generic [ref=e2380]: Bronze
+              - heading "First Steps" [level=3] [ref=e2381]
+              - paragraph [ref=e2382]: Complete a 2-day streak
+              - generic [ref=e2383]: "Requirement: Complete a 2-day streak"
+            - generic [ref=e2384]:
+              - img [ref=e2386]
+              - generic [ref=e2389]: 🔥
+              - generic [ref=e2390]: Bronze
+              - heading "Getting Consistent" [level=3] [ref=e2391]
+              - paragraph [ref=e2392]: Complete a 3-day streak
+              - generic [ref=e2393]: "Requirement: Complete a 3-day streak"
+            - generic [ref=e2394]:
+              - img [ref=e2396]
+              - generic [ref=e2399]: 🔥
+              - generic [ref=e2400]: Silver
+              - heading "Practice Makes Perfect" [level=3] [ref=e2401]
+              - paragraph [ref=e2402]: Complete a 5-day streak
+              - generic [ref=e2403]: "Requirement: Complete a 5-day streak"
+            - generic [ref=e2404]:
+              - img [ref=e2406]
+              - generic [ref=e2409]: 📗
+              - generic [ref=e2410]: A
+              - heading "1-Digit Subtraction - Rank A" [level=3] [ref=e2411]
+              - paragraph [ref=e2412]: 100% accuracy (under 30 questions)
+              - generic [ref=e2413]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e2414]:
+              - img [ref=e2416]
+              - generic [ref=e2419]: 📘
+              - generic [ref=e2420]: B
+              - heading "1-Digit Subtraction - Rank B" [level=3] [ref=e2421]
+              - paragraph [ref=e2422]: Complete test
+              - generic [ref=e2423]: "Requirement: Complete test"
+            - generic [ref=e2424]:
+              - img [ref=e2426]
+              - generic [ref=e2429]: ⭐
+              - generic [ref=e2430]: S
+              - heading "1-Digit Subtraction - Rank S" [level=3] [ref=e2431]
+              - paragraph [ref=e2432]: Perfect score with speed
+              - generic [ref=e2433]: "Requirement: Perfect score with speed"
+            - generic [ref=e2434]:
+              - img [ref=e2436]
+              - generic [ref=e2439]: 🌟
+              - generic [ref=e2440]: SS
+              - heading "1-Digit Subtraction - Rank SS" [level=3] [ref=e2441]
+              - paragraph [ref=e2442]: Elite performance
+              - generic [ref=e2443]: "Requirement: Elite performance"
+            - generic [ref=e2444]:
+              - img [ref=e2446]
+              - generic [ref=e2449]: 💎
+              - generic [ref=e2450]: SSS
+              - heading "1-Digit Subtraction - Rank SSS" [level=3] [ref=e2451]
+              - paragraph [ref=e2452]: Legendary mastery
+              - generic [ref=e2453]: "Requirement: Legendary mastery"
+            - generic [ref=e2454]:
+              - img [ref=e2456]
+              - generic [ref=e2459]: 📗
+              - generic [ref=e2460]: A
+              - heading "2-Digit Subtraction - Rank A" [level=3] [ref=e2461]
+              - paragraph [ref=e2462]: 100% accuracy (under 30 questions)
+              - generic [ref=e2463]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e2464]:
+              - img [ref=e2466]
+              - generic [ref=e2469]: 📘
+              - generic [ref=e2470]: B
+              - heading "2-Digit Subtraction - Rank B" [level=3] [ref=e2471]
+              - paragraph [ref=e2472]: Complete test
+              - generic [ref=e2473]: "Requirement: Complete test"
+            - generic [ref=e2474]:
+              - img [ref=e2476]
+              - generic [ref=e2479]: ⭐
+              - generic [ref=e2480]: S
+              - heading "2-Digit Subtraction - Rank S" [level=3] [ref=e2481]
+              - paragraph [ref=e2482]: Perfect score with speed
+              - generic [ref=e2483]: "Requirement: Perfect score with speed"
+            - generic [ref=e2484]:
+              - img [ref=e2486]
+              - generic [ref=e2489]: 🌟
+              - generic [ref=e2490]: SS
+              - heading "2-Digit Subtraction - Rank SS" [level=3] [ref=e2491]
+              - paragraph [ref=e2492]: Elite performance
+              - generic [ref=e2493]: "Requirement: Elite performance"
+            - generic [ref=e2494]:
+              - img [ref=e2496]
+              - generic [ref=e2499]: 💎
+              - generic [ref=e2500]: SSS
+              - heading "2-Digit Subtraction - Rank SSS" [level=3] [ref=e2501]
+              - paragraph [ref=e2502]: Legendary mastery
+              - generic [ref=e2503]: "Requirement: Legendary mastery"
+            - generic [ref=e2504]:
+              - img [ref=e2506]
+              - generic [ref=e2509]: 📗
+              - generic [ref=e2510]: A
+              - heading "3-Digit Subtraction - Rank A" [level=3] [ref=e2511]
+              - paragraph [ref=e2512]: 100% accuracy (under 30 questions)
+              - generic [ref=e2513]: "Requirement: 100% accuracy (under 30 questions)"
+            - generic [ref=e2514]:
+              - img [ref=e2516]
+              - generic [ref=e2519]: 📘
+              - generic [ref=e2520]: B
+              - heading "3-Digit Subtraction - Rank B" [level=3] [ref=e2521]
+              - paragraph [ref=e2522]: Complete test
+              - generic [ref=e2523]: "Requirement: Complete test"
+            - generic [ref=e2524]:
+              - img [ref=e2526]
+              - generic [ref=e2529]: ⭐
+              - generic [ref=e2530]: S
+              - heading "3-Digit Subtraction - Rank S" [level=3] [ref=e2531]
+              - paragraph [ref=e2532]: Perfect score with speed
+              - generic [ref=e2533]: "Requirement: Perfect score with speed"
+            - generic [ref=e2534]:
+              - img [ref=e2536]
+              - generic [ref=e2539]: 🌟
+              - generic [ref=e2540]: SS
+              - heading "3-Digit Subtraction - Rank SS" [level=3] [ref=e2541]
+              - paragraph [ref=e2542]: Elite performance
+              - generic [ref=e2543]: "Requirement: Elite performance"
+            - generic [ref=e2544]:
+              - img [ref=e2546]
+              - generic [ref=e2549]: 💎
+              - generic [ref=e2550]: SSS
+              - heading "3-Digit Subtraction - Rank SSS" [level=3] [ref=e2551]
+              - paragraph [ref=e2552]: Legendary mastery
+              - generic [ref=e2553]: "Requirement: Legendary mastery"
+            - generic [ref=e2554]:
+              - img [ref=e2556]
+              - generic [ref=e2559]: ⭐
+              - generic [ref=e2560]: Bronze
+              - heading "Subtraction Basics" [level=3] [ref=e2561]
+              - paragraph [ref=e2562]: Complete Level 3 with 80%+ accuracy
+              - generic [ref=e2563]: "Requirement: Complete Level 3 with 80%+ accuracy"
+            - generic [ref=e2564]:
+              - img [ref=e2566]
+              - generic [ref=e2569]: 💎
+              - generic [ref=e2570]: Bronze
+              - heading "Subtraction Mastery" [level=3] [ref=e2571]
+              - paragraph [ref=e2572]: Earn 50 platinum or higher level achievements on basic subtraction (1-digit)
+              - generic [ref=e2573]: "Requirement: Earn 50 platinum or higher level achievements on basic subtraction (1-digit)"
+            - generic [ref=e2574]:
+              - img [ref=e2576]
+              - generic [ref=e2579]: ➕
+              - generic [ref=e2580]: Bronze
+              - heading "Triple Addition" [level=3] [ref=e2581]
+              - paragraph [ref=e2582]: Complete Level 8 with 50 correct answers
+              - generic [ref=e2583]: "Requirement: Complete Level 8 with 50 correct answers"
+            - generic [ref=e2584]:
+              - img [ref=e2586]
+              - generic [ref=e2589]: ➖
+              - generic [ref=e2590]: Bronze
+              - heading "Triple Subtraction" [level=3] [ref=e2591]
+              - paragraph [ref=e2592]: Complete Level 22 with 80%+ accuracy
+              - generic [ref=e2593]: "Requirement: Complete Level 22 with 80%+ accuracy"
+  - generic [ref=e2594]: "2"
+```

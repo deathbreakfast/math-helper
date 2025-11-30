@@ -2,20 +2,54 @@
 
 from __future__ import annotations
 
+import time
 from datetime import datetime
 from typing import Any
 from uuid import uuid4
 
 from flask import Blueprint, jsonify, request
 
+from .config.test_requirements import get_all_test_requirements, get_test_requirements
 from .services.achievement_service import AchievementService
 from .services.analytics_service import AnalyticsService
 from .services.level_config_service import LevelConfigService
 from .services.practice_service import PracticeService
 from .services.session_engine_service import SessionEngineService
+from .services.test_eligibility_service import TestEligibilityService
+from .services.test_service import TestService
 from .services.user_service import UserService
 
 api_bp = Blueprint("api", __name__)
+
+# Simple in-memory cache for user data (1-2 second TTL to handle rapid duplicate requests)
+_user_cache: dict[int, tuple[dict[str, Any], float]] = {}
+_CACHE_TTL = 2.0  # 2 seconds TTL
+
+
+def _get_cached_user(user_id: int) -> dict[str, Any] | None:
+    """Get cached user data if still valid."""
+    if user_id in _user_cache:
+        data, timestamp = _user_cache[user_id]
+        if time.time() - timestamp < _CACHE_TTL:
+            return data
+        else:
+            # Expired, remove from cache
+            del _user_cache[user_id]
+    return None
+
+
+def _cache_user(user_id: int, data: dict[str, Any]) -> None:
+    """Cache user data with current timestamp."""
+    _user_cache[user_id] = (data, time.time())
+    # Clean up old entries (keep cache size reasonable)
+    if len(_user_cache) > 100:
+        current_time = time.time()
+        expired_keys = [
+            uid for uid, (_, ts) in _user_cache.items()
+            if current_time - ts >= _CACHE_TTL
+        ]
+        for key in expired_keys:
+            del _user_cache[key]
 
 
 @api_bp.get("/hello")
@@ -42,19 +76,106 @@ def create_user():
 
 @api_bp.get("/users")
 def list_users():
-    """Return all learners with derived dashboard metrics."""
+    """Return all learners with derived dashboard metrics (optimized with batch queries).
+    
+    Query parameters:
+    - minimal: if true, returns only id, name, avatar, level (for fast initial load)
+    """
+    minimal = request.args.get('minimal', 'false').lower() == 'true'
+    
     users = UserService.list_users()
-    return jsonify({"users": [_serialize_user(user) for user in users]})
+    
+    if not users:
+        return jsonify({"users": []})
+    
+    # If minimal mode, return lightweight data for fast initial load
+    if minimal:
+        return jsonify({
+            "users": [
+                {
+                    "id": user.id,
+                    "name": user.display_name,
+                    "avatar": user.avatar,
+                    "level": user.level,
+                }
+                for user in users
+            ]
+        })
+    
+    # Full data mode - use batch operations
+    # Extract user IDs for batch operations
+    user_ids = [user.id for user in users]
+    
+    # Batch compute metrics for all users at once
+    all_metrics = AnalyticsService.compute_user_metrics_batch(user_ids)
+    
+    # Batch ensure achievements for all users
+    all_achievements = AchievementService.ensure_achievements_batch(users, all_metrics)
+    
+    # Batch compute weekly gains
+    all_weekly_gains = AnalyticsService.get_weekly_gain_batch(user_ids)
+    
+    # Serialize with pre-computed data
+    return jsonify({
+        "users": [
+            _serialize_user_fast(
+                user,
+                all_metrics.get(user.id, {}),
+                all_achievements.get(user.id, []),
+                all_weekly_gains.get(user.id, 0)
+            )
+            for user in users
+        ]
+    })
 
 
 @api_bp.get("/users/<int:user_id>")
 def retrieve_user(user_id: int):
-    """Return dashboard metrics for a single learner."""
+    """Return dashboard metrics for a single learner.
+    
+    Uses request-level caching (1-2 second TTL) to handle rapid duplicate requests
+    during parallel test execution.
+    """
+    # Check cache first
+    cached_data = _get_cached_user(user_id)
+    if cached_data is not None:
+        return jsonify(cached_data)
+    
     user = UserService.get_user(user_id)
     if not user:
         return jsonify({"error": "User not found"}), 404
 
-    return jsonify(_serialize_user(user))
+    serialized = _serialize_user(user)
+    
+    # Cache the result
+    _cache_user(user_id, serialized)
+    
+    return jsonify(serialized)
+
+
+@api_bp.post("/users/<int:user_id>/verify-pin")
+def verify_user_pin(user_id: int):
+    """Verify a PIN for a user. Returns success/failure without exposing the PIN.
+    
+    This endpoint should be used for PIN verification instead of sending PINs
+    to the frontend in user data.
+    """
+    payload = request.get_json(silent=True) or {}
+    pin = (payload.get("pin") or "").strip()
+    
+    if not pin.isdigit() or len(pin) != 4:
+        return jsonify({"error": "PIN must be a 4-digit number", "verified": False}), 400
+    
+    user = UserService.get_user(user_id)
+    if not user:
+        return jsonify({"error": "User not found", "verified": False}), 404
+    
+    is_valid = UserService.verify_pin(user, pin)
+    
+    if is_valid:
+        return jsonify({"verified": True})
+    else:
+        return jsonify({"error": "Incorrect PIN", "verified": False}), 403
 
 
 @api_bp.get("/achievements")
@@ -197,6 +318,85 @@ def submit_practice_attempts():
     return jsonify({"session": session_payload})
 
 
+@api_bp.get("/practice/sessions/incomplete")
+def get_incomplete_session():
+    """Get the most recent incomplete session for a user.
+    
+    Returns session details along with response count to help determine if session has unanswered questions.
+    """
+    user_id = request.args.get("user_id", type=int) or request.args.get("userId", type=int)
+    mode = request.args.get("mode")
+
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+
+    incomplete_session, response_count, _ = PracticeService.get_incomplete_session(user_id, mode)
+    
+    if not incomplete_session:
+        return jsonify({"session": None, "response_count": 0}), 200
+
+    # Get session details with questions and responses
+    session_data = PracticeService.get_session_with_details(incomplete_session.id)
+    
+    return jsonify({
+        "session": {
+            "id": incomplete_session.id,
+            "user_id": incomplete_session.user_id,
+            "mode": incomplete_session.mode,
+            "level": incomplete_session.level,
+            "is_test": incomplete_session.is_test,
+            "test_type": incomplete_session.test_type,
+            "started_at": incomplete_session.started_at.isoformat() if incomplete_session.started_at else None,
+        },
+        "response_count": response_count,
+        "questions": session_data["questions"] if session_data else [],
+    }), 200
+
+
+@api_bp.get("/practice/sessions/<int:session_id>")
+def get_session_details(session_id: int):
+    """Get session details including questions and responses."""
+    session_data = PracticeService.get_session_with_details(session_id)
+    
+    if not session_data:
+        return jsonify({"error": "Session not found"}), 404
+    
+    return jsonify(session_data), 200
+
+
+@api_bp.get("/practice/sessions/<int:session_id>/answers")
+def get_session_answers(session_id: int):
+    """Get all questions with their correct answers for a given session.
+    
+    This endpoint is useful for E2E tests to verify answers programmatically.
+    Returns questions with their correct answers without requiring responses to be submitted.
+    """
+    session_data = PracticeService.get_session_with_details(session_id)
+    
+    if not session_data:
+        return jsonify({"error": "Session not found"}), 404
+    
+    # Extract questions with their correct answers
+    questions_with_answers = []
+    for question in session_data.get("questions", []):
+        questions_with_answers.append({
+            "id": question.get("id"),
+            "question_id": question.get("question_id"),
+            "prompt": question.get("prompt"),
+            "correct_answer": question.get("correctAnswer"),
+            "operation": question.get("operation"),
+            "operand1": question.get("operand1"),
+            "operand2": question.get("operand2"),
+            "layout": question.get("layout"),
+            "answer_format": question.get("answer_format"),
+        })
+    
+    return jsonify({
+        "session_id": session_id,
+        "questions": questions_with_answers,
+    }), 200
+
+
 @api_bp.post("/practice/sessions/start")
 def start_practice_session():
     """Start a new practice or test session with generated questions."""
@@ -239,6 +439,111 @@ def get_eligible_tests():
 
     eligible_tests = SessionEngineService.get_eligible_tests(user)
     return jsonify({"eligible_tests": eligible_tests})
+
+
+@api_bp.get("/practice/test-requirements")
+def get_test_requirements_endpoint():
+    """Get test requirements for all levels or a specific level."""
+    level = request.args.get("level", type=int)
+    
+    if level:
+        requirements = get_test_requirements(level)
+        if not requirements:
+            return jsonify({"error": f"No test requirements found for level {level}"}), 404
+        return jsonify({"level": level, "requirements": requirements})
+    else:
+        all_requirements = get_all_test_requirements()
+        return jsonify({"requirements": all_requirements})
+
+
+@api_bp.get("/practice/test-eligibility")
+def get_test_eligibility():
+    """Check if user is eligible for any test or a specific level test."""
+    user_id = request.args.get("user_id", type=int) or request.args.get("userId", type=int)
+    level = request.args.get("level", type=int)
+
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+
+    user = UserService.get_user(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if level:
+        # Check eligibility for specific level
+        is_eligible, reason, details = TestEligibilityService.check_test_eligibility(user, level)
+        return jsonify({
+            "level": level,
+            "is_eligible": is_eligible,
+            "reason": reason,
+            "details": details,
+        })
+    else:
+        # Get all available tests
+        available_tests = TestEligibilityService.get_available_tests(user)
+        return jsonify({"available_tests": available_tests})
+
+
+@api_bp.get("/tests/definitions")
+def get_test_definitions():
+    """Get all test definitions (legacy + new).
+    
+    Query parameters:
+        user_id: Optional user ID to filter by user level
+    """
+    user_id = request.args.get("user_id", type=int) or request.args.get("userId", type=int)
+    user_level = None
+    
+    if user_id:
+        user = UserService.get_user(user_id)
+        if user:
+            user_level = user.level
+    
+    definitions = TestService.get_all_test_definitions(user_level=user_level)
+    return jsonify({"definitions": definitions})
+
+
+@api_bp.get("/tests/attempts")
+def get_all_test_attempts():
+    """Get all test attempts for a user across all test types.
+    
+    Query parameters:
+        user_id: Required user ID
+    """
+    user_id = request.args.get("user_id", type=int) or request.args.get("userId", type=int)
+    
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+    
+    attempts = TestService.get_test_attempts(user_id, test_type=None)
+    return jsonify({"attempts": attempts})
+
+
+@api_bp.get("/tests/<test_type>/attempts")
+def get_test_attempts(test_type: str):
+    """Get test attempts for a specific test type.
+    
+    Query parameters:
+        user_id: Required user ID
+    """
+    user_id = request.args.get("user_id", type=int) or request.args.get("userId", type=int)
+    
+    if not user_id:
+        return jsonify({"error": "user_id is required"}), 400
+    
+    attempts = TestService.get_test_attempts(user_id, test_type=test_type)
+    return jsonify({"test_type": test_type, "attempts": attempts})
+
+
+@api_bp.get("/tests/attempts/<int:attempt_id>/details")
+def get_test_attempt_details(attempt_id: int):
+    """Get detailed test attempt with all questions and responses."""
+    attempt_detail = TestService.get_test_attempt_detail(attempt_id)
+    
+    if not attempt_detail:
+        return jsonify({"error": "Test attempt not found"}), 404
+    
+    return jsonify(attempt_detail)
 
 
 @api_bp.post("/practice/questions/check")
@@ -319,6 +624,35 @@ def complete_session(session_id: int):
     if not user:
         return jsonify({"error": "User not found"}), 404
 
+    # Record test attempt if this is a test session
+    if session.is_test and session.test_type and session.level:
+        from .models import TestAttempt, db
+        from .config.test_requirements import get_test_requirements
+        
+        test_requirements = get_test_requirements(session.level)
+        if test_requirements:
+            passing_score = test_requirements["passing_score"]
+            score = session.accuracy / 100.0  # Convert percentage to decimal
+            passed = score >= passing_score
+            
+            # Calculate average time per question
+            avg_time_per_question_ms = None
+            if total_questions > 0 and calculated_duration > 0:
+                avg_time_per_question_ms = calculated_duration // total_questions
+            
+            # Create test attempt record
+            test_attempt = TestAttempt(
+                user_id=user.id,
+                level=session.level,
+                test_type=session.test_type,
+                score=score,
+                avg_time_per_question_ms=avg_time_per_question_ms,
+                total_duration_ms=total_duration_ms or calculated_duration,
+                passed=passed,
+            )
+            db.session.add(test_attempt)
+            db.session.commit()
+
     # Aggregate daily stats
     AnalyticsService.aggregate_daily_stats(user.id)
 
@@ -331,11 +665,14 @@ def complete_session(session_id: int):
         user, session.test_type
     )
     
+    # Check for tiered test achievements (B, A, S, SS, SSS)
+    tier_achievements = AchievementService.check_test_tier_achievements(session)
+    
     # Combine all new achievements
     all_achievements = AchievementService.get_user_achievements(user.id)
     new_achievements = [
         a for a in all_achievements
-        if a.earned_at >= session.started_at or a in consecutive_achievements
+        if a.earned_at >= session.started_at or a in consecutive_achievements or a in tier_achievements
     ]
 
     # Check leveling
@@ -371,23 +708,46 @@ def complete_session(session_id: int):
 
 
 def _serialize_user(user) -> dict[str, Any]:
-    """Serialize a user with metrics and achievements."""
+    """Serialize a user with metrics and achievements (single user version).
+    
+    NOTE: PIN is NOT included in the response for security reasons.
+    PIN verification must be done via the /api/users/<id>/verify-pin endpoint.
+    """
     metrics = AnalyticsService.compute_user_metrics(user.id)
     achievements_list = AchievementService.ensure_achievements(user, metrics)
-    share_url = {"user": user.display_name, "pin": user.pin}
 
     weekly_gain = AnalyticsService.get_weekly_gain(user.id)
+
+    return _serialize_user_fast(user, metrics, achievements_list, weekly_gain)
+
+
+def _serialize_user_fast(
+    user: Any,
+    metrics: dict[str, Any],
+    achievements_list: list[Any],
+    weekly_gain: int
+) -> dict[str, Any]:
+    """Serialize a user with pre-computed metrics and achievements (optimized version).
+    
+    This version accepts pre-computed data to avoid redundant queries when
+    serializing multiple users in batch.
+    
+    NOTE: PIN is NOT included in the response for security reasons.
+    PIN verification must be done via the /api/users/<id>/verify-pin endpoint.
+    """
+    # Do not include PIN in response - security best practice
+    share_url = {"user": user.display_name}
 
     return {
         "id": user.id,
         "name": user.display_name,
         "avatar": user.avatar,
-        "pin": user.pin,
+        # PIN removed for security - use /api/users/<id>/verify-pin endpoint
         "level": user.level,
-        "questionsAnswered": metrics["questions_answered"],
-        "averageSpeed": metrics["average_speed_seconds"],
+        "questionsAnswered": metrics.get("questions_answered", 0),
+        "averageSpeed": metrics.get("average_speed_seconds", 0.0),
         "weeklyGain": weekly_gain,
-        "stats": metrics["operation_stats"],
+        "stats": metrics.get("operation_stats", {}),
         "achievements": [AchievementService.serialize_achievement(a) for a in achievements_list],
         "share_url_params": share_url,
     }
@@ -416,11 +776,52 @@ def get_level_requirements(level: int):
     return jsonify({"level": level, "requirements": requirements})
 
 
+@api_bp.get("/levels/requirements")
+def get_batch_level_requirements():
+    """Get achievement requirements for multiple levels in one request.
+    
+    Query parameter: levels (comma-separated list of level numbers)
+    Example: /api/levels/requirements?levels=1,2,3,4,5
+    """
+    levels_param = request.args.get('levels', '')
+    if not levels_param:
+        return jsonify({"error": "levels parameter is required (comma-separated list)"}), 400
+    
+    try:
+        levels = [int(level.strip()) for level in levels_param.split(',') if level.strip()]
+    except ValueError:
+        return jsonify({"error": "Invalid levels parameter. Must be comma-separated integers"}), 400
+    
+    if not levels:
+        return jsonify({"error": "No valid levels provided"}), 400
+    
+    # Fetch requirements for all requested levels
+    requirements_by_level = {}
+    for level in levels:
+        requirements = LevelConfigService.get_level_progression_config(level)
+        requirements_by_level[level] = requirements
+    
+    return jsonify({"requirements": requirements_by_level})
+
+
 @api_bp.get("/achievements/definitions")
 def list_achievement_definitions():
-    """Get all achievement definitions."""
+    """Get all achievement definitions from config with full display information."""
     achievements = LevelConfigService.get_all_achievement_configs()
-    return jsonify({"achievements": achievements})
+    
+    # Format for frontend consumption
+    formatted_achievements = {}
+    for code, config in achievements.items():
+        formatted_achievements[code] = {
+            "code": code,
+            "title": config.get("title", ""),
+            "description": config.get("description", ""),
+            "icon": config.get("icon", "🏆"),
+            "category": config.get("category", "milestone"),
+            "requirements": config.get("requirements", {}),
+        }
+    
+    return jsonify({"achievements": formatted_achievements})
 
 
 @api_bp.get("/achievements/<code>/requirements")
@@ -430,3 +831,258 @@ def get_achievement_requirements(code: str):
     if not config:
         return jsonify({"error": f"Achievement {code} not found"}), 404
     return jsonify({"achievement_code": code, "requirements": config.get("requirements", {})})
+
+
+@api_bp.post("/users/<int:user_id>/level-up")
+def manual_level_up(user_id: int):
+    """Manually trigger level up for a user if requirements are met."""
+    user = UserService.get_user(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    next_level = user.level + 1
+    can_level_up, missing_achievements = UserService.can_level_up(user, next_level)
+    
+    if not can_level_up:
+        return jsonify({
+            "success": False,
+            "eligible": False,
+            "missing_achievements": missing_achievements,
+            "message": f"Cannot level up to level {next_level}. Missing achievements: {', '.join(missing_achievements)}"
+        }), 400
+
+    success, errors = UserService.level_up(user, next_level)
+    
+    if success:
+        # Refresh user to get updated level
+        user = UserService.get_user(user_id)
+        return jsonify({
+            "success": True,
+            "eligible": True,
+            "new_level": user.level,
+            "message": f"Successfully leveled up to level {user.level}!"
+        })
+    else:
+        return jsonify({
+            "success": False,
+            "eligible": False,
+            "errors": errors,
+            "message": "Failed to level up"
+        }), 400
+
+
+@api_bp.get("/users/<int:user_id>/level-up/eligibility")
+def check_level_up_eligibility(user_id: int):
+    """Check if a user is eligible to level up."""
+    user = UserService.get_user(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    next_level = user.level + 1
+    can_level_up, missing_achievements = UserService.can_level_up(user, next_level)
+    
+    return jsonify({
+        "eligible": can_level_up,
+        "current_level": user.level,
+        "next_level": next_level,
+        "missing_achievements": missing_achievements,
+    })
+
+
+@api_bp.delete("/users/<int:user_id>/reset")
+def reset_user_data(user_id: int):
+    """Reset all user data (achievements, sessions, responses) - DEV ONLY."""
+    from .models import Achievement, PracticeSession, Response, DailyStat, FlaggedQuestion, db
+    from .database import transaction
+    
+    user = UserService.get_user(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Delete all user data
+    with transaction():
+        # Delete achievements
+        Achievement.query.filter_by(user_id=user_id).delete()
+        
+        # Delete flagged questions
+        FlaggedQuestion.query.filter_by(user_id=user_id).delete()
+        
+        # Delete responses (cascade should handle this, but being explicit)
+        Response.query.filter_by(user_id=user_id).delete()
+        
+        # Delete practice sessions (cascade should handle responses, but being explicit)
+        PracticeSession.query.filter_by(user_id=user_id).delete()
+        
+        # Delete daily stats
+        DailyStat.query.filter_by(user_id=user_id).delete()
+        
+        # Reset user level to 1
+        user.level = 1
+        user.updated_at = datetime.utcnow()
+        db.session.add(user)
+    
+    return jsonify({
+        "success": True,
+        "message": f"All data for user {user_id} has been reset. User level set to 1.",
+    })
+
+
+@api_bp.post("/users/<int:user_id>/test-setup")
+def test_setup_user(user_id: int):
+    """Test setup endpoint - DEV ONLY. Set user state for E2E tests.
+    
+    Allows setting:
+    - User level (directly, bypassing achievement requirements)
+    - Awards achievements (directly, without meeting requirements)
+    - Creates test data state
+    
+    Request body:
+    {
+        "level": 5,  # Optional: set user level directly
+        "achievements": ["addition-basics", "level-2-mastery"],  # Optional: award achievements
+    }
+    
+    Only available in development/test environments.
+    """
+    from flask import current_app
+    from .models import Achievement, db
+    from .config.achievements import ACHIEVEMENTS_CONFIG
+    
+    # Check if in dev/test mode
+    if not current_app.config.get('TESTING') and not current_app.debug:
+        return jsonify({"error": "Not available in production"}), 403
+    
+    user = UserService.get_user(user_id)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+    
+    data = request.get_json() or {}
+    
+    # Set level if specified (bypasses achievement checks)
+    if 'level' in data:
+        level = data['level']
+        if level < 1 or level > 45:
+            return jsonify({"error": f"Invalid level: {level}. Must be 1-45."}), 400
+        
+        user.level = level
+        user.updated_at = datetime.utcnow()
+        db.session.add(user)
+    
+    # Award achievements if specified (bypasses requirement checks)
+    if 'achievements' in data:
+        for achievement_code in data['achievements']:
+            # Check if achievement exists in config
+            if achievement_code not in ACHIEVEMENTS_CONFIG:
+                continue  # Skip invalid achievement codes
+            
+            # Check if user already has this achievement
+            existing = Achievement.query.filter_by(
+                user_id=user_id,
+                code=achievement_code
+            ).first()
+            
+            if not existing:
+                # Get achievement config to populate required fields
+                achievement_config = ACHIEVEMENTS_CONFIG[achievement_code]
+                
+                # Create achievement record with all required fields
+                achievement = Achievement(
+                    user_id=user_id,
+                    code=achievement_code,
+                    title=achievement_config.get('title', achievement_code),
+                    description=achievement_config.get('description', ''),
+                    icon=achievement_config.get('icon', '🏆'),
+                    category=achievement_config.get('category', 'milestone'),
+                    earned_at=datetime.utcnow()
+                )
+                db.session.add(achievement)
+    
+    db.session.commit()
+    
+    return jsonify({
+        "success": True,
+        "user_id": user_id,
+        "level": user.level,
+        "message": f"Test setup completed for user {user_id}"
+    })
+
+
+@api_bp.delete("/users/<int:user_id>")
+def delete_user(user_id: int):
+    """Delete a user and all associated data - TEST ONLY.
+    
+    This endpoint permanently deletes a user and all related data including:
+    - Achievements
+    - Practice sessions
+    - Responses
+    - Daily stats
+    - Flagged questions
+    
+    Use with caution - this operation cannot be undone.
+    """
+    success, error = UserService.delete_user(user_id)
+    
+    if not success:
+        return jsonify({"error": error}), 404
+    
+    return jsonify({
+        "success": True,
+        "message": f"User {user_id} and all associated data have been deleted.",
+    })
+
+
+@api_bp.delete("/reset")
+def reset_all_data():
+    """Reset all data in the database - TEST ONLY.
+    
+    This endpoint permanently deletes ALL data from the database including:
+    - All users
+    - All achievements
+    - All practice sessions
+    - All responses
+    - All daily stats
+    - All flagged questions
+    - All test attempts
+    - All questions
+    - All level progression configs
+    - All level problem configs
+    
+    This is intended for E2E test cleanup. Use with extreme caution - this operation cannot be undone.
+    """
+    from .models import (
+        Achievement,
+        DailyStat,
+        FlaggedQuestion,
+        LevelProblemConfig,
+        LevelProgression,
+        PracticeSession,
+        Question,
+        Response,
+        TestAttempt,
+        User,
+        db,
+    )
+    from .database import transaction
+    
+    # Delete all data in proper order to respect foreign key constraints
+    with transaction():
+        # Delete child records first (order matters for foreign keys)
+        TestAttempt.query.delete()
+        DailyStat.query.delete()
+        FlaggedQuestion.query.delete()
+        Response.query.delete()
+        Achievement.query.delete()
+        PracticeSession.query.delete()
+        
+        # Delete parent records
+        User.query.delete()
+        Question.query.delete()
+        
+        # Delete config tables (optional - these can be re-seeded)
+        LevelProblemConfig.query.delete()
+        LevelProgression.query.delete()
+    
+    return jsonify({
+        "success": True,
+        "message": "All data has been reset. Database is now empty.",
+    })

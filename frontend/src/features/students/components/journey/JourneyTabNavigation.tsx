@@ -1,4 +1,4 @@
-import { TrendingUp, Calculator, Award, Crown } from 'lucide-react'
+import { TrendingUp, Award, Crown, FileText } from 'lucide-react'
 
 export type TabId = 'overview' | 'achievements' | 'levels' | 'tests'
 
@@ -15,11 +15,6 @@ export const JourneyTabNavigation = ({ activeTab, onTabChange }: JourneyTabNavig
       icon: TrendingUp,
     },
     {
-      id: 'tests' as TabId,
-      label: 'Test Achievements',
-      icon: Calculator,
-    },
-    {
       id: 'achievements' as TabId,
       label: 'All Achievements',
       icon: Award,
@@ -29,6 +24,11 @@ export const JourneyTabNavigation = ({ activeTab, onTabChange }: JourneyTabNavig
       label: 'Level Requirements',
       icon: Crown,
     },
+    {
+      id: 'tests' as TabId,
+      label: 'Tests',
+      icon: FileText,
+    },
   ]
 
   return (
@@ -36,6 +36,7 @@ export const JourneyTabNavigation = ({ activeTab, onTabChange }: JourneyTabNavig
       {tabs.map((tab) => (
         <button
           key={tab.id}
+          data-testid={`testid-journey-tab-${tab.id}`}
           onClick={() => onTabChange(tab.id)}
           className={`flex items-center gap-2 rounded-xl px-6 py-3 font-semibold transition-all ${
             activeTab === tab.id

@@ -12,7 +12,7 @@ type AvatarStepProps = {
 
 export const AvatarStep = ({ name, avatar, isSubmitting, onSelect, onNext }: AvatarStepProps) => {
   return (
-    <div className="text-center">
+    <div className="text-center" data-testid="testid-avatar-step">
       <motion.div
         initial={{ scale: 0.8, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}
@@ -24,15 +24,16 @@ export const AvatarStep = ({ name, avatar, isSubmitting, onSelect, onNext }: Ava
         {name ? `Hi ${name.trim()}! Pick your avatar` : 'Pick an avatar'}
       </h3>
       <p className="mt-1 text-sm text-slate-500">Choose an emoji that feels right.</p>
-      <div className="mt-8 grid grid-cols-5 gap-3">
-        {AVATAR_OPTIONS.map((option) => {
+      <div className="mt-8 grid grid-cols-5 gap-3" data-testid="testid-avatar-options">
+        {AVATAR_OPTIONS.map((option, index) => {
           const isSelected = option === avatar
           return (
             <motion.button
-              key={option}
+              key={`avatar-${index}-${option}`}
               type="button"
               whileTap={{ scale: 0.9 }}
               onClick={() => onSelect(option)}
+              data-testid={`testid-avatar-option-${option}`}
               className={`rounded-2xl p-3 text-3xl transition ${
                 isSelected
                   ? 'bg-gradient-to-br from-blue-100 to-purple-100 ring-2 ring-blue-500 shadow-lg'
@@ -44,7 +45,14 @@ export const AvatarStep = ({ name, avatar, isSubmitting, onSelect, onNext }: Ava
           )
         })}
       </div>
-      <PillButton type="button" onClick={onNext} disabled={!avatar || isSubmitting} fullWidth className="mt-8 text-base">
+      <PillButton 
+        type="button" 
+        onClick={onNext} 
+        disabled={!avatar || isSubmitting} 
+        fullWidth 
+        className="mt-8 text-base"
+        data-testid="testid-avatar-step-next-button"
+      >
         Next: Create PIN
       </PillButton>
     </div>

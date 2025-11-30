@@ -14,6 +14,12 @@ def create_app(test_config: dict | None = None) -> Flask:
         APP_NAME="Math Helper",
         SQLALCHEMY_DATABASE_URI="sqlite:///math_helper.db",
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
+        SQLALCHEMY_ENGINE_OPTIONS={
+            "pool_size": 10,
+            "max_overflow": 20,
+            "pool_timeout": 30,
+            "pool_pre_ping": True,
+        },
     )
 
     if test_config:

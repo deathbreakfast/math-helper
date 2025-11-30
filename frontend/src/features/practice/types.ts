@@ -79,6 +79,13 @@ export type PracticeAttempt = {
   elapsedMs?: number
 }
 
+export type LevelUpResult = {
+  eligible?: boolean
+  new_level?: number
+  missing_achievements?: string[]
+  errors?: string[]
+}
+
 export type PracticeSessionSummary = {
   id: string
   submittedAt: string
@@ -96,5 +103,15 @@ export type PracticeSessionSummary = {
     level?: number
   }
   attempts: PracticeAttempt[]
+  achievements?: Array<{
+    id?: string
+    code?: string
+    title?: string
+    description?: string
+    icon?: string
+    category?: string
+    earnedAt?: string
+  }>
+  level_up?: LevelUpResult
 }
 

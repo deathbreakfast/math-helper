@@ -52,6 +52,27 @@ npm run dev
 
 The Vite dev server proxies `/api/*` calls to Flask, confirming the end-to-end wiring while UI features are built out.
 
+### E2E Testing
+
+The frontend includes Playwright E2E tests. See `frontend/README.md` for detailed instructions. Quick start:
+
+**Both backend and frontend must be running:**
+
+```bash
+# Terminal 1: Start backend
+cd backend
+source .venv/bin/activate
+flask --app app run --debug --port 5004 --host 0.0.0.0
+
+# Terminal 2: Start frontend
+cd frontend
+npm run dev -- --port 5003
+
+# Terminal 3: Run tests
+cd frontend
+npm run test:e2e
+```
+
 ## Security posture
 
 Math Helper is designed for trusted, local-network deployments while the curriculum engine evolves. Authentication is limited to a shared display name + 4-digit PIN that are stored in plain text and embedded in app URLs for convenience. Do **not** deploy this configuration to public networks without hardening the auth layer and removing the plain-text PIN storage/transport.

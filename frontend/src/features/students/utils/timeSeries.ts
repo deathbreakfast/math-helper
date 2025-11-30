@@ -1,4 +1,4 @@
-import type { User } from '../hooks/useStudents'
+import type { User } from '../hooks/useLearners'
 
 const DATE_LABELS = ['Jan 1', 'Jan 8', 'Jan 15', 'Jan 22', 'Jan 29', 'Feb 5', 'Feb 12']
 
@@ -28,7 +28,7 @@ const getVariation = (seed: string, index: number) => {
   return ((hash % 1000) / 1000) * 2 - 1
 }
 
-const createHistory = (user: User, buildValue: (operation: keyof AccuracyHistoryPoint, dateIndex: number) => number) =>
+const createHistory = (_user: User, buildValue: (operation: keyof AccuracyHistoryPoint, dateIndex: number) => number) =>
   DATE_LABELS.map((date, index) => ({
     date,
     addition: buildValue('addition', index),

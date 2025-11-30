@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import type { RefObject } from 'react'
+import { useEffect, useRef, type RefObject } from 'react'
 import type { PracticeQuestion } from '../types'
 import { GradientSurface, PillButton } from '../../../components/ui'
 import { renderProblemLayout } from '../layouts/ProblemLayouts'
@@ -13,6 +13,8 @@ type PracticeDeckProps = {
   feedback: 'correct' | 'incorrect' | null
   showAnswer: boolean
   inputRef: RefObject<HTMLInputElement | null>
+  onMoveNext?: () => void
+  canMoveNext?: boolean
 }
 
 const PracticeDeck = ({
@@ -24,8 +26,64 @@ const PracticeDeck = ({
   feedback,
   showAnswer,
   inputRef,
+  onMoveNext,
+  canMoveNext = false,
 }: PracticeDeckProps) => {
   const layoutType = question.layout?.type ?? 'vertical'
+  const formRef = useRef<HTMLFormElement>(null)
+
+  // Auto-focus input when question changes (only if answer is not shown)
+  useEffect(() => {
+    // Only focus if answer is not shown
+    if (!showAnswer) {
+      // Small delay to ensure the input is rendered and enabled
+      const timer = setTimeout(() => {
+        if (inputRef.current && !inputRef.current.disabled) {
+          inputRef.current.focus()
+        }
+      }, 300)
+      return () => clearTimeout(timer)
+    }
+  }, [question.id, showAnswer, inputRef])
+
+  // Handle keyboard events for Enter key when answer is checked
+  useEffect(() => {
+    if (!showAnswer || !onMoveNext || !canMoveNext) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      // Handle Enter key when answer is checked
+      // Only trigger if the active element is within the form or the form area
+      if (event.key === 'Enter') {
+        const activeElement = document.activeElement
+        const form = formRef.current
+        
+        // Check if active element is within the form, or if form is in view
+        if (form && (form.contains(activeElement) || activeElement === document.body)) {
+          // Prevent default only if we're in the practice context
+          event.preventDefault()
+          event.stopPropagation()
+          onMoveNext()
+        }
+      }
+    }
+
+    // Use document listener to catch Enter even when input is disabled
+    document.addEventListener('keydown', handleKeyDown, true)
+    return () => {
+      document.removeEventListener('keydown', handleKeyDown, true)
+    }
+  }, [showAnswer, onMoveNext, canMoveNext])
+
+  const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault()
+    if (showAnswer && onMoveNext && canMoveNext) {
+      // If answer is already checked, go to next question
+      onMoveNext()
+    } else if (!showAnswer) {
+      // If answer not checked yet, check it
+      onSubmit()
+    }
+  }
 
   return (
     <GradientSurface
@@ -42,17 +100,17 @@ const PracticeDeck = ({
           exit={{ opacity: 0, y: -16 }}
           transition={{ duration: 0.2 }}
         >
-          {renderProblemLayout(layoutType, {
-            question,
-            answerFormat: question.answerFormat,
-            showWork: question.layout?.showWork,
-            workSteps: question.layout?.workSteps,
-          })}
+          <div data-testid="testid-question-display">
+            {renderProblemLayout(layoutType, {
+              question,
+              answerFormat: question.answerFormat,
+              showWork: question.layout?.showWork,
+              workSteps: question.layout?.workSteps,
+            })}
+          </div>
           <form
-            onSubmit={(event) => {
-              event.preventDefault()
-              onSubmit()
-            }}
+            ref={formRef}
+            onSubmit={handleFormSubmit}
             className="mt-8 flex flex-col items-center gap-4"
           >
             <div className="h-1 w-40 rounded-full bg-slate-200" />
@@ -64,6 +122,7 @@ const PracticeDeck = ({
               onChange={(event) => onAnswerChange(event.target.value)}
               placeholder="?"
               disabled={showAnswer}
+              data-testid="testid-answer-input"
               className={`w-full max-w-sm rounded-2xl border-4 px-6 py-4 text-center text-4xl font-bold outline-none transition ${
                 feedback === 'correct'
                   ? 'border-green-500 bg-green-50 text-green-700'
@@ -78,10 +137,18 @@ const PracticeDeck = ({
                 <span className="text-base text-green-600">{question.correctAnswer}</span>
               </div>
             )}
-            <PillButton type="submit" tone="indigo" disabled={!userAnswer.trim() || showAnswer} className="px-10 py-4 text-lg">
+            <PillButton 
+              type="submit" 
+              tone="indigo" 
+              disabled={!userAnswer.trim() || (showAnswer && !canMoveNext)} 
+              className="px-10 py-4 text-lg"
+              data-testid="testid-check-answer-button"
+            >
               {showAnswer ? 'Answer Locked' : 'Check Answer'}
             </PillButton>
-            <p className="text-sm text-slate-400">Press Enter to submit</p>
+            <p className="text-sm text-slate-400">
+              {showAnswer ? 'Press Enter to go to next question' : 'Press Enter to submit'}
+            </p>
           </form>
         </motion.div>
       </AnimatePresence>

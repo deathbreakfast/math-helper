@@ -1,4 +1,5 @@
 import { ChevronLeft, ChevronRight, Flag } from 'lucide-react'
+import { useRef, type RefObject } from 'react'
 import { PillButton } from '../../../components/ui'
 
 type PracticeFooterControlsProps = {
@@ -9,6 +10,8 @@ type PracticeFooterControlsProps = {
   onMove: (direction: 'next' | 'prev') => void
   onToggleFlag: () => void
   onSubmit: () => void
+  showAnswer?: boolean
+  nextButtonRef?: RefObject<HTMLButtonElement | null>
 }
 
 export const PracticeFooterControls = ({
@@ -19,7 +22,12 @@ export const PracticeFooterControls = ({
   onMove,
   onToggleFlag,
   onSubmit,
+  showAnswer,
+  nextButtonRef,
 }: PracticeFooterControlsProps) => {
+  const internalNextButtonRef = useRef<HTMLButtonElement | null>(null)
+  const actualNextButtonRef = nextButtonRef || internalNextButtonRef
+
   return (
     <div className="mt-8 flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
       <PillButton
@@ -27,6 +35,7 @@ export const PracticeFooterControls = ({
         onClick={() => onMove('prev')}
         disabled={currentQuestionIndex === 0}
         leftIcon={<ChevronLeft className="h-4 w-4" />}
+        data-testid="testid-previous-button"
       >
         Previous
       </PillButton>
@@ -35,19 +44,27 @@ export const PracticeFooterControls = ({
         tone="amber"
         onClick={onToggleFlag}
         leftIcon={<Flag className="h-4 w-4" />}
+        data-testid="testid-flag-button"
       >
         {isFlagged ? 'Flagged' : 'Flag for Review'}
       </PillButton>
       {canSubmit ? (
-        <PillButton tone="emerald" onClick={onSubmit} className="px-8">
+        <PillButton 
+          tone="emerald" 
+          onClick={onSubmit} 
+          className="px-8"
+          data-testid="testid-submit-session-button"
+        >
           Submit Session
         </PillButton>
       ) : (
         <PillButton
+          ref={actualNextButtonRef}
           tone="emerald"
           onClick={() => onMove('next')}
           disabled={currentQuestionIndex >= problemsLength - 1}
           rightIcon={<ChevronRight className="h-4 w-4" />}
+          data-testid="testid-next-button"
         >
           {currentQuestionIndex >= problemsLength - 1 ? 'Complete' : 'Next'}
         </PillButton>

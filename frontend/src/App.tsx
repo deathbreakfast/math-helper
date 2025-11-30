@@ -1,6 +1,6 @@
 import PracticeSessionPage from './features/practice/PracticeSessionPage'
 import SummaryPage from './features/practice/SummaryPage'
-import StudentsDashboard from './features/students/StudentsDashboard'
+import LearnersDashboard from './features/students/LearnersDashboard'
 import { isPracticeRoute, isSummaryRoute } from './utils/routing'
 
 function App() {
@@ -12,7 +12,7 @@ function App() {
     return <SummaryPage />
   }
 
-  return <StudentsDashboard />
+  return <LearnersDashboard />
 }
 
 export default App

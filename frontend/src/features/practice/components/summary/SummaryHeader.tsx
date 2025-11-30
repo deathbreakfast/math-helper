@@ -22,6 +22,7 @@ export const SummaryHeader = ({ studentName, level, onBackToDashboard }: Summary
       </div>
       <button
         onClick={onBackToDashboard}
+        data-testid="testid-back-to-dashboard-button"
         className="flex items-center gap-2 px-6 py-3 bg-white text-gray-700 rounded-xl hover:bg-gray-50 transition-colors shadow-md hover:shadow-lg"
       >
         <Home className="w-5 h-5" />

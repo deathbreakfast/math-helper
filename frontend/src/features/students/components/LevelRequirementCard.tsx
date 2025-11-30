@@ -15,6 +15,7 @@ export const LevelRequirementCard: React.FC<LevelRequirementCardProps> = ({ requ
 
   return (
     <motion.div
+      data-testid={`testid-level-requirement-${requirement.level}`}
       initial={{
         opacity: 0,
         x: -20,
@@ -61,7 +62,7 @@ export const LevelRequirementCard: React.FC<LevelRequirementCardProps> = ({ requ
             {requirement.nextLevel}
           </div>
         </div>
-        {requirement.isLocked && <Lock className="h-6 w-6 text-gray-400" />}
+        {requirement.isLocked && <Lock className="h-6 w-6 text-gray-400" data-testid="testid-level-lock-icon" />}
       </div>
 
       {/* Title */}
@@ -70,9 +71,10 @@ export const LevelRequirementCard: React.FC<LevelRequirementCardProps> = ({ requ
       {/* Requirements List */}
       <div className="space-y-3">
         {requirement.requirements.map((req, idx) => (
-          <div key={idx} className="space-y-2">
+          <div key={idx} className="space-y-2" data-testid={`testid-requirement-${idx}`}>
             <div className="flex items-start gap-3">
               <div
+                data-testid={req.completed ? 'testid-requirement-completed' : 'testid-requirement-incomplete'}
                 className={`mt-1 flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full ${
                   req.completed ? 'bg-green-500' : requirement.isLocked ? 'bg-gray-300' : 'bg-gray-200'
                 }`}

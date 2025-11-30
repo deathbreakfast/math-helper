@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { Trophy } from 'lucide-react'
 import SectionHeader from '../../../components/common/SectionHeader'
 import FilterChips from '../../../components/common/FilterChips'
-import type { Achievement } from '../hooks/useStudents'
+import type { Achievement } from '../hooks/useLearners'
 
 type AchievementWithUser = Achievement & { userName?: string }
 
@@ -79,6 +79,7 @@ const AchievementsList = ({
 
   return (
     <motion.div
+      data-testid="testid-achievements-list"
       initial={{ opacity: 0, y: layout === 'grid' ? 12 : 0 }}
       animate={{ opacity: 1, y: 0 }}
       className={`rounded-2xl bg-white p-6 shadow-card ${layout === 'grid' ? 'mt-10' : ''}`}

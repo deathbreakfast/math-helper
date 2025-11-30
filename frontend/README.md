@@ -36,11 +36,82 @@ If you add new folders under `src/`, update `tailwind.config.js` so purge keeps 
 
 Replace `SAMPLE_USERS` with `GET /api/users` data when you are ready to wire up the backend. The component structure already matches the expected payload shape.
 
+## E2E Testing
+
+The project uses [Playwright](https://playwright.dev/) for end-to-end testing. Tests are located in the `e2e/` directory.
+
+### Prerequisites
+
+- Playwright browsers must be installed (run once):
+  ```bash
+  npx playwright install chromium
+  ```
+
+### Running Tests
+
+Both the backend and frontend servers must be running for E2E tests to work properly.
+
+1. **Start the Flask backend** (in one terminal):
+   ```bash
+   cd ../backend
+   source .venv/bin/activate  # or activate your virtual environment
+   flask --app app run --debug --port 5004 --host 0.0.0.0
+   ```
+
+2. **Start the frontend dev server** (in another terminal):
+   ```bash
+   cd frontend
+   npm run dev -- --port 5003
+   ```
+
+3. **Run the tests** (in a third terminal):
+   ```bash
+   cd frontend
+   npm run test:e2e
+   ```
+
+   Or run with UI mode for debugging:
+   ```bash
+   npm run test:e2e:ui
+   ```
+
+### Test Structure
+
+- Tests are located in the `e2e/` directory
+- See `e2e/TEST_COVERAGE.md` for a comprehensive list of all tests organized by category
+- Tests verify that pages load correctly and interactive elements have proper test IDs
+- The Playwright config (`playwright.config.ts`) is set to use port 5003 and will reuse an existing dev server if one is running
+
+### Test Files
+
+- `page-load.spec.ts` - Basic page load verification
+- `learner-management.spec.ts` - Learner CRUD operations
+- `dashboard.spec.ts` - Dashboard UI and navigation
+- `practice-flow.spec.ts` - Practice session interactions
+- `session-submission.spec.ts` - Session completion and submission
+- `test-flow.spec.ts` - Test sessions and eligibility
+- `leveling.spec.ts` - Level progression functionality
+- `achievements.spec.ts` - Achievement earning and display
+- `journey-page.spec.ts` - Journey/Progress page features
+- `summary-page.spec.ts` - Practice summary page
+
+### Test Data IDs
+
+Interactive UI elements have `data-testid` attributes for reliable test targeting:
+- `testid-answer-input` - Answer input field
+- `testid-check-answer-button` - Check Answer button
+- `testid-next-button` / `testid-previous-button` - Navigation buttons
+- `testid-flag-button` - Flag for Review button
+- `testid-submit-session-button` - Submit Session button
+- `testid-student-card-{id}` - Student selection cards
+- And more - see component files for complete list
+
 ## Verification checklist
 
 1. `npm run lint` – ESLint + TypeScript sanity check.
 2. `npm run build` – Confirms Tailwind + Vite production output works.
-3. Manual – Run `npm run dev`, ensure the dashboard renders, add a mock student via the modal, and verify stats/achievements animate correctly.
+3. `npm run test:e2e` – Run E2E tests (requires dev server running).
+4. Manual – Run `npm run dev`, ensure the dashboard renders, add a mock student via the modal, and verify stats/achievements animate correctly.
 
 Record additional UI or workflow changes here so backend and curriculum teams can follow along without digging through commit history.
 

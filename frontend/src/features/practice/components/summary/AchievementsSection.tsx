@@ -10,6 +10,7 @@ type AchievementsSectionProps = {
 export const AchievementsSection = ({ achievements, showAchievements }: AchievementsSectionProps) => {
   return (
     <motion.div
+      data-testid="testid-achievements-section"
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ delay: 0.8 }}
@@ -25,6 +26,7 @@ export const AchievementsSection = ({ achievements, showAchievements }: Achievem
             achievements.map((achievement, index) => (
               <motion.div
                 key={achievement.id}
+                data-testid={`testid-newly-earned-achievement-${achievement.id}`}
                 initial={{ opacity: 0, x: 20, scale: 0.8 }}
                 animate={{ opacity: 1, x: 0, scale: 1 }}
                 transition={{ delay: index * 0.2, type: 'spring' }}
@@ -39,7 +41,7 @@ export const AchievementsSection = ({ achievements, showAchievements }: Achievem
               </motion.div>
             ))
           ) : (
-            <div className="text-center py-8 text-gray-500">
+            <div data-testid="testid-no-achievements-empty-state" className="text-center py-8 text-gray-500">
               <Award className="w-12 h-12 mx-auto mb-3 text-gray-300" />
               <p className="text-sm">Complete challenges to earn achievements!</p>
             </div>

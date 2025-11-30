@@ -1,4 +1,4 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react'
+import { forwardRef, type ButtonHTMLAttributes, type ReactNode } from 'react'
 
 import { cn } from '../../utils/cn'
 import { getGradientClass, type GradientTone } from '../../theme/tokens'
@@ -40,27 +40,35 @@ const variantMap: Record<PillButtonVariant, (tone: GradientTone) => string> = {
   ghost: () => ghostClasses,
 }
 
-const PillButton = ({
-  variant = 'solid',
-  tone = 'indigo',
-  fullWidth,
-  leftIcon,
-  rightIcon,
-  className,
-  children,
-  type = 'button',
-  ...rest
-}: PillButtonProps) => (
-  <button
-    type={type}
-    className={cn(baseClasses, variantMap[variant](tone), fullWidth && 'w-full', className)}
-    {...rest}
-  >
-    {leftIcon}
-    {children}
-    {rightIcon}
-  </button>
+const PillButton = forwardRef<HTMLButtonElement, PillButtonProps>(
+  (
+    {
+      variant = 'solid',
+      tone = 'indigo',
+      fullWidth,
+      leftIcon,
+      rightIcon,
+      className,
+      children,
+      type = 'button',
+      ...rest
+    },
+    ref
+  ) => (
+    <button
+      ref={ref}
+      type={type}
+      className={cn(baseClasses, variantMap[variant](tone), fullWidth && 'w-full', className)}
+      {...rest}
+    >
+      {leftIcon}
+      {children}
+      {rightIcon}
+    </button>
+  )
 )
+
+PillButton.displayName = 'PillButton'
 
 export default PillButton
 

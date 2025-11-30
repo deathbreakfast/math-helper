@@ -31,6 +31,7 @@ type UsePracticeSessionResult = {
   progressPercent: number
   cardCounterDisplay: string
   questionAnswers: Record<string, QuestionAnswer>
+  sessionMode: string
   handleAnswerChange: (value: string) => void
   handleCheckAnswer: () => void
   handleSetAnswer: (questionId: string, answer: string, isCorrect: boolean) => void
@@ -39,6 +40,104 @@ type UsePracticeSessionResult = {
   toggleFlag: () => void
   canSubmit: boolean
   handleSubmit: () => void
+}
+
+function transformBackendQuestionsToPracticeQuestions(
+  backendQuestions: any[],
+  sessionMode: string
+): PracticeQuestion[] {
+  return backendQuestions.map((q) => {
+    // Handle layout config - may be JSON string or object
+    let layout: PracticeQuestion['layout'] = undefined
+    if (q.layout) {
+      if (typeof q.layout === 'string') {
+        try {
+          layout = JSON.parse(q.layout)
+        } catch {
+          layout = { type: q.layout_type || 'vertical' }
+        }
+      } else {
+        layout = q.layout
+      }
+    } else if (q.layout_type) {
+      layout = { type: q.layout_type }
+    }
+
+    return {
+      id: q.id || `q-${q.question_id}`,
+      prompt: q.prompt || '',
+      operation: q.operation || 'addition',
+      operand1: q.operand1 || 0,
+      operand2: q.operand2 || 0,
+      correctAnswer: q.correctAnswer || q.correct_answer || '',
+      difficulty: q.difficulty || 'Level 1',
+      targetMs: q.targetMs || q.target_ms || 4000,
+      hint: q.hint || '',
+      layout,
+      answerFormat: q.answerFormat || q.answer_format,
+      acceptedAnswers: q.acceptedAnswers || q.accepted_answers,
+      decimalPlaces: q.decimalPlaces || q.decimal_places,
+      mathTypeLabel: q.mathTypeLabel || q.math_type_label,
+      question_id: q.question_id || q.id,
+    }
+  })
+}
+
+function reconstructSessionStateFromResponse(
+  responseData: any
+): {
+  problems: PracticeQuestion[]
+  questionAnswers: Record<string, QuestionAnswer>
+  currentQuestionIndex: number
+  questionStartTimes: Record<string, number>
+  flaggedQuestions: Record<string, boolean>
+} {
+  const questions = responseData.questions || []
+  const sessionMode = responseData.mode || 'standard'
+
+  // Transform questions to PracticeQuestion[]
+  const problems = transformBackendQuestionsToPracticeQuestions(questions, sessionMode)
+
+  // Build questionAnswers from response data (questions with responses)
+  const questionAnswers: Record<string, QuestionAnswer> = {}
+  let firstUnansweredIndex = -1
+
+  problems.forEach((problem, index) => {
+    const questionData = questions.find(
+      (q: any) => (q.question_id || q.id) === (problem.question_id || problem.id)
+    )
+
+    if (questionData?.response) {
+      // Question has been answered
+      questionAnswers[problem.id] = {
+        answer: questionData.response.submitted_answer || '',
+        isChecked: true,
+        feedback: questionData.response.is_correct ? 'correct' : 'incorrect',
+        elapsedMs: questionData.response.duration_ms,
+      }
+    } else {
+      // Question is unanswered
+      if (firstUnansweredIndex === -1) {
+        firstUnansweredIndex = index
+      }
+    }
+  })
+
+  // Find latest unanswered question index (or last answered if all are answered)
+  const currentQuestionIndex =
+    firstUnansweredIndex !== -1 ? firstUnansweredIndex : problems.length > 0 ? problems.length - 1 : 0
+
+  // Initialize empty questionStartTimes and flaggedQuestions
+  const questionStartTimes: Record<string, number> = {}
+  const flaggedQuestions: Record<string, boolean> = {}
+
+  return {
+    problems,
+    questionAnswers,
+    currentQuestionIndex,
+    questionStartTimes,
+    flaggedQuestions,
+  }
 }
 
 export const usePracticeSession = ({
@@ -55,6 +154,7 @@ export const usePracticeSession = ({
   const [questionStartTimes, setQuestionStartTimes] = useState<Record<string, number>>({})
   const [isLoadingProblems, setIsLoadingProblems] = useState(false)
   const [sessionId, setSessionId] = useState<number | null>(null)
+  const [sessionMode, setSessionMode] = useState<string>('standard')
 
   // Fetch problems from backend API when learner or mode changes
   useEffect(() => {
@@ -73,22 +173,34 @@ export const usePracticeSession = ({
     const fetchProblems = async () => {
       setIsLoadingProblems(true)
       try {
+        // Check URL parameters for test type
+        const searchParams = new URLSearchParams(window.location.search)
+        const testType = searchParams.get('testType')
+        const isTestParam = searchParams.get('isTest')
+        const isTest = isTestParam === 'true' && testType !== null
+
         // Determine mode and test type
         const mode = practiceMode === 'multiplication' ? 'multiplication' : practiceMode === 'division' ? 'division' : 'standard'
-        const isTest = false // For now, always practice mode
         const level = selectedUser.level ?? 1
+
+        // Call start endpoint - it handles both new and existing incomplete sessions
+        const requestBody: any = {
+          user_id: parseInt(selectedUser.id),
+          mode,
+          is_test: isTest,
+          level,
+        }
+
+        if (isTest && testType) {
+          requestBody.test_type = testType
+        }
 
         const response = await fetch('/api/practice/sessions/start', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            user_id: parseInt(selectedUser.id),
-            mode,
-            is_test: isTest,
-            level,
-          }),
+          body: JSON.stringify(requestBody),
         })
 
         if (!response.ok) {
@@ -96,14 +208,37 @@ export const usePracticeSession = ({
         }
 
         const data = await response.json()
-        setProblems(data.questions || [])
+
+        // Reconstruct session state from response
+        const sessionState = reconstructSessionStateFromResponse(data)
+
+        // Set session state
+        setProblems(sessionState.problems)
         setSessionId(data.session_id)
-        setCurrentQuestionIndex(0)
-        setUserAnswer('')
-        setFeedback(null)
-        setShowAnswer(false)
-        setQuestionAnswers({})
-        setQuestionStartTimes({})
+        setSessionMode(data.mode || 'standard')
+        setCurrentQuestionIndex(sessionState.currentQuestionIndex)
+        setQuestionAnswers(sessionState.questionAnswers)
+        setQuestionStartTimes(sessionState.questionStartTimes)
+        setFlaggedQuestions(sessionState.flaggedQuestions)
+
+        // Set current question state
+        const currentQuestion = sessionState.problems[sessionState.currentQuestionIndex]
+        if (currentQuestion) {
+          const answer = sessionState.questionAnswers[currentQuestion.id]
+          if (answer) {
+            setUserAnswer(answer.answer)
+            setFeedback(answer.feedback)
+            setShowAnswer(answer.isChecked)
+          } else {
+            setUserAnswer('')
+            setFeedback(null)
+            setShowAnswer(false)
+          }
+        } else {
+          setUserAnswer('')
+          setFeedback(null)
+          setShowAnswer(false)
+        }
       } catch (error) {
         console.error('Error fetching problems:', error)
         // Fallback to empty problems
@@ -324,14 +459,14 @@ export const usePracticeSession = ({
           id: selectedUser.id,
           name: selectedUser.name,
           avatar: selectedUser.avatar,
-          level: selectedUser.level,
+          level: data.level_up?.new_level || selectedUser.level,
         },
         attempts,
         achievements: data.achievements || [],
         level_up: data.level_up || {},
       }
 
-      // Save to localStorage
+      // Save to localStorage (for summary page display - this is different from session state)
       localStorage.setItem('lastPracticeSession', JSON.stringify(sessionSummary))
 
       // Navigate to summary page
@@ -378,6 +513,7 @@ export const usePracticeSession = ({
       }
 
       localStorage.setItem('lastPracticeSession', JSON.stringify(sessionSummary))
+      
       const sessionParam = encodeURIComponent(JSON.stringify(sessionSummary))
       window.location.href = `/summary?session=${sessionParam}`
     }
@@ -399,6 +535,7 @@ export const usePracticeSession = ({
     progressPercent,
     cardCounterDisplay,
     questionAnswers,
+    sessionMode,
     handleAnswerChange,
     handleCheckAnswer,
     handleSetAnswer,

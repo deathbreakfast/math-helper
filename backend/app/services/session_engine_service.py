@@ -2,20 +2,27 @@
 
 from __future__ import annotations
 
+import json
 import random
 from typing import Any
 
-from ..database import log_query
-from ..models import User
+from ..config.levels_config import LEVELS_CONFIG
+from ..config.test_requirements import get_test_requirements
+from ..config.tests.test_definitions import NEW_TEST_DEFINITIONS
+from ..database import log_query, transaction
+from ..models import User, db
 from ..services.achievement_service import AchievementService
+from ..services.adaptive_distribution_service import AdaptiveDistributionService
 from ..services.practice_service import PracticeService
 from ..services.question_service import QuestionService
+from ..services.test_eligibility_service import TestEligibilityService
 
 
 class SessionEngineService:
     """Service for session generation orchestration."""
 
     # Test type definitions: (test_type, operation, level, question_count, constraints)
+    # Legacy test types (kept for backward compatibility)
     TEST_TYPES = {
         # Multiplication tables (levels 9-21)
         "multiplication_1": ("multiplication", 9, 20, {"multiplication_table": 1}),
@@ -50,6 +57,14 @@ class SessionEngineService:
         "division_fraction": ("division", 4, 30, {"answer_format": "fraction"}),
         "division_decimal": ("division", 4, 30, {"answer_format": "decimal"}),
     }
+    
+    # Add new test types from NEW_TEST_DEFINITIONS
+    # Convert format: (operation, level, question_count, constraints, display_name) -> (operation, level, question_count, constraints)
+    for test_type, (operation, level, question_count, constraints, _) in NEW_TEST_DEFINITIONS.items():
+        TEST_TYPES[test_type] = (operation, level, question_count, constraints)
+    
+    # Level-based test types (levels 1-45) - will be initialized below
+    LEVEL_TEST_TYPES: dict[str, tuple[str, int, int, dict[str, Any]]] = {}
 
     @staticmethod
     def _get_test_achievement_code(test_type: str) -> str:
@@ -65,23 +80,42 @@ class SessionEngineService:
         Returns:
             Tuple of (is_eligible, error_message)
         """
-        if test_type not in SessionEngineService.TEST_TYPES:
-            return False, f"Unknown test type: {test_type}"
+        # Check if it's a level-based test type
+        if test_type in SessionEngineService.LEVEL_TEST_TYPES:
+            # Extract level from test_type (e.g., "level_1" -> 1)
+            try:
+                level = int(test_type.split("_")[1])
+            except (ValueError, IndexError):
+                return False, f"Invalid level-based test type: {test_type}"
+            
+            # Use new test eligibility service
+            is_eligible, reason, _ = TestEligibilityService.check_test_eligibility(user, level)
+            return is_eligible, reason
         
-        _, required_level, _, _ = SessionEngineService.TEST_TYPES[test_type]
+        # Check if it's a new test type (descriptive identifier)
+        if test_type in SessionEngineService.TEST_TYPES:
+            _, required_level, _, _ = SessionEngineService.TEST_TYPES[test_type]
+            
+            # Check level restriction
+            if user.level < required_level:
+                return False, f"User level {user.level} is below required level {required_level}"
+            
+            # For new test types, only level requirement is needed (no achievement requirement)
+            # Legacy test types still require achievement
+            if test_type.startswith(("addition-", "subtraction-", "multiplication-", "division-", "basic-math-")):
+                # New test types: only level requirement
+                return True, ""
+            else:
+                # Legacy test types: check achievement requirement (30 correct in a row)
+                achievement_code = SessionEngineService._get_test_achievement_code(test_type)
+                user_achievements = AchievementService.get_achievement_codes(user.id)
+                
+                if achievement_code not in user_achievements:
+                    return False, f"User has not earned the '{achievement_code}' achievement (30 correct in a row)"
+                
+                return True, ""
         
-        # Check level restriction
-        if user.level < required_level:
-            return False, f"User level {user.level} is below required level {required_level}"
-        
-        # Check achievement requirement (30 correct in a row)
-        achievement_code = SessionEngineService._get_test_achievement_code(test_type)
-        user_achievements = AchievementService.get_achievement_codes(user.id)
-        
-        if achievement_code not in user_achievements:
-            return False, f"User has not earned the '{achievement_code}' achievement (30 correct in a row)"
-        
-        return True, ""
+        return False, f"Unknown test type: {test_type}"
 
     @staticmethod
     @log_query
@@ -111,6 +145,32 @@ class SessionEngineService:
         return eligible_tests
 
     @staticmethod
+    def _transform_session_questions_to_generate_format(questions_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
+        """Transform questions from get_session_with_details format to generate_session format."""
+        transformed = []
+        for q in questions_data:
+            transformed_q = {
+                "id": str(q.get("question_id", q.get("id", ""))),
+                "question_id": q.get("question_id"),
+                "prompt": q.get("prompt", ""),
+                "operation": q.get("operation", ""),
+                "operand1": q.get("operand1", 0),
+                "operand2": q.get("operand2", 0),
+                "correctAnswer": q.get("correctAnswer", ""),
+                "difficulty": f"Level {q.get('level', 1)}",  # Default if not available
+                "targetMs": 4000,  # Default if not available
+                "hint": q.get("hint", ""),
+                "layout": q.get("layout"),
+                "answerFormat": q.get("answer_format"),
+                "mathTypeLabel": q.get("math_type_label", ""),
+            }
+            # Include response if present
+            if "response" in q:
+                transformed_q["response"] = q["response"]
+            transformed.append(transformed_q)
+        return transformed
+
+    @staticmethod
     @log_query
     def generate_session(
         user_id: int,
@@ -120,6 +180,9 @@ class SessionEngineService:
         level: int | None = None,
     ) -> dict[str, Any]:
         """Generate a practice or test session with questions.
+        
+        Checks for incomplete session first. If found, returns existing session.
+        Otherwise creates a new session.
         
         Args:
             user_id: The user ID
@@ -138,6 +201,28 @@ class SessionEngineService:
         # Determine level
         session_level = level if level is not None else user.level
         
+        # Check for incomplete session first
+        incomplete_session, response_count, _ = PracticeService.get_incomplete_session(user_id, mode)
+        if incomplete_session:
+            # Check if it matches the requested type (test vs practice)
+            if incomplete_session.is_test == is_test:
+                # Get full session details with all questions
+                session_data = PracticeService.get_session_with_details(incomplete_session.id)
+                if session_data and session_data.get("questions"):
+                    # Transform questions to match generate_session format
+                    questions = SessionEngineService._transform_session_questions_to_generate_format(
+                        session_data["questions"]
+                    )
+                    return {
+                        "session_id": incomplete_session.id,
+                        "is_test": incomplete_session.is_test,
+                        "test_type": incomplete_session.test_type,
+                        "mode": incomplete_session.mode,
+                        "level": incomplete_session.level,
+                        "questions": questions,
+                    }
+        
+        # No incomplete session found, create new one
         # Handle test sessions
         if is_test:
             if not test_type:
@@ -149,10 +234,12 @@ class SessionEngineService:
                 raise ValueError(f"Test eligibility check failed: {error_msg}")
             
             # Get test configuration
-            if test_type not in SessionEngineService.TEST_TYPES:
+            if test_type in SessionEngineService.LEVEL_TEST_TYPES:
+                operation, required_level, question_count, constraints = SessionEngineService.LEVEL_TEST_TYPES[test_type]
+            elif test_type in SessionEngineService.TEST_TYPES:
+                operation, required_level, question_count, constraints = SessionEngineService.TEST_TYPES[test_type]
+            else:
                 raise ValueError(f"Unknown test type: {test_type}")
-            
-            operation, required_level, question_count, constraints = SessionEngineService.TEST_TYPES[test_type]
             
             # Generate questions for test (all same type/level)
             questions = []
@@ -173,10 +260,18 @@ class SessionEngineService:
                 test_type=test_type,
             )
             
+            # Store question IDs
+            question_ids = [q.get("question_id") for q in questions if q.get("question_id")]
+            if question_ids:
+                with transaction():
+                    session.question_ids = json.dumps(question_ids)
+                    db.session.add(session)
+            
             return {
                 "session_id": session.id,
                 "is_test": True,
                 "test_type": test_type,
+                "mode": mode,
                 "level": required_level,
                 "questions": questions,
             }
@@ -186,52 +281,85 @@ class SessionEngineService:
             # Default question count for practice
             question_count = 10
             
-            # Determine operations based on mode and level
-            operations = []
-            if mode == "multiplication":
-                operations = ["multiplication"]
-            elif mode == "division":
-                operations = ["division"]
+            # Check if adaptive distribution should be applied
+            # Check all levels up to user's level for failed retakes
+            use_adaptive = False
+            adaptive_level = None
+            for level in range(1, user.level + 1):
+                if AdaptiveDistributionService.should_apply_adaptive_distribution(user.id, level):
+                    use_adaptive = True
+                    adaptive_level = level
+                    break  # Use the first level that needs adaptive distribution
+            
+            # Generate questions
+            questions = []
+            if use_adaptive and adaptive_level:
+                # Use adaptive distribution
+                distribution = AdaptiveDistributionService.generate_adaptive_question_distribution(
+                    user, session_level
+                )
+                
+                for i in range(question_count):
+                    # Select level from distribution
+                    question_level = AdaptiveDistributionService.select_level_from_distribution(distribution)
+                    
+                    # Get operation for the selected level
+                    operation = AdaptiveDistributionService.get_operation_for_level(question_level)
+                    
+                    # Generate question
+                    question_data = QuestionService.generate_question(
+                        operation=operation,
+                        level=question_level,
+                        test_constraints=None,
+                    )
+                    questions.append(question_data)
             else:
-                # Standard mode - mix operations based on level
-                if session_level == 1:
-                    operations = ["addition", "subtraction"]
-                elif session_level == 2:
-                    operations = ["addition", "subtraction"]
-                elif session_level == 3:
+                # Standard practice session distribution
+                # Determine operations based on mode and level
+                operations = []
+                if mode == "multiplication":
                     operations = ["multiplication"]
-                elif session_level == 4:
+                elif mode == "division":
                     operations = ["division"]
                 else:
-                    operations = QuestionService.OPERATIONS
-            
-            # Generate questions with mixed levels for practice
-            questions = []
-            for i in range(question_count):
-                # Mix levels: 70% current level, 20% level-1, 10% level-2 (if available)
-                rand = random.random()
-                if rand < 0.7:
-                    question_level = session_level
-                elif rand < 0.9 and session_level > 1:
-                    question_level = session_level - 1
-                elif session_level > 2:
-                    question_level = session_level - 2
-                else:
-                    question_level = session_level
+                    # Standard mode - mix operations based on level
+                    if session_level == 1:
+                        operations = ["addition", "subtraction"]
+                    elif session_level == 2:
+                        operations = ["addition", "subtraction"]
+                    elif session_level == 3:
+                        operations = ["multiplication"]
+                    elif session_level == 4:
+                        operations = ["division"]
+                    else:
+                        operations = QuestionService.OPERATIONS
                 
-                # Ensure level is at least 1
-                question_level = max(1, question_level)
-                
-                # Select operation
-                operation = random.choice(operations)
-                
-                # Generate question
-                question_data = QuestionService.generate_question(
-                    operation=operation,
-                    level=question_level,
-                    test_constraints=None,
-                )
-                questions.append(question_data)
+                # Generate questions with mixed levels for practice
+                for i in range(question_count):
+                    # Mix levels: 70% current level, 20% level-1, 10% level-2 (if available)
+                    rand = random.random()
+                    if rand < 0.7:
+                        question_level = session_level
+                    elif rand < 0.9 and session_level > 1:
+                        question_level = session_level - 1
+                    elif session_level > 2:
+                        question_level = session_level - 2
+                    else:
+                        question_level = session_level
+                    
+                    # Ensure level is at least 1
+                    question_level = max(1, question_level)
+                    
+                    # Select operation
+                    operation = random.choice(operations)
+                    
+                    # Generate question
+                    question_data = QuestionService.generate_question(
+                        operation=operation,
+                        level=question_level,
+                        test_constraints=None,
+                    )
+                    questions.append(question_data)
             
             # Create session
             session = PracticeService.create_session(
@@ -242,11 +370,37 @@ class SessionEngineService:
                 test_type=None,
             )
             
+            # Store question IDs
+            question_ids = [q.get("question_id") for q in questions if q.get("question_id")]
+            if question_ids:
+                with transaction():
+                    session.question_ids = json.dumps(question_ids)
+                    db.session.add(session)
+            
             return {
                 "session_id": session.id,
                 "is_test": False,
                 "test_type": None,
+                "mode": mode,
                 "level": session_level,
                 "questions": questions,
             }
 
+
+def _initialize_level_test_types():
+    """Initialize level-based test types from test requirements config."""
+    level_test_types = {}
+    for level in range(1, 46):  # Levels 1-45
+        test_requirements = get_test_requirements(level)
+        if test_requirements:
+            level_config = LEVELS_CONFIG.get(level, {})
+            operation = level_config.get("operation", "addition")
+            question_count = test_requirements["question_count"]
+            test_type = test_requirements["test_type"]
+            # No special constraints for level-based tests
+            level_test_types[test_type] = (operation, level, question_count, {})
+    return level_test_types
+
+
+# Initialize level test types at module load
+SessionEngineService.LEVEL_TEST_TYPES = _initialize_level_test_types()

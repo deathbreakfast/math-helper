@@ -17,6 +17,7 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, i
 
   return (
     <motion.div
+      data-testid={`testid-achievement-card-${achievement.id}`}
       initial={{
         opacity: 0,
         y: 20,
@@ -38,12 +39,17 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, i
     >
       {/* Lock/Unlock Icon */}
       <div className="absolute right-4 top-4">
-        {isLocked ? <Lock className="h-5 w-5 text-gray-400" /> : <Unlock className="h-5 w-5 text-green-500" />}
+        {isLocked ? (
+          <Lock className="h-5 w-5 text-gray-400" data-testid="testid-achievement-lock-icon" />
+        ) : (
+          <Unlock className="h-5 w-5 text-green-500" data-testid="testid-achievement-unlock-icon" />
+        )}
       </div>
 
       {/* Count Badge */}
       {hasMultipleEarns && (
         <motion.div
+          data-testid="testid-achievement-count-badge"
           initial={{
             scale: 0,
           }}
@@ -76,7 +82,7 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, i
 
       {/* Progress Bar */}
       {isInProgress && achievement.progress && achievement.maxProgress && (
-        <div className="mt-4">
+        <div className="mt-4" data-testid="testid-achievement-progress-bar">
           <div className="mb-2 flex justify-between text-xs font-medium text-gray-700">
             <span>Progress</span>
             <span>

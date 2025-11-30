@@ -13,7 +13,7 @@ import {
   type TooltipProps,
 } from 'recharts'
 import SectionHeader from '../../../components/common/SectionHeader'
-import type { User } from '../hooks/useStudents'
+import type { User } from '../hooks/useLearners'
 import { generateAccuracyHistory } from '../utils/timeSeries'
 
 type Props = {

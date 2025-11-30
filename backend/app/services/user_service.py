@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from sqlalchemy import func
+from sqlalchemy.orm import joinedload
 
 from ..database import log_query, transaction
 from ..models import Achievement, LevelProgression, User, db
@@ -60,8 +61,17 @@ class UserService:
     @staticmethod
     @log_query
     def list_users() -> list[User]:
-        """List all users ordered by creation date."""
-        return User.query.order_by(User.created_at.asc()).all()
+        """List all users ordered by creation date with eager-loaded relationships."""
+        return (
+            User.query
+            .options(
+                joinedload(User.achievements),
+                # Note: We don't eager load responses/practice_sessions as they can be large
+                # We'll batch query them in analytics service instead
+            )
+            .order_by(User.created_at.asc())
+            .all()
+        )
 
     @staticmethod
     @log_query
@@ -138,4 +148,23 @@ class UserService:
             db.session.add(user)
 
         return user
+
+    @staticmethod
+    @log_query
+    def delete_user(user_id: int) -> tuple[bool, str | None]:
+        """Delete a user and all associated data.
+        
+        Returns:
+            Tuple of (success: bool, error_message: str | None)
+        """
+        user = UserService.get_user(user_id)
+        if not user:
+            return False, "User not found"
+        
+        # Cascading deletes will handle related data (achievements, sessions, responses, etc.)
+        # due to cascade="all, delete" relationships in models
+        with transaction():
+            db.session.delete(user)
+        
+        return True, None
 

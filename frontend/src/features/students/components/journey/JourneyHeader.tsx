@@ -35,7 +35,7 @@ export const JourneyHeader = ({ userData, onBack }: JourneyHeaderProps) => {
           <p className="text-gray-600">Track your achievements and level progression</p>
         </div>
       </div>
-      <div className={`rounded-2xl bg-gradient-to-r px-6 py-3 text-white shadow-lg ${getTierColor('Gold')}`}>
+      <div data-testid="testid-current-level-display" className={`rounded-2xl bg-gradient-to-r px-6 py-3 text-white shadow-lg ${getTierColor('Gold')}`}>
         <div className="text-sm font-medium opacity-90">Current Level</div>
         <div className="text-3xl font-bold">{userData.level}</div>
       </div>

@@ -13,6 +13,7 @@ export type LearnerStats = {
 
 export type LearnerAchievement = {
   id: string
+  code?: string
   title: string
   description: string
   icon: string
@@ -24,7 +25,7 @@ export type Learner = {
   id: string
   name: string
   avatar: string
-  pin: string
+  // PIN is not included for security - use /api/users/<id>/verify-pin endpoint
   level: number
   questionsAnswered: number
   weeklyGain?: number
@@ -35,13 +36,14 @@ export type Learner = {
 
 export type ApiLearnerAchievement = Omit<LearnerAchievement, 'earnedAt'> & {
   earnedAt: string
+  code?: string
 }
 
 export type ApiLearner = {
   id: number
   name: string
   avatar: string
-  pin: string
+  // PIN is not included in API responses for security
   level: number
   questionsAnswered?: number
   weeklyGain?: number

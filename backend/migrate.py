@@ -117,6 +117,7 @@ def migrate_database(app=None):
                         correct_count INTEGER NOT NULL DEFAULT 0,
                         accuracy REAL NOT NULL DEFAULT 0.0,
                         total_duration_ms INTEGER,
+                        question_ids TEXT,
                         FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
                     )
                 """
@@ -137,6 +138,10 @@ def migrate_database(app=None):
                 if "test_type" not in columns:
                     print("Adding test_type column to practice_sessions table...")
                     cursor.execute("ALTER TABLE practice_sessions ADD COLUMN test_type VARCHAR(64)")
+                
+                if "question_ids" not in columns:
+                    print("Adding question_ids column to practice_sessions table...")
+                    cursor.execute("ALTER TABLE practice_sessions ADD COLUMN question_ids TEXT")
 
             if not flagged_questions_exists:
                 print("Creating flagged_questions table...")
@@ -386,6 +391,62 @@ def migrate_database(app=None):
                 if cursor.fetchone() is None:
                     print("Adding index on achievements.category...")
                     cursor.execute("CREATE INDEX ix_achievements_category ON achievements(category)")
+
+            # Add composite indexes for performance optimization
+            print("Adding composite indexes for performance optimization...")
+            
+            # Composite index on responses for streak calculations: (user_id, is_correct, answered_at)
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='index' AND name='ix_responses_user_correct_answered'"
+            )
+            if cursor.fetchone() is None:
+                print("Adding composite index on responses(user_id, is_correct, answered_at)...")
+                cursor.execute(
+                    "CREATE INDEX ix_responses_user_correct_answered ON responses(user_id, is_correct, answered_at)"
+                )
+            
+            # Composite index on achievements for filtering: (user_id, category, earned_at)
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='index' AND name='ix_achievements_user_category_earned'"
+            )
+            if cursor.fetchone() is None:
+                print("Adding composite index on achievements(user_id, category, earned_at)...")
+                cursor.execute(
+                    "CREATE INDEX ix_achievements_user_category_earned ON achievements(user_id, category, earned_at)"
+                )
+            
+            # Composite index on practice_sessions for test achievements: (user_id, test_type, completed_at)
+            cursor.execute("PRAGMA table_info(practice_sessions)")
+            session_columns = {row[1] for row in cursor.fetchall()}
+            if "test_type" in session_columns and "completed_at" in session_columns:
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='index' AND name='ix_sessions_user_test_completed'"
+                )
+                if cursor.fetchone() is None:
+                    print("Adding composite index on practice_sessions(user_id, test_type, completed_at)...")
+                    cursor.execute(
+                        "CREATE INDEX ix_sessions_user_test_completed ON practice_sessions(user_id, test_type, completed_at)"
+                    )
+            
+            # Composite index on questions for operation+level queries: (operation, required_level)
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='index' AND name='ix_questions_operation_level'"
+            )
+            if cursor.fetchone() is None:
+                print("Adding composite index on questions(operation, required_level)...")
+                cursor.execute(
+                    "CREATE INDEX ix_questions_operation_level ON questions(operation, required_level)"
+                )
+            
+            # Composite index on responses for user+question joins: (user_id, question_id, is_correct)
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='index' AND name='ix_responses_user_question_correct'"
+            )
+            if cursor.fetchone() is None:
+                print("Adding composite index on responses(user_id, question_id, is_correct)...")
+                cursor.execute(
+                    "CREATE INDEX ix_responses_user_question_correct ON responses(user_id, question_id, is_correct)"
+                )
 
             conn.commit()
             print("Migration completed successfully!")

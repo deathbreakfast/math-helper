@@ -6,20 +6,15 @@ type UsePracticeRoutingResult = {
   selectedUser: User | null
   setSelectedUser: (user: User | null) => void
   practiceMode: PracticeMode
-  setPracticeMode: (mode: PracticeMode) => void
 }
 
 export const usePracticeRouting = (users: User[]): UsePracticeRoutingResult => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [hasAppliedShareLink, setHasAppliedShareLink] = useState(false)
 
-  const [practiceMode, setPracticeMode] = useState<PracticeMode>(() => {
-    const modeParam = new URLSearchParams(window.location.search).get('mode')
-    if (modeParam === 'multiplication' || modeParam === 'division') {
-      return modeParam
-    }
-    return 'standard'
-  })
+  // Mode is now determined by the session service based on user level
+  // Default to 'standard' and let the backend decide operations
+  const [practiceMode] = useState<PracticeMode>('standard')
 
   const searchParams = useMemo(() => new URLSearchParams(window.location.search), [])
 
@@ -62,24 +57,10 @@ export const usePracticeRouting = (users: User[]): UsePracticeRoutingResult => {
     setHasAppliedShareLink(true)
   }, [hasAppliedShareLink, searchParams, users, selectedUser])
 
-  // Keep the mode reflected in the URL so it can be shared / refreshed
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search)
-    if (practiceMode === 'multiplication' || practiceMode === 'division') {
-      params.set('mode', practiceMode)
-    } else {
-      params.delete('mode')
-    }
-    const nextQuery = params.toString()
-    const nextUrl = `${window.location.pathname}${nextQuery ? `?${nextQuery}` : ''}`
-    window.history.replaceState({}, '', nextUrl)
-  }, [practiceMode])
-
   return {
     selectedUser,
     setSelectedUser,
     practiceMode,
-    setPracticeMode,
   }
 }
 

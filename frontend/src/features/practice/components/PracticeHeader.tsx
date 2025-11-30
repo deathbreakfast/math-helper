@@ -59,6 +59,7 @@ const PracticeHeader = ({
         </div>
         <div className="h-3 w-full overflow-hidden rounded-full bg-white shadow-inner">
           <div
+            data-testid="testid-progress-bar"
             className="h-full rounded-full bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500 transition-all"
             style={{ width: `${Math.min(Math.max(progressPercent, 0), 100)}%` }}
           />

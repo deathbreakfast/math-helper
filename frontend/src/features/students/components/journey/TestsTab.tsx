@@ -1,21 +1,25 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { AlertCircle, Search, Lock, Unlock, Play } from 'lucide-react'
-import type { FrontendTest } from '../../utils/testMapping'
+import type { FrontendTest, NewTier } from '../../utils/testMapping'
+import { compareTiers, mapOldTierToNew } from '../../utils/testMapping'
 import { TestCard } from './TestCard'
 import { TestDetailModal } from './TestDetailModal'
+import PINVerificationModal from '../../modals/PINVerificationModal'
+import type { User } from '../../hooks/useLearners'
 
 type TestsTabProps = {
   tests: FrontendTest[]
-  tierFilter: 'all' | 'B' | 'A' | 'S' | 'SS' | 'SSS'
+  tierFilter: 'all' | NewTier
   statusFilter: 'all' | 'locked' | 'unlocked' | 'attempted'
   textFilter: string
-  onTierFilterChange: (filter: 'all' | 'B' | 'A' | 'S' | 'SS' | 'SSS') => void
+  onTierFilterChange: (filter: 'all' | NewTier) => void
   onStatusFilterChange: (filter: 'all' | 'locked' | 'unlocked' | 'attempted') => void
   onTextFilterChange: (filter: string) => void
   onStartTest: (test: FrontendTest) => void
   getTestAttempts: (testType: string) => Promise<any[]>
   getTestAttemptDetail: (attemptId: number) => Promise<any>
+  selectedUser: User | null
 }
 
 export const TestsTab = ({
@@ -29,19 +33,29 @@ export const TestsTab = ({
   onStartTest,
   getTestAttempts,
   getTestAttemptDetail,
+  selectedUser,
 }: TestsTabProps) => {
   const [selectedTest, setSelectedTest] = useState<FrontendTest | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false)
+  const [pendingTest, setPendingTest] = useState<FrontendTest | null>(null)
 
-  // Filter tests
+  // Filter tests - show all tests, but mark which ones match filters for visual highlighting
   const filteredTests = useMemo(() => {
     const lowerTextFilter = textFilter.toLowerCase()
-    return tests.filter((test) => {
-      // Tier filter (based on best result)
-      const tierMatch =
-        tierFilter === 'all' ||
-        (test.bestResult && test.bestResult.tier === tierFilter) ||
-        (tierFilter === 'B' && !test.bestResult)
+    // Always show all tests, but calculate if they match filters for visual state
+    return tests.map((test) => {
+      // Tier filter (based on best result) - show tests that have achieved the selected tier or higher
+      let tierMatch = true
+      if (tierFilter !== 'all') {
+        if (test.bestResult) {
+          // Check if test's best tier is equal to or higher than filter tier
+          tierMatch = compareTiers(test.bestResult.tier, tierFilter) <= 0
+        } else {
+          // No best result - only match if filter is Bronze (lowest tier)
+          tierMatch = tierFilter === 'Bronze'
+        }
+      }
 
       // Status filter
       let statusMatch = true
@@ -61,7 +75,10 @@ export const TestsTab = ({
         test.display_name.toLowerCase().includes(lowerTextFilter) ||
         test.test_type.toLowerCase().includes(lowerTextFilter)
 
-      return tierMatch && statusMatch && textMatch
+      return {
+        test,
+        matchesFilter: tierMatch && statusMatch && textMatch,
+      }
     })
   }, [tests, tierFilter, statusFilter, textFilter])
 
@@ -70,8 +87,22 @@ export const TestsTab = ({
     setIsModalOpen(true)
   }
 
-  const handleStartTest = (test: FrontendTest) => {
+  const handleStartTestClick = (test: FrontendTest) => {
+    setPendingTest(test)
     setIsModalOpen(false)
+    setIsPinModalOpen(true)
+  }
+
+  const handlePinVerified = (pin: string) => {
+    setIsPinModalOpen(false)
+    if (pendingTest) {
+      onStartTest(pendingTest)
+      setPendingTest(null)
+    }
+  }
+
+  const handleStartTest = (test: FrontendTest) => {
+    // This is called from TestDetailModal after PIN verification
     onStartTest(test)
   }
 
@@ -97,8 +128,7 @@ export const TestsTab = ({
         <div className="mb-6">
           <h2 className="mb-2 text-2xl font-bold text-gray-900">Available Tests</h2>
           <p className="text-gray-600">
-            Tests are unlocked as you progress through levels. Complete tests to earn tier achievements (B, A, S, SS,
-            SSS).
+            Tests are unlocked as you progress through levels. Complete tests to earn tier achievements (Bronze through Champion).
           </p>
         </div>
 
@@ -106,19 +136,25 @@ export const TestsTab = ({
         <div className="mb-8 rounded-2xl bg-white p-6 shadow-lg">
           <div className="flex flex-wrap gap-4">
             <div className="min-w-[200px] flex-1">
-              <label className="mb-2 block text-sm font-medium text-gray-700">Rank/Tier</label>
+              <label className="mb-2 block text-sm font-medium text-gray-700">Tier</label>
               <select
                 data-testid="testid-test-filter-tier"
                 value={tierFilter}
-                onChange={(e) => onTierFilterChange(e.target.value as any)}
+                onChange={(e) => onTierFilterChange(e.target.value as 'all' | NewTier)}
                 className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-900 outline-none focus:border-transparent focus:ring-2 focus:ring-blue-500"
               >
-                <option value="all">All Ranks</option>
-                <option value="B">B Rank</option>
-                <option value="A">A Rank</option>
-                <option value="S">S Rank</option>
-                <option value="SS">SS Rank</option>
-                <option value="SSS">SSS Rank</option>
+                <option value="all">All Tiers</option>
+                <option value="Bronze">Bronze</option>
+                <option value="Silver">Silver</option>
+                <option value="Gold">Gold</option>
+                <option value="Platinum">Platinum</option>
+                <option value="Diamond">Diamond</option>
+                <option value="Master">Master</option>
+                <option value="Grandmaster">Grandmaster</option>
+                <option value="Legendary">Legendary</option>
+                <option value="Mythic">Mythic</option>
+                <option value="Divine">Divine</option>
+                <option value="Champion">Champion</option>
               </select>
             </div>
             <div className="min-w-[200px] flex-1">
@@ -154,13 +190,14 @@ export const TestsTab = ({
 
         {/* Test Grid */}
         <div data-testid="testid-test-achievements-grid" className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {filteredTests.map((test, index) => (
+          {filteredTests.map(({ test, matchesFilter }, index) => (
             <TestCard
               key={test.test_type}
               test={test}
               index={index}
               onClick={handleTestClick}
-              onStartTest={handleStartTest}
+              onStartTest={handleStartTestClick}
+              matchesFilter={matchesFilter}
             />
           ))}
         </div>
@@ -168,7 +205,7 @@ export const TestsTab = ({
         {filteredTests.length === 0 && (
           <div className="py-16 text-center">
             <AlertCircle className="mx-auto mb-4 h-16 w-16 text-gray-300" />
-            <p className="text-lg text-gray-500">No tests match your filters</p>
+            <p className="text-lg text-gray-500">No tests available</p>
           </div>
         )}
       </motion.div>
@@ -181,6 +218,18 @@ export const TestsTab = ({
         onStartTest={handleStartTest}
         getTestAttempts={getTestAttempts}
         getTestAttemptDetail={getTestAttemptDetail}
+        selectedUser={selectedUser}
+      />
+
+      {/* PIN Verification Modal */}
+      <PINVerificationModal
+        isOpen={isPinModalOpen}
+        onClose={() => {
+          setIsPinModalOpen(false)
+          setPendingTest(null)
+        }}
+        onVerified={handlePinVerified}
+        selectedUser={selectedUser}
       />
     </>
   )

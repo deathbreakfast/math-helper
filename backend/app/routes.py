@@ -180,8 +180,16 @@ def verify_user_pin(user_id: int):
 
 @api_bp.get("/achievements")
 def list_achievements():
-    """Return persisted achievements, optionally filtered to a user."""
+    """Return persisted achievements, optionally filtered to a user.
+    
+    Query parameters:
+    - user_id: Optional user ID to filter achievements
+    - limit: Optional limit for number of achievements (default: 50, max: 100)
+    """
     user_id = request.args.get("user_id", type=int)
+    limit = request.args.get("limit", type=int, default=50)
+    # Cap limit at 100 to prevent excessive queries
+    limit = min(limit, 100) if limit else 50
 
     # Ensure achievements are up to date for all users or specific user
     if user_id:
@@ -195,8 +203,26 @@ def list_achievements():
             metrics = AnalyticsService.compute_user_metrics(user.id)
             AchievementService.ensure_achievements(user, metrics)
 
-    achievements = AchievementService.get_achievements_by_category(user_id=user_id, limit=50)
-    return jsonify({"achievements": [AchievementService.serialize_achievement(a) for a in achievements]})
+    # Use optimized SQL query with ORDER BY earned_at DESC LIMIT
+    # The earned_at column is indexed for performance
+    # Include user names when fetching all users' achievements (for dashboard)
+    include_user_name = user_id is None
+    achievements = AchievementService.get_achievements_by_category(
+        user_id=user_id, 
+        limit=limit, 
+        include_user_name=include_user_name
+    )
+    
+    # Serialize achievements with user names if available
+    if include_user_name:
+        # User name is available via join in the query
+        serialized = []
+        for achievement in achievements:
+            user_name = achievement.user.display_name if achievement.user else None
+            serialized.append(AchievementService.serialize_achievement(achievement, user_name=user_name))
+        return jsonify({"achievements": serialized})
+    else:
+        return jsonify({"achievements": [AchievementService.serialize_achievement(a) for a in achievements]})
 
 
 @api_bp.post("/practice/submissions")
@@ -489,9 +515,11 @@ def get_test_definitions():
     """Get all test definitions (legacy + new).
     
     Query parameters:
-        user_id: Optional user ID to filter by user level
+        user_id: Optional user ID to filter by user level or check unlock status
+        include_unlock_status: Optional boolean to include unlock_status for each test (requires user_id)
     """
     user_id = request.args.get("user_id", type=int) or request.args.get("userId", type=int)
+    include_unlock_status = request.args.get("include_unlock_status", "false").lower() == "true"
     user_level = None
     
     if user_id:
@@ -499,7 +527,11 @@ def get_test_definitions():
         if user:
             user_level = user.level
     
-    definitions = TestService.get_all_test_definitions(user_level=user_level)
+    definitions = TestService.get_all_test_definitions(
+        user_level=user_level,
+        user_id=user_id if include_unlock_status else None,
+        include_unlock_status=include_unlock_status,
+    )
     return jsonify({"definitions": definitions})
 
 
@@ -658,22 +690,36 @@ def complete_session(session_id: int):
 
     # Update achievements
     metrics = AnalyticsService.compute_user_metrics(user.id)
-    achievements = AchievementService.ensure_achievements(user, metrics)
+    
+    # Award new achievements with session context
+    try:
+        AchievementService.ensure_achievements(user, metrics, session_id=session_id)
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": f"Failed to award achievements: {str(e)}"}), 500
     
     # Check for consecutive correct achievements (30 in a row)
     consecutive_achievements = AchievementService.check_consecutive_correct_achievements(
         user, session.test_type
     )
     
-    # Check for tiered test achievements (B, A, S, SS, SSS)
+    # Check for tiered test achievements (legacy B, A, S, SS, SSS)
     tier_achievements = AchievementService.check_test_tier_achievements(session)
     
-    # Combine all new achievements
-    all_achievements = AchievementService.get_user_achievements(user.id)
-    new_achievements = [
-        a for a in all_achievements
-        if a.earned_at >= session.started_at or a in consecutive_achievements or a in tier_achievements
-    ]
+    # Check for generic test achievements (new metal/prestige tier system)
+    generic_test_achievements = AchievementService.check_generic_test_achievements(session)
+    
+    # Check for generic accuracy achievements (new metal/prestige tier system)
+    generic_accuracy_achievements = AchievementService.check_generic_accuracy_achievements(session)
+    
+    # Ensure all achievements are committed before querying
+    from .models import db
+    db.session.commit()
+    db.session.flush()
+    
+    # Simple query: get all achievements for this session using indexed field
+    new_achievements = AchievementService.get_achievements_by_session(session_id)
 
     # Check leveling
     next_level = user.level + 1
@@ -712,9 +758,14 @@ def _serialize_user(user) -> dict[str, Any]:
     
     NOTE: PIN is NOT included in the response for security reasons.
     PIN verification must be done via the /api/users/<id>/verify-pin endpoint.
+    
+    NOTE: This function should NOT award new achievements - it should only return existing ones.
+    Achievement awarding should only happen during session completion.
     """
     metrics = AnalyticsService.compute_user_metrics(user.id)
-    achievements_list = AchievementService.ensure_achievements(user, metrics)
+    # Get existing achievements only - do NOT award new ones during user fetch
+    # Achievement awarding should only happen during session completion with session_id
+    achievements_list = AchievementService.get_user_achievements(user.id)
 
     weekly_gain = AnalyticsService.get_weekly_gain(user.id)
 
@@ -892,8 +943,13 @@ def check_level_up_eligibility(user_id: int):
 @api_bp.delete("/users/<int:user_id>/reset")
 def reset_user_data(user_id: int):
     """Reset all user data (achievements, sessions, responses) - DEV ONLY."""
+    from flask import current_app
     from .models import Achievement, PracticeSession, Response, DailyStat, FlaggedQuestion, db
     from .database import transaction
+    
+    # Check if TESTING mode is enabled
+    if not current_app.config.get('TESTING'):
+        return jsonify({"error": "Not available in production"}), 403
     
     user = UserService.get_user(user_id)
     if not user:
@@ -948,8 +1004,8 @@ def test_setup_user(user_id: int):
     from .models import Achievement, db
     from .config.achievements import ACHIEVEMENTS_CONFIG
     
-    # Check if in dev/test mode
-    if not current_app.config.get('TESTING') and not current_app.debug:
+    # Check if TESTING mode is enabled
+    if not current_app.config.get('TESTING'):
         return jsonify({"error": "Not available in production"}), 403
     
     user = UserService.get_user(user_id)
@@ -1020,6 +1076,12 @@ def delete_user(user_id: int):
     
     Use with caution - this operation cannot be undone.
     """
+    from flask import current_app
+    
+    # Check if TESTING mode is enabled
+    if not current_app.config.get('TESTING'):
+        return jsonify({"error": "Not available in production"}), 403
+    
     success, error = UserService.delete_user(user_id)
     
     if not success:
@@ -1049,6 +1111,7 @@ def reset_all_data():
     
     This is intended for E2E test cleanup. Use with extreme caution - this operation cannot be undone.
     """
+    from flask import current_app
     from .models import (
         Achievement,
         DailyStat,
@@ -1063,6 +1126,10 @@ def reset_all_data():
         db,
     )
     from .database import transaction
+    
+    # Check if TESTING mode is enabled
+    if not current_app.config.get('TESTING'):
+        return jsonify({"error": "Not available in production"}), 403
     
     # Delete all data in proper order to respect foreign key constraints
     with transaction():

@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react'
+import { useSearchParams, useParams } from 'react-router-dom'
+import { useRouter } from '../../../utils/routing'
 import { AnimatePresence } from 'framer-motion'
 import type { UserProgressData } from '../utils/progressMapping'
 import { JourneyHeader } from './journey/JourneyHeader'
@@ -8,10 +10,11 @@ import { OverviewTab } from './journey/OverviewTab'
 import { AchievementsTab } from './journey/AchievementsTab'
 import { LevelsTab } from './journey/LevelsTab'
 import { TestsTab } from './journey/TestsTab'
-import { useJourneyFilters } from '../hooks/useJourneyFilters'
 import { useFilteredAchievements } from '../hooks/useFilteredAchievements'
+import { useJourneyFilters } from '../hooks/useJourneyFilters'
 import { useTests } from '../hooks/useTests'
-import type { FrontendTest } from '../utils/testMapping'
+import type { FrontendTest, NewTier } from '../utils/testMapping'
+import { mapOldTierToNew } from '../utils/testMapping'
 
 import type { User } from '../hooks/useLearners'
 
@@ -19,11 +22,34 @@ type LevelProgressionSystemProps = {
   userData?: UserProgressData
   user?: User | null
   onBack?: () => void
+  initialTab?: TabId
+  searchParams?: URLSearchParams
 }
 
-export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ userData, user, onBack }) => {
-  const [activeTab, setActiveTab] = useState<TabId>('overview')
+export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ userData, user, onBack, initialTab, searchParams: initialSearchParams }) => {
+  const router = useRouter()
+  const params = useParams<{ userId: string; tab?: TabId }>() || {}
+  const [searchParams, setSearchParams] = useSearchParams(initialSearchParams || undefined)
+  
+  // Determine if we're in modal mode (onBack provided but not on a route)
+  const isModalMode = !!onBack && !params.userId
+  
+  // For modal mode, use local state for active tab. For route mode, use URL params
+  const [modalActiveTab, setModalActiveTab] = useState<TabId>(initialTab || 'overview')
+  
+  // Sync activeTab: route mode uses URL params, modal mode uses local state
+  const activeTab = isModalMode 
+    ? modalActiveTab 
+    : (params.tab || initialTab || 'overview') as TabId
+  
+  // Update modal tab when initialTab changes
+  useEffect(() => {
+    if (isModalMode && initialTab) {
+      setModalActiveTab(initialTab)
+    }
+  }, [isModalMode, initialTab])
 
+  // Use URL params as single source of truth - no state sync needed!
   const {
     achievementFilter,
     statusFilter,
@@ -50,35 +76,49 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
 
   // Tests data
   const userId = userData ? parseInt(userData.id, 10) : null
-  const { tests, isLoading: isLoadingTests, getTestAttempts, getTestAttemptDetail } = useTests({
+  const { tests, getTestAttempts, getTestAttemptDetail } = useTests({
     userId,
     userLevel: userData?.level || 1,
   })
 
-  // Test filters
-  const [testTierFilter, setTestTierFilter] = useState<'all' | 'B' | 'A' | 'S' | 'SS' | 'SSS'>('all')
-  const [testStatusFilter, setTestStatusFilter] = useState<'all' | 'locked' | 'unlocked' | 'attempted'>('all')
-  const [testTextFilter, setTestTextFilter] = useState<string>('')
-
-  // DEBUG: Log achievements data when it changes
-  // [STACK: LevelProgressionSystem - After filtering achievements]
-  useEffect(() => {
-    if (userData) {
-      console.log(`[ACH-008] [LEVEL PROGRESSION] UserData achievements count: ${userData.achievements?.length || 0}`)
-      if (userData.achievements && userData.achievements.length > 0) {
-        const achievementCodes = userData.achievements.map(a => a.code || a.id || a.title).filter(Boolean)
-        console.log(`[ACH-008] [LEVEL PROGRESSION] UserData achievement codes:`, achievementCodes)
-      }
-      
-      console.log(`[ACH-008] [LEVEL PROGRESSION] Filtered achievements count: ${filteredAchievements.length}`)
-      console.log(`[ACH-008] [LEVEL PROGRESSION] Total achievements: ${totalAchievements}, Unlocked: ${unlockedAchievements}`)
-      
-      if (filteredAchievements.length > 0) {
-        const filteredCodes = filteredAchievements.map(a => a.code || a.id || a.title).filter(Boolean)
-        console.log(`[ACH-008] [LEVEL PROGRESSION] Filtered achievement codes:`, filteredCodes)
-      }
+  // Test filters - also use URL as single source of truth
+  // Support both old and new tier systems for backward compatibility
+  const tierParam = searchParams.get('tier') || 'all'
+  const testTierFilter = (tierParam === 'all' 
+    ? 'all' 
+    : mapOldTierToNew(tierParam)) as 'all' | NewTier
+  const testStatusFilter = (searchParams.get('testStatus') || 'all') as 'all' | 'locked' | 'unlocked' | 'attempted'
+  const testTextFilter = searchParams.get('testText') || ''
+  
+  const setTestTierFilter = (tier: 'all' | NewTier) => {
+    const newParams = new URLSearchParams(searchParams)
+    if (tier !== 'all') {
+      newParams.set('tier', tier)
+    } else {
+      newParams.delete('tier')
     }
-  }, [userData, filteredAchievements, totalAchievements, unlockedAchievements])
+    setSearchParams(newParams, { replace: true })
+  }
+  
+  const setTestStatusFilter = (status: 'all' | 'locked' | 'unlocked' | 'attempted') => {
+    const newParams = new URLSearchParams(searchParams)
+    if (status !== 'all') {
+      newParams.set('testStatus', status)
+    } else {
+      newParams.delete('testStatus')
+    }
+    setSearchParams(newParams, { replace: true })
+  }
+  
+  const setTestTextFilter = (text: string) => {
+    const newParams = new URLSearchParams(searchParams)
+    if (text) {
+      newParams.set('testText', text)
+    } else {
+      newParams.delete('testText')
+    }
+    setSearchParams(newParams, { replace: true })
+  }
 
   if (!userData) {
     return null
@@ -98,14 +138,35 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
           inProgressAchievements={inProgressAchievements}
         />
 
-        <JourneyTabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
+        <JourneyTabNavigation 
+          activeTab={activeTab} 
+          onTabChange={(tab) => {
+            if (isModalMode) {
+              // In modal mode, just update local state (don't navigate)
+              setModalActiveTab(tab)
+            } else {
+              // In route mode, navigate to the tab (preserves searchParams automatically)
+              const userId = userData?.id || params.userId
+              if (userId) {
+                router.navigate(`/journey/${userId}/${tab}`)
+              }
+            }
+          }}
+          userId={userData?.id || params.userId || ''}
+        />
 
         {/* Content Based on Active Tab */}
         <AnimatePresence mode="wait">
           {activeTab === 'overview' && (
             <OverviewTab 
               allAchievements={userData.achievements} 
-              onViewAllTests={() => setActiveTab('achievements')}
+              onViewAllTests={() => {
+                const userId = userData?.id || params.userId
+                if (userId) {
+                  const queryString = searchParams.toString() ? `?${searchParams.toString()}` : ''
+                  router.navigate(`/journey/${userId}/achievements${queryString}`)
+                }
+              }}
               userData={userData}
             />
           )}
@@ -136,6 +197,37 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
               onStartTest={handleStartTest}
               getTestAttempts={getTestAttempts}
               getTestAttemptDetail={getTestAttemptDetail}
+              selectedUser={user || (userData ? {
+                id: userData.id,
+                name: userData.name,
+                avatar: userData.avatar,
+                level: userData.level,
+                questionsAnswered: userData.totalQuestions,
+                averageSpeed: 0,
+                achievements: userData.achievements
+                  .filter(ach => ach.unlockedAt) // Only include achievements with earnedAt
+                  .map(ach => ({
+                    id: ach.id,
+                    code: ach.id, // Use id as code for Learner type
+                    title: ach.title,
+                    description: ach.description,
+                    icon: ach.icon,
+                    earnedAt: ach.unlockedAt!, // Non-null assertion since we filtered
+                    category: ach.category,
+                  })),
+                stats: {
+                  additionAccuracy: 0,
+                  subtractionAccuracy: 0,
+                  multiplicationAccuracy: 0,
+                  divisionAccuracy: 0,
+                  additionSpeed: 0,
+                  subtractionSpeed: 0,
+                  multiplicationSpeed: 0,
+                  divisionSpeed: 0,
+                  currentStreak: userData.currentStreak,
+                  bestStreak: userData.bestStreak,
+                },
+              } : null)}
             />
           )}
         </AnimatePresence>
@@ -146,19 +238,19 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
   function handleStartTest(test: FrontendTest) {
     if (!userData) return
 
-    const userId = parseInt(userData.id, 10)
-    const testType = test.test_type
+    // FrontendTest extends TestDefinition which has test_type property
+    // TypeScript doesn't always infer extended properties, so we access it directly
+    const testType = (test as FrontendTest & { test_type: string }).test_type
 
     // Start test session by navigating to practice page with test parameters
-    const params = new URLSearchParams({
+    // Router will preserve context params like env=dev
+    router.navigate('/practice', {
       user: userData.name,
       userId: userData.id,
       avatar: userData.avatar,
       testType: testType,
       isTest: 'true',
     })
-
-    window.location.assign(`/practice?${params.toString()}`)
   }
 }
 

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Loader2 } from 'lucide-react'
 import ModalShell from '../../../components/ModalShell'
 import { LevelProgressionSystem } from '../components/LevelProgressionSystem'
@@ -14,6 +14,9 @@ type JourneyModalProps = {
 }
 
 const JourneyModal = ({ isOpen, onClose, user, isLoadingFullData = false }: JourneyModalProps) => {
+  // Get current search params to preserve dev mode and other context params
+  const [searchParams] = useSearchParams()
+  
   // Don't fetch level requirements on mount - will be lazy loaded when Levels tab is opened
   const { requirements: levelRequirementsCache } = useLevelRequirements(user?.level ? user.level + 2 : 45, false)
   const { definitions: achievementDefinitions } = useAchievementDefinitions()
@@ -31,32 +34,6 @@ const JourneyModal = ({ isOpen, onClose, user, isLoadingFullData = false }: Jour
   // Once loading completes, if achievements is still empty, the user legitimately has none
   const isWaitingForAchievements = isLoadingFullData && user && (!user.achievements || user.achievements.length === 0)
 
-  // DEBUG: Log user data when modal opens or user changes
-  // [STACK: JourneyModal - Component render, after data mapping]
-  useEffect(() => {
-    if (isOpen && user) {
-      console.log(`[ACH-008] [JOURNEY MODAL] Modal opened for user: ID=${user.id}, Name=${user.name}`)
-      console.log(`[ACH-008] [JOURNEY MODAL] User achievements count: ${user.achievements?.length || 0}`)
-      if (user.achievements && user.achievements.length > 0) {
-        const achievementCodes = user.achievements.map(a => a.code || a.id || a.title).filter(Boolean)
-        console.log(`[ACH-008] [JOURNEY MODAL] User achievement codes:`, achievementCodes)
-      } else {
-        console.warn(`[ACH-008] [JOURNEY MODAL] WARNING: User has no achievements array or it's empty!`)
-      }
-      
-      if (userProgressData) {
-        console.log(`[ACH-008] [JOURNEY MODAL] UserProgressData achievements count: ${userProgressData.achievements?.length || 0}`)
-        if (userProgressData.achievements && userProgressData.achievements.length > 0) {
-          const progressAchievementCodes = userProgressData.achievements.map(a => a.code || a.id || a.title).filter(Boolean)
-          console.log(`[ACH-008] [JOURNEY MODAL] UserProgressData achievement codes:`, progressAchievementCodes)
-        } else {
-          console.warn(`[ACH-008] [JOURNEY MODAL] WARNING: UserProgressData has no achievements!`)
-        }
-      } else {
-        console.warn(`[ACH-008] [JOURNEY MODAL] WARNING: userProgressData is undefined!`)
-      }
-    }
-  }, [isOpen, user, userProgressData])
 
   return (
     <ModalShell
@@ -77,7 +54,12 @@ const JourneyModal = ({ isOpen, onClose, user, isLoadingFullData = false }: Jour
             </div>
           </div>
         ) : (
-          <LevelProgressionSystem userData={userProgressData} user={user} onBack={onClose} />
+          <LevelProgressionSystem 
+            userData={userProgressData} 
+            user={user} 
+            onBack={onClose}
+            searchParams={searchParams}
+          />
         )}
       </div>
     </ModalShell>

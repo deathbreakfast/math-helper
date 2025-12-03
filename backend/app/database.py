@@ -113,6 +113,7 @@ def init_db(app):
                 PracticeSession,
                 Question,
                 Response,
+                ServerRecord,
                 TestAttempt,
                 User,
             )
@@ -121,12 +122,14 @@ def init_db(app):
             # Delete all data in proper order to respect foreign key constraints
             with transaction():
                 # Delete child records first (order matters for foreign keys)
+                # Delete records that reference User, PracticeSession, or Question first
                 TestAttempt.query.delete()
                 DailyStat.query.delete()
                 FlaggedQuestion.query.delete()
                 Response.query.delete()
                 Achievement.query.delete()
-                PracticeSession.query.delete()
+                ServerRecord.query.delete()  # References User and PracticeSession
+                PracticeSession.query.delete()  # References User
                 
                 # Delete parent records
                 User.query.delete()
@@ -135,6 +138,16 @@ def init_db(app):
                 # Delete config tables (optional - these can be re-seeded)
                 LevelProblemConfig.query.delete()
                 LevelProgression.query.delete()
+                
+                # Reset SQLite sequence counters so IDs start from 1 after wipe
+                try:
+                    from sqlalchemy import text
+                    db.session.execute(text("DELETE FROM sqlite_sequence WHERE name IN ('practice_sessions', 'users', 'questions', 'responses', 'achievements', 'test_attempts', 'daily_stats', 'flagged_questions', 'server_records', 'level_problem_configs', 'level_progressions')"))
+                    db.session.commit()
+                    logger.info("SQLite sequence counters reset")
+                except Exception as e:
+                    logger.warning(f"Could not reset SQLite sequence counters: {e}")
+                    # Continue anyway - this is optional
             
             logger.info("Database cleared successfully")
         

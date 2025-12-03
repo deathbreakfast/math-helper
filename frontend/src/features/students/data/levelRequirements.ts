@@ -8,6 +8,7 @@ export type LevelRequirement = {
   requirements: {
     description: string
     achievementIds?: string[]
+    achievementCode?: string // Backend achievement code for navigation
     alternatives?: Array<{
       description: string
       achievementIds: string[]

@@ -82,6 +82,11 @@ def migrate_database(app=None):
             )
             level_problem_config_exists = cursor.fetchone() is not None
 
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='server_records'"
+            )
+            server_records_exists = cursor.fetchone() is not None
+
             # Check if questions table has new columns
             cursor.execute("PRAGMA table_info(questions)")
             question_columns = {row[1] for row in cursor.fetchall()}
@@ -234,6 +239,33 @@ def migrate_database(app=None):
                 )
                 cursor.execute(
                     "CREATE INDEX ix_level_problem_config_operation ON level_problem_config(operation)"
+                )
+
+            if not server_records_exists:
+                print("Creating server_records table...")
+                cursor.execute(
+                    """
+                    CREATE TABLE server_records (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        achievement_type VARCHAR(64) NOT NULL UNIQUE,
+                        record_type VARCHAR(32) NOT NULL,
+                        record_value REAL NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        achieved_at DATETIME NOT NULL,
+                        session_id INTEGER,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                        FOREIGN KEY (session_id) REFERENCES practice_sessions(id) ON DELETE SET NULL
+                    )
+                """
+                )
+                cursor.execute(
+                    "CREATE INDEX ix_server_records_achievement_type ON server_records(achievement_type)"
+                )
+                cursor.execute(
+                    "CREATE INDEX ix_server_records_record_type ON server_records(record_type)"
+                )
+                cursor.execute(
+                    "CREATE INDEX ix_server_records_user_id ON server_records(user_id)"
                 )
 
             # Update existing tables
@@ -446,6 +478,34 @@ def migrate_database(app=None):
                 print("Adding composite index on responses(user_id, question_id, is_correct)...")
                 cursor.execute(
                     "CREATE INDEX ix_responses_user_question_correct ON responses(user_id, question_id, is_correct)"
+                )
+
+            # Create server_records table if it doesn't exist
+            if not server_records_exists:
+                print("Creating server_records table...")
+                cursor.execute(
+                    """
+                    CREATE TABLE server_records (
+                        id INTEGER PRIMARY KEY AUTOINCREMENT,
+                        achievement_type VARCHAR(64) NOT NULL UNIQUE,
+                        record_type VARCHAR(32) NOT NULL,
+                        record_value REAL NOT NULL,
+                        user_id INTEGER NOT NULL,
+                        achieved_at DATETIME NOT NULL,
+                        session_id INTEGER,
+                        FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+                        FOREIGN KEY (session_id) REFERENCES practice_sessions(id) ON DELETE SET NULL
+                    )
+                """
+                )
+                cursor.execute(
+                    "CREATE INDEX ix_server_records_achievement_type ON server_records(achievement_type)"
+                )
+                cursor.execute(
+                    "CREATE INDEX ix_server_records_record_type ON server_records(record_type)"
+                )
+                cursor.execute(
+                    "CREATE INDEX ix_server_records_user_id ON server_records(user_id)"
                 )
 
             conn.commit()

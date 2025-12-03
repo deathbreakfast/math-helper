@@ -23,26 +23,6 @@ export const AchievementsTab = ({
   onStatusFilterChange,
   onTextFilterChange,
 }: AchievementsTabProps) => {
-  // DEBUG: Log achievements being rendered in the tab
-  // [STACK: AchievementsTab - Component render, before rendering cards]
-  useEffect(() => {
-    console.log(`[ACH-008] [ACHIEVEMENTS TAB] Filtered achievements count: ${filteredAchievements.length}`)
-    console.log(`[ACH-008] [ACHIEVEMENTS TAB] Active filters: category=${achievementFilter}, status=${statusFilter}, text="${textFilter}"`)
-    
-    if (filteredAchievements.length > 0) {
-      const achievementCodes = filteredAchievements.map(a => a.code || a.id || a.title).filter(Boolean)
-      const achievementStatuses = filteredAchievements.map(a => a.status).filter(Boolean)
-      console.log(`[ACH-008] [ACHIEVEMENTS TAB] Achievement codes to render:`, achievementCodes)
-      console.log(`[ACH-008] [ACHIEVEMENTS TAB] Achievement statuses:`, achievementStatuses)
-      
-      // Check for our specific test achievements
-      const hasFirstVictory = achievementCodes.some(code => code === 'first-victory' || String(code).includes('first-victory'))
-      const hasAdditionBasics = achievementCodes.some(code => code === 'addition-basics' || String(code).includes('addition-basics'))
-      console.log(`[ACH-008] [ACHIEVEMENTS TAB] Has first-victory: ${hasFirstVictory}, Has addition-basics: ${hasAdditionBasics}`)
-    } else {
-      console.warn(`[ACH-008] [ACHIEVEMENTS TAB] WARNING: No filtered achievements to render!`)
-    }
-  }, [filteredAchievements, achievementFilter, statusFilter, textFilter])
   return (
     <motion.div
       key="achievements"

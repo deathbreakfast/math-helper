@@ -1,0 +1,45 @@
+[run]
+# Coverage configuration for backend tests
+
+# Source directories to cover
+source = app
+
+# Omit patterns - exclude from coverage
+omit =
+    */tests/*
+    */test_*.py
+    */__pycache__/*
+    */migrations/*
+    */venv/*
+    */env/*
+    */__init__.py
+
+# Branch coverage (optional, can be enabled for more detailed coverage)
+branch = False
+
+[report]
+# Coverage report settings
+
+# Show missing line numbers
+show_missing = True
+
+# Precision for percentage reporting
+precision = 2
+
+# Skip empty files
+skip_empty = True
+
+# Exclude lines from coverage (use # pragma: no cover in code)
+exclude_lines =
+    pragma: no cover
+    def __repr__
+    raise AssertionError
+    raise NotImplementedError
+    if __name__ == .__main__.:
+    if TYPE_CHECKING:
+    @abstractmethod
+
+[html]
+# HTML report settings
+directory = coverage/html
+

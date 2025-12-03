@@ -62,6 +62,264 @@ NEW_TEST_DEFINITIONS: dict[str, tuple[str, int, int, dict[str, Any], str]] = {
     "division-long": ("division", 45, 25, {"answer_format": "long_division"}, "Long Division"),
 }
 
+# Unlock requirements for each test type
+# Format: achievement-based unlocking requirements
+TEST_UNLOCK_REQUIREMENTS: dict[str, dict[str, Any]] = {
+    # Addition Tests
+    # Updated to use test achievements instead of {operation}-basics achievements
+    "addition-1digit": {
+        "type": "level",
+        "level": 1,
+        "min_accuracy": 1.0,  # 100% accuracy
+        "operation": "addition",
+    },
+    "addition-1digit-zeros": {
+        "type": "level",
+        "level": 2,  # After zeros concept introduced
+        "min_accuracy": 1.0,
+        "operation": "addition",
+    },
+    "addition-1digit-negative": {
+        "type": "level",
+        "level": 5,  # After negatives introduced
+        "min_accuracy": 1.0,
+        "operation": "addition",
+    },
+    "addition-2digit": {
+        "type": "level",
+        "level": 7,
+        "min_accuracy": 1.0,
+        "operation": "addition",
+    },
+    "addition-3digit": {
+        "type": "level",
+        "level": 22,
+        "min_accuracy": 1.0,
+        "operation": "addition",
+    },
+    
+    # Subtraction Tests
+    "subtraction-1digit": {
+        "type": "level",
+        "level": 3,
+        "min_accuracy": 1.0,
+        "operation": "subtraction",
+    },
+    "subtraction-1digit-zeros": {
+        "type": "level",
+        "level": 4,  # After zeros concept introduced
+        "min_accuracy": 1.0,
+        "operation": "subtraction",
+    },
+    "subtraction-1digit-negative": {
+        "type": "level",
+        "level": 6,  # After negatives introduced
+        "min_accuracy": 1.0,
+        "operation": "subtraction",
+    },
+    "subtraction-2digit": {
+        "type": "level",
+        "min_accuracy": 1.0,
+        "operation": "subtraction",
+    },
+    "subtraction-3digit": {
+        "type": "level",
+        "min_accuracy": 1.0,
+        "operation": "subtraction",
+    },
+    
+    # Mixed Tests
+    "basic-math-mixed": {
+        "type": "level",
+        "level": 7,
+        "min_accuracy": 1.0,
+        "operation": "addition",
+    },
+    
+    # Multiplication Tests
+    "multiplication-by-1": {
+        "type": "level",
+        "level": 7,
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-by-2": {
+        "type": "level",
+        "level": 9,
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-by-3": {
+        "type": "level",
+        "level": 10,
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-by-4": {
+        "type": "level",
+        "level": 11,
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-by-5": {
+        "type": "level",
+        "level": 12,
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-by-6": {
+        "type": "level",
+        "level": 13,
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-by-7": {
+        "type": "level",
+        "level": 14,
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-by-8": {
+        "type": "level",
+        "level": 15,
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-by-9": {
+        "type": "level",
+        "level": 16,
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-by-10": {
+        "type": "level",
+        "level": 19,
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-by-11": {
+        "type": "level",
+        "level": 20,
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-by-12": {
+        "type": "level",
+        "level": 21,
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-2digit": {
+        "type": "level",
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    "multiplication-3digit": {
+        "type": "level",
+        "min_accuracy": 1.0,
+        "operation": "multiplication",
+    },
+    
+    # Division Tests
+    "division-by-1": {
+        "type": "level",
+        "level": 25,
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-by-2": {
+        "type": "level",
+        "level": 26,
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-by-3": {
+        "type": "level",
+        "level": 27,
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-by-4": {
+        "type": "level",
+        "level": 28,
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-by-5": {
+        "type": "level",
+        "level": 29,
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-by-6": {
+        "type": "level",
+        "level": 30,
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-by-7": {
+        "type": "level",
+        "level": 31,
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-by-8": {
+        "type": "level",
+        "level": 32,
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-by-9": {
+        "type": "level",
+        "level": 33,
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-by-10": {
+        "type": "level",
+        "level": 35,
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-by-11": {
+        "type": "level",
+        "level": 36,
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-by-12": {
+        "type": "level",
+        "level": 37,
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-no-remainder-single": {
+        "type": "level",
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-remainder": {
+        "type": "level",
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-fraction": {
+        "type": "level",
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-decimal": {
+        "type": "level",
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+    "division-long": {
+        "type": "level",
+        "min_accuracy": 1.0,
+        "operation": "division",
+    },
+}
+
 
 def get_test_definition(test_type: str) -> dict[str, Any] | None:
     """Get test definition for a specific test type.
@@ -77,14 +335,20 @@ def get_test_definition(test_type: str) -> dict[str, Any] | None:
     
     operation, level_requirement, question_count, constraints, display_name = NEW_TEST_DEFINITIONS[test_type]
     
-    return {
+    result = {
         "test_type": test_type,
         "operation": operation,
-        "level_requirement": level_requirement,
+        "level_requirement": level_requirement,  # Deprecated: kept for backward compatibility
         "question_count": question_count,
         "constraints": constraints,
         "display_name": display_name,
     }
+    
+    # Add unlock_requirements if available
+    if test_type in TEST_UNLOCK_REQUIREMENTS:
+        result["unlock_requirements"] = TEST_UNLOCK_REQUIREMENTS[test_type]
+    
+    return result
 
 
 def get_all_test_definitions() -> list[dict[str, Any]]:

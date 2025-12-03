@@ -93,26 +93,44 @@ class UserService:
         if target_level == 1:
             return True, []  # Level 1 has no requirements
 
-        # Get required achievements for target level
-        requirements = (
+        # Get required achievements for target level from config (includes quantity)
+        from ..config.level_progression_config import LEVEL_PROGRESSION_CONFIG
+        config_requirements = LEVEL_PROGRESSION_CONFIG.get(target_level, [])
+        
+        # Also get from database for backward compatibility
+        db_requirements = (
             LevelProgression.query.filter_by(target_level=target_level)
             .order_by(LevelProgression.order.asc())
             .all()
         )
 
-        if not requirements:
+        # Use config if available, otherwise fall back to database
+        if config_requirements:
+            requirements = config_requirements
+        elif db_requirements:
+            # Convert database requirements to config format
+            requirements = [
+                {"achievement_code": req.required_achievement_code, "quantity": 1, "order": req.order or 1}
+                for req in db_requirements
+            ]
+        else:
             # No requirements defined, allow level up
             return True, []
 
         # Get user's achievement codes
-        user_achievements = {a.code for a in user.achievements}
+        user_achievement_codes = {a.code for a in user.achievements}
 
         # Check which requirements are missing
-        missing = [
-            req.required_achievement_code
-            for req in requirements
-            if req.required_achievement_code not in user_achievements
-        ]
+        missing = []
+        for req in requirements:
+            achievement_code = req.get("achievement_code", "")
+            quantity = req.get("quantity", 1)
+            
+            # Count exact matches (all codes are now tiered, no base codes)
+            count = sum(1 for code in user_achievement_codes if code == achievement_code)
+            
+            if count < quantity:
+                missing.append(f"{achievement_code} (need {quantity}, have {count})")
 
         return len(missing) == 0, missing
 

@@ -209,18 +209,32 @@ class SessionEngineService:
                 # Get full session details with all questions
                 session_data = PracticeService.get_session_with_details(incomplete_session.id)
                 if session_data and session_data.get("questions"):
-                    # Transform questions to match generate_session format
-                    questions = SessionEngineService._transform_session_questions_to_generate_format(
-                        session_data["questions"]
-                    )
-                    return {
-                        "session_id": incomplete_session.id,
-                        "is_test": incomplete_session.is_test,
-                        "test_type": incomplete_session.test_type,
-                        "mode": incomplete_session.mode,
-                        "level": incomplete_session.level,
-                        "questions": questions,
-                    }
+                    # Check if all questions are answered
+                    questions = session_data["questions"]
+                    all_answered = all(q.get("response") is not None for q in questions)
+                    if all_answered:
+                        # All questions answered but not marked complete - mark it now
+                        correct_count = sum(1 for q in questions if q.get("response", {}).get("is_correct", False))
+                        PracticeService.complete_session(
+                            incomplete_session.id,
+                            total_questions=len(questions),
+                            correct_count=correct_count,
+                            total_duration_ms=None
+                        )
+                        # Continue to create new session below
+                    else:
+                        # Transform questions to match generate_session format
+                        questions = SessionEngineService._transform_session_questions_to_generate_format(
+                            session_data["questions"]
+                        )
+                        return {
+                            "session_id": incomplete_session.id,
+                            "is_test": incomplete_session.is_test,
+                            "test_type": incomplete_session.test_type,
+                            "mode": incomplete_session.mode,
+                            "level": incomplete_session.level,
+                            "questions": questions,
+                        }
         
         # No incomplete session found, create new one
         # Handle test sessions

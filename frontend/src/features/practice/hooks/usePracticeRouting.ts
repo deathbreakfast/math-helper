@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import type { PracticeMode, User } from '../types'
 
@@ -11,12 +12,11 @@ type UsePracticeRoutingResult = {
 export const usePracticeRouting = (users: User[]): UsePracticeRoutingResult => {
   const [selectedUser, setSelectedUser] = useState<User | null>(null)
   const [hasAppliedShareLink, setHasAppliedShareLink] = useState(false)
+  const [searchParams] = useSearchParams()
 
   // Mode is now determined by the session service based on user level
   // Default to 'standard' and let the backend decide operations
   const [practiceMode] = useState<PracticeMode>('standard')
-
-  const searchParams = useMemo(() => new URLSearchParams(window.location.search), [])
 
   // Default to the first learner when data loads
   useEffect(() => {
@@ -36,8 +36,8 @@ export const usePracticeRouting = (users: User[]): UsePracticeRoutingResult => {
   useEffect(() => {
     if (hasAppliedShareLink || users.length === 0) return
 
-    const sharedUserId = searchParams.get('userId')
-    const sharedName = searchParams.get('user')
+    const sharedUserId = searchParams.get('userId') || null
+    const sharedName = searchParams.get('user') || null
     let match: User | null = null
 
     if (sharedUserId) {

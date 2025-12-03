@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 /* eslint-disable react-hooks/set-state-in-effect */
 import { useLearners } from '../../lib/learners/hooks'
@@ -12,12 +13,19 @@ import { usePracticeRouting } from './hooks/usePracticeRouting'
 import { usePracticeSession } from './hooks/usePracticeSession'
 
 const PracticeSessionPage = () => {
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
   const { learners, isLoading: isLoadingLearners, error: learnersError } = useLearners()
   const practiceSectionRef = useRef<HTMLDivElement | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
   const nextButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const { selectedUser, practiceMode } = usePracticeRouting(learners)
+  
+  // Detect test mode from URL params
+  const testType = searchParams.get('testType')
+  const isTestParam = searchParams.get('isTest')
+  const isTest = isTestParam === 'true' && testType !== null
 
   const {
     problems,
@@ -32,6 +40,7 @@ const PracticeSessionPage = () => {
     progressPercent,
     cardCounterDisplay,
     sessionMode,
+    sessionError,
     handleAnswerChange,
     handleCheckAnswer,
     handleSetAnswer,
@@ -42,6 +51,7 @@ const PracticeSessionPage = () => {
   } = usePracticeSession({
     selectedUser,
     practiceMode,
+    navigate,
   })
 
   const loadError = learnersError
@@ -102,6 +112,7 @@ const PracticeSessionPage = () => {
           cardCounterDisplay={cardCounterDisplay}
           currentQuestion={currentQuestion}
           progressPercent={progressPercent}
+          isTest={isTest}
         />
 
         {currentQuestion && (
@@ -110,6 +121,12 @@ const PracticeSessionPage = () => {
 
         {loadError && (
           <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">{loadError}</div>
+        )}
+
+        {sessionError && (
+          <div className="mb-8 rounded-2xl border border-red-200 bg-red-50 p-5 text-sm text-red-700">
+            <strong>Unable to start session:</strong> {sessionError}
+          </div>
         )}
 
         {!loadError && !isLoadingUsers && !selectedUser && (

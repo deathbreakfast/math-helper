@@ -16,9 +16,9 @@ test.describe('Learner Management', () => {
     const testName = generateTestUserName('CreateLearner')
     // Extract visible portion of test name for unique filtering
     // Format: TestUser_CreateLearner_{timestamp}_{random}
-    // Visible portion is typically: TestUser_CreateLearner_176444 (first 6 digits of timestamp)
-    const timestampMatch = testName.match(/TestUser_CreateLearner_(\d{6})/)
-    const uniquePrefix = timestampMatch ? `TestUser_CreateLearner_${timestampMatch[1]}` : 'TestUser_CreateLearner_'
+    // Visible portion is truncated in CSS to: TestUser_CreateLearner_1764 (first 4-5 digits of timestamp)
+    const timestampMatch = testName.match(/TestUser_CreateLearner_(\d{4,5})/)
+    const visiblePrefix = timestampMatch ? `TestUser_CreateLearner_${timestampMatch[1]}` : 'TestUser_CreateLearner_'
     let createdUserId: number | null = null
     
     // Pre-test cleanup: remove any existing test users with similar names (from previous failed tests)
@@ -47,52 +47,34 @@ test.describe('Learner Management', () => {
       // Complete learner creation flow (avatar selection + PIN entry)
       await completeLearnerCreation(page, '5678')
     
-    // Wait for the API response to complete (whether success or error)
-    const response = await page.waitForResponse(response => 
-      response.url().includes('/api/users') && response.request().method() === 'POST',
-      { timeout: 10000 }
-    ).catch(() => null)
-    
-    if (response) {
-      const responseData = await response.json()
-      const hasId = responseData && (responseData.id !== undefined && responseData.id !== null)
+      // Wait for the modal to close (indicates successful creation)
+      await expect(page.getByTestId('testid-add-learner-modal')).not.toBeVisible({ timeout: 10000 })
       
-      // Check if the request succeeded - if responseData has an id, the user was created successfully
-      // This is more reliable than checking status code since the API might return 201 or other success codes
-      if (hasId) {
-        createdUserId = responseData.id
-        
-        // Verify the modal closed after successful creation
-        await expect(page.getByTestId('testid-add-learner-modal')).not.toBeVisible({ timeout: 5000 })
-        
-        // Wait for the user to appear in the grid
-        await expect(page.getByTestId('testid-student-grid')).toBeVisible({ timeout: 5000 })
-        
-        // Wait a bit for React to update the DOM
-        await page.waitForTimeout(1000)
-        
-        // Use the user ID to find the card
-        // If there are duplicates (strict mode violation), filter by unique prefix from test name
-        // This ensures we get the correct card even in parallel test runs
-        let learnerCard = page.getByTestId(`testid-student-card-${createdUserId}`)
-        
-        // Filter by the visible portion of the test name to avoid matching other parallel test runs
-        learnerCard = learnerCard.filter({ hasText: uniquePrefix }).first()
-        
-        await expect(learnerCard).toBeVisible({ timeout: 5000 })
-        
-        // Verify the card contains the test name prefix to ensure it's the correct user
-        const cardText = await learnerCard.textContent()
-        expect(cardText).toContain('TestUser_CreateLearner_')
-      } else {
-        // If there's an error, the modal should still be open with an error message
-        // We'll handle cleanup by name in the finally block
-        const status = response.status()
-        throw new Error(`Failed to create user: Status ${status}, ${JSON.stringify(responseData)}`)
+      // Wait for the student grid to be visible
+      await expect(page.getByTestId('testid-student-grid')).toBeVisible({ timeout: 10000 })
+      
+      // Wait a bit for React to update the DOM after user is added
+      await page.waitForTimeout(500)
+      
+      // Find the user card by visible name (truncated in CSS, so use prefix with first 4-5 digits)
+      // This pattern matches what's used in dashboard-helpers.ts
+      const learnerCard = page.locator(`[data-testid^="testid-student-card-"]`).filter({ hasText: visiblePrefix }).first()
+      
+      // Wait for the card to appear in the grid
+      await expect(learnerCard).toBeVisible({ timeout: 10000 })
+      
+      // Extract the user ID from the card's testid attribute for cleanup
+      const cardTestId = await learnerCard.getAttribute('data-testid')
+      if (cardTestId) {
+        const idMatch = cardTestId.match(/testid-student-card-(\d+)/)
+        if (idMatch) {
+          createdUserId = parseInt(idMatch[1], 10)
+        }
       }
-    } else {
-      throw new Error('No API response received')
-    }
+      
+      // Verify the card contains the test name to ensure it's the correct user
+      const cardText = await learnerCard.textContent()
+      expect(cardText).toContain('TestUser_CreateLearner_')
     } catch (error) {
       throw error
     } finally {

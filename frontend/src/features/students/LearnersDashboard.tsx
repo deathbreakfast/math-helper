@@ -1,4 +1,6 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { useRouter } from '../../utils/routing'
 import { motion } from 'framer-motion'
 import { Plus, RotateCcw, X } from 'lucide-react'
 import PageLayout from '../../layouts/PageLayout'
@@ -10,29 +12,30 @@ import SpeedChart from './components/SpeedChart'
 import AchievementsList from './components/AchievementsList'
 import AddLearnerModal from './modals/AddLearnerModal'
 import PINVerificationModal from './modals/PINVerificationModal'
-import JourneyModal from './modals/JourneyModal'
 import { useLearners } from './hooks/useLearners'
 import { PillButton } from '../../components/ui'
+import type { LearnerAchievement } from '../../lib/learners/types'
 
 const LearnersDashboard = () => {
+  const router = useRouter()
+  const [searchParams] = useSearchParams()
+  
   const {
     state: {
       users,
-      selectedUser,
+      selectedUser: selectedUserFromState,
       showAddUser,
       filterCategory,
       filterLevel,
       newUser,
       isLoadingUsers,
-      isLoadingFullData,
       loadError,
       creationError,
       isCreatingUser,
       displayAchievements,
-      allAchievements,
     },
     actions: {
-      setSelectedUser,
+      setSelectedUser: setSelectedUserState,
       setShowAddUser,
       setFilterCategory,
       setFilterLevel,
@@ -44,15 +47,79 @@ const LearnersDashboard = () => {
   } = useLearners()
 
   const [showPinModal, setShowPinModal] = useState(false)
-  const [showJourneyModal, setShowJourneyModal] = useState(false)
   const [isResetting, setIsResetting] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [recentAchievements, setRecentAchievements] = useState<Array<LearnerAchievement & { userName?: string }>>([])
+  const [isLoadingRecentAchievements, setIsLoadingRecentAchievements] = useState(false)
+
+  // Get selected user ID from URL
+  const selectedUserIdFromUrl = searchParams.get('selectedUserId')
+  
+  // Find selected user from URL
+  const selectedUser = useMemo(() => {
+    if (selectedUserIdFromUrl) {
+      return users.find(u => u.id === selectedUserIdFromUrl) || null
+    }
+    return null
+  }, [selectedUserIdFromUrl, users])
+
+  // Sync hook state when URL changes
+  useEffect(() => {
+    if (selectedUser && selectedUser.id !== selectedUserFromState?.id) {
+      setSelectedUserState(selectedUser)
+    } else if (!selectedUser && selectedUserFromState) {
+      setSelectedUserState(null)
+    }
+  }, [selectedUser, selectedUserFromState, setSelectedUserState])
+
+  // Fetch recent achievements for dashboard when no user is selected
+  // Use optimized endpoint that limits results at SQL level with proper indexing
+  useEffect(() => {
+    if (!selectedUser && !isLoadingUsers) {
+      setIsLoadingRecentAchievements(true)
+      // Fetch only the most recent 6 achievements across all users
+      // This uses an optimized SQL query with ORDER BY earned_at DESC LIMIT 6
+      // The earned_at column is indexed for performance
+      fetch('/api/achievements?limit=6')
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to fetch achievements')
+          return response.json()
+        })
+        .then(data => {
+          // Map achievements - user names are included from backend JOIN query
+          const achievements = (data.achievements || []).map((achievement: any) => ({
+            ...achievement,
+            earnedAt: achievement.earnedAt ? new Date(achievement.earnedAt) : new Date(),
+            // userName is included in API response when fetching all users' achievements
+          }))
+          setRecentAchievements(achievements)
+        })
+        .catch(error => {
+          console.error('Error fetching recent achievements:', error)
+          setRecentAchievements([])
+        })
+        .finally(() => {
+          setIsLoadingRecentAchievements(false)
+        })
+    } else {
+      // Clear recent achievements when a user is selected
+      setRecentAchievements([])
+    }
+  }, [selectedUser, isLoadingUsers, users])
+
+  // Handle user selection - update URL (which will trigger state sync)
+  const handleUserSelect = (user: typeof users[0] | null) => {
+    if (user) {
+      router.navigate('/', { selectedUserId: user.id })
+    } else {
+      router.navigate('/', { selectedUserId: null })
+    }
+  }
 
   // Check if dev mode is enabled via URL parameter
   const isDevMode = useMemo(() => {
-    const params = new URLSearchParams(window.location.search)
-    return params.get('env') === 'dev'
-  }, [])
+    return searchParams.get('env') === 'dev'
+  }, [searchParams])
 
   const handleOpenModal = () => {
     setCreationError(null)
@@ -79,14 +146,13 @@ const LearnersDashboard = () => {
     if (!selectedUser) return
     setShowPinModal(false)
 
-    const params = new URLSearchParams({
+    // Router will preserve context params like env=dev
+    router.navigate('/practice', {
       user: selectedUser.name,
       pin,
       userId: selectedUser.id,
       avatar: selectedUser.avatar,
     })
-
-    window.location.assign(`/practice?${params.toString()}`)
   }
 
   const handleResetUser = async () => {
@@ -155,7 +221,7 @@ const LearnersDashboard = () => {
       }
 
       // Clear selected user and refresh user data
-      setSelectedUser(null)
+      setSelectedUserState(null)
       await refetchUsers()
       
       // Show success message
@@ -217,7 +283,7 @@ const LearnersDashboard = () => {
         )}
 
         {!isLoadingUsers && !loadError && users.length > 0 && (
-          <LearnerGrid users={users} selectedUser={selectedUser} onSelect={setSelectedUser} />
+          <LearnerGrid users={users} selectedUser={selectedUser} onSelect={handleUserSelect} />
         )}
 
         {selectedUser && (
@@ -229,7 +295,7 @@ const LearnersDashboard = () => {
                   <>
                     <PillButton
                       onClick={handleResetUser}
-                      tone="red"
+                      tone="rose"
                       disabled={isResetting || isDeleting}
                       leftIcon={<RotateCcw className="h-4 w-4" />}
                     >
@@ -237,7 +303,7 @@ const LearnersDashboard = () => {
                     </PillButton>
                     <PillButton
                       onClick={handleDeleteUser}
-                      tone="red"
+                      tone="rose"
                       disabled={isResetting || isDeleting}
                       leftIcon={<X className="h-4 w-4" />}
                     >
@@ -255,7 +321,7 @@ const LearnersDashboard = () => {
               </div>
             }
           >
-            <LearnerStatsCards user={selectedUser} onLevelCardClick={() => setShowJourneyModal(true)} />
+            <LearnerStatsCards user={selectedUser} onLevelCardClick={() => router.navigate(`/journey/${selectedUser.id}`)} />
 
             <div className="grid grid-cols-1 gap-6 lg:grid-cols-3 xl:grid-cols-6">
               <div className="lg:col-span-2 xl:col-span-4">
@@ -281,9 +347,9 @@ const LearnersDashboard = () => {
         {!selectedUser && (
           <AchievementsList
             title="Recent achievements (all learners)"
-            achievements={allAchievements.slice(0, 6)}
+            achievements={recentAchievements}
             layout="grid"
-            isLoading={isLoadingUsers || Boolean(loadError) || showEmptyState}
+            isLoading={isLoadingUsers || isLoadingRecentAchievements || Boolean(loadError) || showEmptyState}
             emptyMessage={loadError || 'No achievements yet. Keep practicing!'}
           />
         )}
@@ -306,12 +372,6 @@ const LearnersDashboard = () => {
         selectedUser={selectedUser}
       />
 
-      <JourneyModal 
-        isOpen={showJourneyModal} 
-        onClose={() => setShowJourneyModal(false)} 
-        user={selectedUser}
-        isLoadingFullData={isLoadingFullData}
-      />
     </>
   )
 }

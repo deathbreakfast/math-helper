@@ -167,6 +167,8 @@ export const useLearners = () => {
       setCreationError,
       handleAddUser,
       refetchUsers: refetch,
+      refetchFullData,
+      fetchUserFullData,
     },
   }
 }

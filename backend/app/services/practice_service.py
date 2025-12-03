@@ -301,8 +301,22 @@ class PracticeService:
         responses = Response.query.filter_by(session_id=session.id).all()
         response_count = len(responses)
         
-        # For now, if there are any responses, we consider the session incomplete
-        # But we'll let the frontend decide based on localStorage question list
+        # Check if all questions are answered
+        if session.question_ids:
+            try:
+                question_ids = json.loads(session.question_ids)
+                total_questions = len(question_ids)
+                # If we have responses for all questions, session is effectively complete
+                if response_count >= total_questions:
+                    # Mark as complete to prevent future resumption
+                    with transaction():
+                        session.completed_at = datetime.utcnow()
+                        db.session.add(session)
+                    return None, 0, 0
+            except (json.JSONDecodeError, TypeError):
+                # If question_ids is invalid JSON, fall through to return session
+                pass
+        
         return session, response_count, response_count
     
     @staticmethod

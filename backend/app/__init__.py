@@ -1,3 +1,4 @@
+import os
 from flask import Flask
 from flask_cors import CORS
 
@@ -20,6 +21,9 @@ def create_app(test_config: dict | None = None) -> Flask:
             "pool_timeout": 30,
             "pool_pre_ping": True,
         },
+        # Default TESTING to true until v1.0
+        # Can be overridden with TESTING=false environment variable
+        TESTING=os.getenv('TESTING', 'true').lower() == 'true',
     )
 
     if test_config:

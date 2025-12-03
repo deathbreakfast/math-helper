@@ -83,10 +83,10 @@ export async function enterPin(page: Page, pin: string): Promise<void> {
 }
 
 /**
- * Click Start Practice button in the PIN modal
+ * Click Start button in the PIN modal
  */
 export async function clickStartPracticeInModal(page: Page): Promise<void> {
-  const modalSubmitButton = page.locator('[role="dialog"]').getByRole('button', { name: /start practice/i })
+  const modalSubmitButton = page.locator('[role="dialog"]').getByRole('button', { name: /^start$/i })
   await expect(modalSubmitButton).toBeEnabled({ timeout: 2000 })
   await modalSubmitButton.click()
 }

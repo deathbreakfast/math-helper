@@ -1,10 +1,12 @@
 import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Lock, Crown, Loader2 } from 'lucide-react'
 import { LevelRequirementCard } from '../LevelRequirementCard'
 import type { UserProgressData } from '../../utils/progressMapping'
 import { useLevelRequirements, useAchievementDefinitions } from '../../../../lib/levels/hooks'
 import { mapUserToProgressData } from '../../utils/progressMapping'
+import { useDevMode } from '../../../../utils/devMode'
 import type { User } from '../../hooks/useLearners'
 
 type LevelsTabProps = {
@@ -14,9 +16,11 @@ type LevelsTabProps = {
 }
 
 export const LevelsTab = ({ userData, isActive, user }: LevelsTabProps) => {
+  const devMode = useDevMode()
+  
   // Only fetch level requirements when tab is active (lazy loading)
-  // Fetch levels up to user's level + 3 to show progression
-  const maxLevel = Math.min((userData.level || 1) + 3, 45)
+  // In dev mode, fetch all 45 levels. Otherwise, fetch levels up to user's level + 3
+  const maxLevel = devMode ? 45 : Math.min((userData.level || 1) + 3, 45)
   const { requirements: levelRequirementsCache, isLoading, error } = useLevelRequirements(maxLevel, isActive)
   const { definitions: achievementDefinitions } = useAchievementDefinitions()
   
@@ -25,8 +29,8 @@ export const LevelsTab = ({ userData, isActive, user }: LevelsTabProps) => {
     if (!user || !levelRequirementsCache || Object.keys(levelRequirementsCache).length === 0) {
       return userData
     }
-    return mapUserToProgressData(user, levelRequirementsCache, achievementDefinitions)
-  }, [user, levelRequirementsCache, achievementDefinitions, userData])
+    return mapUserToProgressData(user, levelRequirementsCache, achievementDefinitions, devMode)
+  }, [user, levelRequirementsCache, achievementDefinitions, userData, devMode])
 
   return (
     <motion.div
@@ -67,12 +71,14 @@ export const LevelsTab = ({ userData, isActive, user }: LevelsTabProps) => {
         </div>
       )}
 
-      {!isLoading && !error && updatedUserData.levelRequirements.filter((req) => !req.isLocked || req.level <= updatedUserData.level + 1).map((requirement, index) => (
-        <LevelRequirementCard key={requirement.id} requirement={requirement} index={index} />
-      ))}
+      {!isLoading && !error && updatedUserData.levelRequirements
+        .filter((req) => devMode || !req.isLocked || req.level <= updatedUserData.level + 1)
+        .map((requirement, index) => (
+          <LevelRequirementCard key={requirement.id} requirement={requirement} index={index} userId={userData.id} />
+        ))}
 
-      {/* Locked Future Levels Preview */}
-      {!isLoading && !error && (
+      {/* Locked Future Levels Preview - Only show when not in dev mode */}
+      {!isLoading && !error && !devMode && (
         <div className="rounded-2xl border-2 border-gray-300 bg-gray-100 p-8 text-center">
           <Lock className="mx-auto mb-4 h-16 w-16 text-gray-400" />
           <h3 className="mb-2 text-xl font-bold text-gray-600">More Levels Await</h3>

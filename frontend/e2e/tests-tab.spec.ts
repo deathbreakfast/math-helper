@@ -2,6 +2,8 @@ import { test, expect } from './fixtures/test-user'
 import {
   openJourneyModal,
   navigateToTestsTab,
+  waitForTestCards,
+  handlePinVerification,
   createTestUserWithState,
   deleteTestUser,
   createCompletedPracticeSessions,
@@ -31,7 +33,7 @@ test.describe('Tests Tab UI', () => {
     await deleteTestUser(request, testUser.id)
   })
 
-  test('TST-UI-002: Test discovery - locked tests hidden', async ({ page, request }) => {
+  test('TST-UI-002: Test discovery - locked tests visible but disabled', async ({ page, request }) => {
     const testUser = await createTestUserWithState(request, {
       level: 1,
     })
@@ -43,15 +45,14 @@ test.describe('Tests Tab UI', () => {
     // Verify tests tab is visible
     await expect(page.getByTestId('testid-tests-tab')).toBeVisible()
 
-    // Verify only level 1 tests are visible (unlocked)
-    // Higher level tests should be locked
+    // Verify all tests are visible (both locked and unlocked)
     const testCards = page.locator('[data-testid^="testid-test-card-"]')
     const cardCount = await testCards.count()
 
     // Should have at least one test card
     expect(cardCount).toBeGreaterThan(0)
 
-    // Check that locked tests show lock icon
+    // Check that locked tests show lock icon and are visible
     const lockedTests = page.locator('[data-testid^="testid-test-card-"]').filter({
       has: page.locator('[data-testid="testid-test-lock-icon"]'),
     })
@@ -59,6 +60,16 @@ test.describe('Tests Tab UI', () => {
 
     // Should have some locked tests (tests requiring level > 1)
     expect(lockedCount).toBeGreaterThan(0)
+
+    // Verify locked tests are visible (not hidden)
+    const firstLockedTest = lockedTests.first()
+    await expect(firstLockedTest).toBeVisible()
+
+    // Verify locked tests have disabled styling (opacity)
+    const opacity = await firstLockedTest.evaluate((el) => {
+      return window.getComputedStyle(el).opacity
+    })
+    expect(parseFloat(opacity)).toBeLessThan(1) // Should be less than 1 (disabled state)
 
     await deleteTestUser(request, testUser.id)
   })
@@ -90,6 +101,8 @@ test.describe('Tests Tab UI', () => {
   })
 
   test('TST-UI-004: Test card displays correctly', async ({ page, request }) => {
+    test.setTimeout(60000) // 60 second timeout for API setup
+    
     // Create user with test attempts
     const testUser = await createTestUserWithState(request, {
       level: 1,
@@ -121,6 +134,8 @@ test.describe('Tests Tab UI', () => {
   })
 
   test('TST-UI-005: Test detail modal opens and displays attempts', async ({ page, request }) => {
+    test.setTimeout(60000) // 60 second timeout for API setup
+    
     // Create user with multiple test attempts
     const testUser = await createTestUserWithState(request, {
       level: 1,
@@ -156,6 +171,8 @@ test.describe('Tests Tab UI', () => {
   })
 
   test('TST-UI-006: Test detail modal - drill down to questions', async ({ page, request }) => {
+    test.setTimeout(60000) // 60 second timeout for API setup
+    
     // Create user with test attempt
     const testUser = await createTestUserWithState(request, {
       level: 1,
@@ -195,6 +212,8 @@ test.describe('Tests Tab UI', () => {
   })
 
   test('TST-UI-007: Start test from tests tab', async ({ page, request }) => {
+    test.setTimeout(60000) // 60 second timeout for API setup
+    
     // Create eligible user
     const testUser = await createTestUserWithState(request, {
       level: 1,
@@ -206,27 +225,61 @@ test.describe('Tests Tab UI', () => {
     await openJourneyModal(page, testUser)
     await navigateToTestsTab(page)
 
-    // Find an unlocked test card
-    const unlockedTestCard = page
+    // Wait for test cards to render
+    const totalCardCount = await waitForTestCards(page, 1)
+    console.log(`[TST-UI-007] Found ${totalCardCount} total test cards`)
+
+    // Find unlocked test cards (those without lock icon)
+    const unlockedTestCards = page
       .locator('[data-testid^="testid-test-card-"]')
       .filter({ hasNot: page.locator('[data-testid="testid-test-lock-icon"]') })
-      .first()
+    
+    // Wait for unlocked cards to be available
+    const unlockedCount = await unlockedTestCards.count()
+    console.log(`[TST-UI-007] Found ${unlockedCount} unlocked test cards`)
 
-    await expect(unlockedTestCard).toBeVisible()
+    if (unlockedCount === 0) {
+      // If no unlocked tests, check if we have any tests at all
+      if (totalCardCount === 0) {
+        throw new Error('No test cards found. Tests may not be loaded yet.')
+      }
+      // All tests are locked - this might be expected for level 1 user
+      // Try to find any test card and verify it's locked
+      const allTestCards = page.locator('[data-testid^="testid-test-card-"]')
+      const firstCard = allTestCards.first()
+      const hasLockIcon = await firstCard.locator('[data-testid="testid-test-lock-icon"]').count()
+      if (hasLockIcon > 0) {
+        throw new Error(`No unlocked tests available for level 1 user. All ${totalCardCount} tests are locked.`)
+      }
+    }
+
+    const unlockedTestCard = unlockedTestCards.first()
+    await expect(unlockedTestCard).toBeVisible({ timeout: 5000 })
 
     // Click "Start Test" button
     const startButton = unlockedTestCard.getByTestId('testid-test-start-button')
-    await expect(startButton).toBeVisible()
+    await expect(startButton).toBeVisible({ timeout: 5000 })
     await startButton.click()
+
+    // Handle PIN verification if modal appears
+    const pinModal = page.locator('[role="dialog"]').filter({ hasText: /PIN|pin/i })
+    const pinModalVisible = await pinModal.isVisible({ timeout: 2000 }).catch(() => false)
+    
+    if (pinModalVisible) {
+      console.log('[TST-UI-007] PIN modal appeared, handling PIN verification')
+      await handlePinVerification(page, testUser.pin || '1234')
+    }
 
     // Verify navigation to practice session
     // Should redirect to /practice with test parameters
-    await page.waitForURL(/\/practice/, { timeout: 5000 })
+    await page.waitForURL(/\/practice/, { timeout: 10000 })
 
     await deleteTestUser(request, testUser.id)
   })
 
-  test('TST-UI-008: Test filtering works', async ({ page, request }) => {
+  test('TST-UI-008: Test filtering works with new tier system', async ({ page, request }) => {
+    test.setTimeout(80000) // 80 second timeout (1 min 20 sec) for API setup
+    
     // Create user with tests at different tiers
     const testUser = await createTestUserWithState(request, {
       level: 10,
@@ -240,16 +293,21 @@ test.describe('Tests Tab UI', () => {
     await openJourneyModal(page, testUser)
     await navigateToTestsTab(page)
 
-    // Filter by tier (B)
+    // Verify all tests are visible initially
+    const allTestCards = page.locator('[data-testid^="testid-test-card-"]')
+    const initialCount = await allTestCards.count()
+    expect(initialCount).toBeGreaterThan(0)
+
+    // Filter by tier (Bronze - new tier system)
     const tierFilter = page.getByTestId('testid-test-filter-tier')
-    await tierFilter.selectOption('B')
+    await tierFilter.selectOption('Bronze')
 
     await page.waitForTimeout(500)
 
-    // Verify filtered results
+    // Verify all tests are still visible (filters don't hide tests)
     const testCards = page.locator('[data-testid^="testid-test-card-"]')
     const cardCount = await testCards.count()
-    expect(cardCount).toBeGreaterThanOrEqual(0)
+    expect(cardCount).toBe(initialCount) // All tests should still be visible
 
     // Filter by status (attempted)
     const statusFilter = page.getByTestId('testid-test-filter-status')
@@ -257,10 +315,17 @@ test.describe('Tests Tab UI', () => {
 
     await page.waitForTimeout(500)
 
-    // Verify filtered results
+    // Verify all tests are still visible
     const filteredCards = page.locator('[data-testid^="testid-test-card-"]')
     const filteredCount = await filteredCards.count()
-    expect(filteredCount).toBeGreaterThanOrEqual(0)
+    expect(filteredCount).toBe(initialCount) // All tests should still be visible
+
+    // Test other tier filters
+    await tierFilter.selectOption('Gold')
+    await page.waitForTimeout(500)
+    const goldFilteredCards = page.locator('[data-testid^="testid-test-card-"]')
+    const goldCount = await goldFilteredCards.count()
+    expect(goldCount).toBe(initialCount) // All tests should still be visible
 
     await deleteTestUser(request, testUser.id)
   })
@@ -290,6 +355,8 @@ test.describe('Tests Tab UI', () => {
   })
 
   test('TST-UI-010: Test detail modal - start new test', async ({ page, request }) => {
+    test.setTimeout(60000) // 60 second timeout for API setup
+    
     const testUser = await createTestUserWithState(request, {
       level: 1,
     })
@@ -300,19 +367,124 @@ test.describe('Tests Tab UI', () => {
     await openJourneyModal(page, testUser)
     await navigateToTestsTab(page)
 
+    // Wait for test cards to render
+    await waitForTestCards(page, 1)
+
     // Open test detail modal
     const testCard = page.locator('[data-testid^="testid-test-card-"]').first()
     await testCard.click()
 
     await expect(page.getByTestId('testid-test-detail-modal')).toBeVisible({ timeout: 5000 })
 
-    // Click "Start New Test" button
+    // Click "Start New Test" button (this opens PIN modal)
     const startButton = page.getByTestId('testid-test-detail-start-button')
-    await expect(startButton).toBeVisible()
+    await expect(startButton).toBeVisible({ timeout: 5000 })
+    console.log('[TST-UI-010] Clicking Start New Test button')
     await startButton.click()
 
+    // Handle PIN verification
+    console.log('[TST-UI-010] Handling PIN verification')
+    await handlePinVerification(page, testUser.pin || '1234')
+
     // Verify navigation to practice session
-    await page.waitForURL(/\/practice/, { timeout: 5000 })
+    console.log('[TST-UI-010] Waiting for navigation to /practice')
+    await page.waitForURL(/\/practice/, { timeout: 10000 })
+
+    await deleteTestUser(request, testUser.id)
+  })
+
+  test('TST-UI-011: All tests visible regardless of filters', async ({ page, request }) => {
+    const testUser = await createTestUserWithState(request, {
+      level: 1,
+    })
+
+    await page.goto('/')
+    await openJourneyModal(page, testUser)
+    await navigateToTestsTab(page)
+
+    // Get initial count of all tests
+    const allTestCards = page.locator('[data-testid^="testid-test-card-"]')
+    const initialCount = await allTestCards.count()
+    expect(initialCount).toBeGreaterThan(0)
+
+    // Apply various filters and verify all tests remain visible
+    const tierFilter = page.getByTestId('testid-test-filter-tier')
+    const statusFilter = page.getByTestId('testid-test-filter-status')
+    const searchInput = page.getByTestId('testid-test-search-input')
+
+    // Test tier filter
+    await tierFilter.selectOption('Diamond')
+    await page.waitForTimeout(300)
+    let filteredCards = page.locator('[data-testid^="testid-test-card-"]')
+    expect(await filteredCards.count()).toBe(initialCount)
+
+    // Test status filter
+    await statusFilter.selectOption('locked')
+    await page.waitForTimeout(300)
+    filteredCards = page.locator('[data-testid^="testid-test-card-"]')
+    expect(await filteredCards.count()).toBe(initialCount)
+
+    // Test search filter
+    await searchInput.fill('nonexistent-test-name-xyz')
+    await page.waitForTimeout(300)
+    filteredCards = page.locator('[data-testid^="testid-test-card-"]')
+    expect(await filteredCards.count()).toBe(initialCount)
+
+    // Clear filters
+    await tierFilter.selectOption('all')
+    await statusFilter.selectOption('all')
+    await searchInput.clear()
+    await page.waitForTimeout(300)
+    filteredCards = page.locator('[data-testid^="testid-test-card-"]')
+    expect(await filteredCards.count()).toBe(initialCount)
+
+    await deleteTestUser(request, testUser.id)
+  })
+
+  test('TST-UI-012: Locked tests have disabled state', async ({ page, request }) => {
+    const testUser = await createTestUserWithState(request, {
+      level: 1,
+    })
+
+    await page.goto('/')
+    await openJourneyModal(page, testUser)
+    await navigateToTestsTab(page)
+
+    // Find a locked test
+    const lockedTests = page.locator('[data-testid^="testid-test-card-"]').filter({
+      has: page.locator('[data-testid="testid-test-lock-icon"]'),
+    })
+    const lockedCount = await lockedTests.count()
+    expect(lockedCount).toBeGreaterThan(0)
+
+    const firstLockedTest = lockedTests.first()
+
+    // Verify locked test has disabled styling
+    const opacity = await firstLockedTest.evaluate((el) => {
+      return window.getComputedStyle(el).opacity
+    })
+    expect(parseFloat(opacity)).toBeLessThan(1) // Should be less than 1 (disabled state)
+
+    // Verify locked test has "Locked" button instead of action buttons
+    const lockedButton = firstLockedTest.locator('button:has-text("Locked")')
+    await expect(lockedButton).toBeVisible()
+    await expect(lockedButton).toBeDisabled()
+
+    // Verify locked test cannot be clicked to open modal
+    // (This is handled by the onClick handler, but we can verify the button is disabled)
+
+    // Verify unlocked tests don't have disabled state
+    const unlockedTests = page.locator('[data-testid^="testid-test-card-"]').filter({
+      hasNot: page.locator('[data-testid="testid-test-lock-icon"]'),
+    })
+    const unlockedCount = await unlockedTests.count()
+    if (unlockedCount > 0) {
+      const firstUnlockedTest = unlockedTests.first()
+      const unlockedOpacity = await firstUnlockedTest.evaluate((el) => {
+        return window.getComputedStyle(el).opacity
+      })
+      expect(parseFloat(unlockedOpacity)).toBe(1) // Should be fully opaque
+    }
 
     await deleteTestUser(request, testUser.id)
   })

@@ -1,6 +1,7 @@
+import { useState, useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Trophy, RotateCcw } from 'lucide-react'
-import { useState, useMemo } from 'react'
 import { AchievementCard } from '../AchievementCard'
 import { PillButton } from '../../../../components/ui'
 import type { Achievement } from '../../data/achievements'
@@ -14,13 +15,13 @@ type OverviewTabProps = {
 }
 
 export const OverviewTab = ({ allAchievements, onViewAllTests, userData, onRefresh }: OverviewTabProps) => {
+  const [searchParams] = useSearchParams()
   const [isResetting, setIsResetting] = useState(false)
 
   // Check if dev mode is enabled via URL parameter
   const isDevMode = useMemo(() => {
-    const params = new URLSearchParams(window.location.search)
-    return params.get('env') === 'dev'
-  }, [])
+    return searchParams.get('env') === 'dev'
+  }, [searchParams])
 
   // Get all recent achievements (not just test achievements)
   const recentAchievements = allAchievements
@@ -74,6 +75,7 @@ export const OverviewTab = ({ allAchievements, onViewAllTests, userData, onRefre
   return (
     <motion.div
       key="overview"
+      data-testid="testid-overview-tab"
       initial={{
         opacity: 0,
         y: 20,

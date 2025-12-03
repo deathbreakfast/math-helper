@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 
 import type { PracticeQuestion, User, PracticeAttempt } from '../types'
 
@@ -16,6 +17,7 @@ type QuestionAnswer = {
 type UsePracticeSessionArgs = {
   selectedUser: User | null
   practiceMode: PracticeMode
+  navigate?: (path: string) => void
 }
 
 type UsePracticeSessionResult = {
@@ -32,6 +34,7 @@ type UsePracticeSessionResult = {
   cardCounterDisplay: string
   questionAnswers: Record<string, QuestionAnswer>
   sessionMode: string
+  sessionError: string | null
   handleAnswerChange: (value: string) => void
   handleCheckAnswer: () => void
   handleSetAnswer: (questionId: string, answer: string, isCorrect: boolean) => void
@@ -143,7 +146,9 @@ function reconstructSessionStateFromResponse(
 export const usePracticeSession = ({
   selectedUser,
   practiceMode,
+  navigate,
 }: UsePracticeSessionArgs): UsePracticeSessionResult => {
+  const [searchParams] = useSearchParams()
   const [problems, setProblems] = useState<PracticeQuestion[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
   const [userAnswer, setUserAnswer] = useState('')
@@ -155,6 +160,7 @@ export const usePracticeSession = ({
   const [isLoadingProblems, setIsLoadingProblems] = useState(false)
   const [sessionId, setSessionId] = useState<number | null>(null)
   const [sessionMode, setSessionMode] = useState<string>('standard')
+  const [sessionError, setSessionError] = useState<string | null>(null)
 
   // Fetch problems from backend API when learner or mode changes
   useEffect(() => {
@@ -167,14 +173,15 @@ export const usePracticeSession = ({
       setQuestionAnswers({})
       setQuestionStartTimes({})
       setSessionId(null)
+      setSessionError(null)
       return
     }
 
     const fetchProblems = async () => {
       setIsLoadingProblems(true)
+      setSessionError(null)
       try {
         // Check URL parameters for test type
-        const searchParams = new URLSearchParams(window.location.search)
         const testType = searchParams.get('testType')
         const isTestParam = searchParams.get('isTest')
         const isTest = isTestParam === 'true' && testType !== null
@@ -204,7 +211,17 @@ export const usePracticeSession = ({
         })
 
         if (!response.ok) {
-          throw new Error(`Failed to start session: ${response.statusText}`)
+          // Try to parse error message from response
+          let errorMessage = `Failed to start session: ${response.statusText}`
+          try {
+            const errorData = await response.json()
+            if (errorData.error) {
+              errorMessage = errorData.error
+            }
+          } catch {
+            // If JSON parsing fails, use the status text
+          }
+          throw new Error(errorMessage)
         }
 
         const data = await response.json()
@@ -241,6 +258,9 @@ export const usePracticeSession = ({
         }
       } catch (error) {
         console.error('Error fetching problems:', error)
+        // Set error message for display
+        const errorMessage = error instanceof Error ? error.message : 'Failed to start session'
+        setSessionError(errorMessage)
         // Fallback to empty problems
         setProblems([])
       } finally {
@@ -469,11 +489,22 @@ export const usePracticeSession = ({
       // Save to localStorage (for summary page display - this is different from session state)
       localStorage.setItem('lastPracticeSession', JSON.stringify(sessionSummary))
 
-      // Navigate to summary page
-      const sessionParam = encodeURIComponent(JSON.stringify(sessionSummary))
-      window.location.href = `/summary?session=${sessionParam}`
+      // Navigate to summary page - only pass sessionId, not entire session object
+      const sessionIdForNav = sessionSummary.id
+      if (navigate) {
+        // Use navigate function which should preserve context params
+        navigate(`/summary?sessionId=${sessionIdForNav}`)
+      } else {
+        // Fallback: preserve context params manually
+        const contextParams = new URLSearchParams()
+        if (searchParams.get('env')) {
+          contextParams.set('env', searchParams.get('env')!)
+        }
+        contextParams.set('sessionId', sessionIdForNav)
+        window.location.href = `/summary?${contextParams.toString()}`
+      }
     } catch (error) {
-      console.error('Error submitting session:', error)
+      console.error('Failed to complete session:', error)
       // Fallback to client-side submission
       const attempts: PracticeAttempt[] = problems.map((problem) => {
         const answer = questionAnswers[problem.id]
@@ -514,8 +545,20 @@ export const usePracticeSession = ({
 
       localStorage.setItem('lastPracticeSession', JSON.stringify(sessionSummary))
       
-      const sessionParam = encodeURIComponent(JSON.stringify(sessionSummary))
-      window.location.href = `/summary?session=${sessionParam}`
+      // Navigate to summary page - only pass sessionId, not entire session object
+      const sessionId = sessionSummary.id
+      if (navigate) {
+        // Use navigate function which should preserve context params
+        navigate(`/summary?sessionId=${sessionId}`)
+      } else {
+        // Fallback: preserve context params manually
+        const contextParams = new URLSearchParams()
+        if (searchParams.get('env')) {
+          contextParams.set('env', searchParams.get('env')!)
+        }
+        contextParams.set('sessionId', sessionId)
+        window.location.href = `/summary?${contextParams.toString()}`
+      }
     }
   }
 
@@ -536,6 +579,7 @@ export const usePracticeSession = ({
     cardCounterDisplay,
     questionAnswers,
     sessionMode,
+    sessionError,
     handleAnswerChange,
     handleCheckAnswer,
     handleSetAnswer,

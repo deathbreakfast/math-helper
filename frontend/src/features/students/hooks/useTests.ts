@@ -46,7 +46,8 @@ export const useTests = ({ userId, userLevel = 1 }: UseTestsOptions): UseTestsRe
     setError(null)
 
     try {
-      const url = `/api/tests/definitions?user_id=${userId}`
+      // Request unlock_status when userId is available
+      const url = `/api/tests/definitions?user_id=${userId}&include_unlock_status=true`
       const response = await fetch(url)
       
       if (!response.ok) {

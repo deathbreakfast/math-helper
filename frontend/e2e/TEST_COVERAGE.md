@@ -213,13 +213,67 @@ All interactive UI elements have `data-testid` attributes for reliable test targ
 - `testid-try-next-level-button` - Try Next Level button
 - `testid-review-flagged-button` - Review Flagged button
 
+## Testing Framework
+
+The E2E tests use a comprehensive testing framework with abstractions for common patterns. See [FRAMEWORK_GUIDE.md](./FRAMEWORK_GUIDE.md) for detailed documentation.
+
+### Key Framework Features
+
+- **Router Navigation**: URL-based navigation helpers for direct route access
+- **Component Waiting**: Smart component waiting with animation handling
+- **Scenario Builder**: Fluent API for test data preparation
+- **Loading Utilities**: Utilities for handling loading states and animations
+
+### Framework Usage Examples
+
+#### Router-Based Navigation
+
+```typescript
+import { navigateToJourneyTab } from './helpers/test-helpers'
+
+// Navigate directly to journey tab (no modal clicks needed)
+await navigateToJourneyTab(page, testUser.id, 'achievements', { category: 'milestone' })
+```
+
+#### Scenario Builder
+
+```typescript
+import { scenario } from './helpers/test-helpers'
+
+const context = await scenario()
+  .withUser({ level: 2 })
+  .withAchievements(['addition-basics', 'first-victory'])
+  .withCompletedSessions(1, 5)
+  .build(request)
+
+try {
+  // Test logic
+} finally {
+  await context.cleanup()
+}
+```
+
+#### Component Waiting
+
+```typescript
+import { waitForComponent, waitForFramerMotion } from './helpers/test-helpers'
+
+// Wait for component with animation handling
+await waitForComponent(page, 'testid-achievements-grid')
+
+// Wait for animations to complete
+await waitForFramerMotion(page)
+```
+
 ## Notes for Engineers
 
 1. **Test Isolation**: Each test must use unique test users - never hardcode user IDs
 2. **Cleanup**: Always clean up test data in teardown hooks (handled automatically by fixtures)
 3. **API First**: Use API calls for setup/teardown, UI for verification
-4. **Wait Strategies**: Use proper waits (waitForSelector, waitForResponse) instead of fixed timeouts
+4. **Wait Strategies**: Use framework helpers (`waitForComponent`, `waitForFramerMotion`) instead of fixed timeouts
 5. **Test IDs**: Always use `data-testid` attributes for element selection
 6. **Parallel Safety**: Tests should be able to run in parallel without conflicts
 7. **Error Handling**: Tests should handle API errors gracefully and provide clear failure messages
+8. **Router Navigation**: Use URL-based navigation when testing destination features (see FRAMEWORK_GUIDE.md)
+9. **Scenario Builder**: Use the scenario builder for complex test data setup
 

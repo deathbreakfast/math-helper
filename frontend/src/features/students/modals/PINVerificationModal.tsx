@@ -191,7 +191,7 @@ const PINVerificationModal = ({ isOpen, onClose, onVerified, selectedUser }: PIN
                 tone="indigo"
                 fullWidth
               >
-                {isVerifying ? 'Verifying…' : 'Start Practice'}
+                {isVerifying ? 'Verifying…' : 'Start'}
               </PillButton>
             </div>
           </div>

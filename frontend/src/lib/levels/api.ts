@@ -1,6 +1,7 @@
 export type BackendLevelRequirement = {
   achievement_code: string
   order: number
+  quantity?: number
 }
 
 export type BackendLevelRequirementsResponse = {

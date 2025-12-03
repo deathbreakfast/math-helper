@@ -108,5 +108,68 @@ export async function navigateToTestsTab(page: Page): Promise<void> {
   // Wait for tests tab content to be visible
   const testsTabContent = page.getByTestId('testid-tests-tab')
   await expect(testsTabContent).toBeVisible({ timeout: 5000 })
+  
+  // Wait for test grid to be visible
+  const testGrid = page.getByTestId('testid-test-achievements-grid')
+  await expect(testGrid).toBeVisible({ timeout: 10000 })
+  
+  // Wait for test cards to render (framer-motion animations)
+  await page.waitForTimeout(1000)
+}
+
+/**
+ * Wait for test cards to be visible and rendered
+ * Useful for ensuring animations complete before interacting with cards
+ */
+export async function waitForTestCards(page: Page, minCount: number = 1): Promise<number> {
+  // Wait for test grid
+  const testGrid = page.getByTestId('testid-test-achievements-grid')
+  await expect(testGrid).toBeVisible({ timeout: 10000 })
+  
+  // Wait for animations to complete
+  await page.waitForTimeout(1000)
+  
+  // Wait for at least minCount test cards to be visible
+  const testCards = page.locator('[data-testid^="testid-test-card-"]')
+  await expect(testCards.nth(minCount - 1)).toBeVisible({ timeout: 10000 }).catch(() => {
+    // If we don't have enough cards, at least wait for the first one
+    return expect(testCards.first()).toBeVisible({ timeout: 10000 })
+  })
+  
+  const count = await testCards.count()
+  console.log(`[waitForTestCards] Found ${count} test cards`)
+  return count
+}
+
+/**
+ * Handle PIN verification modal that appears when starting tests
+ * Enters the provided PIN and clicks Start button
+ * @param page Playwright page object
+ * @param pin PIN to enter (defaults to '1234' for test users)
+ */
+export async function handlePinVerification(page: Page, pin: string = '1234'): Promise<void> {
+  // Wait for PIN modal to appear
+  const pinModal = page.locator('[role="dialog"]').filter({ hasText: /PIN|pin/i })
+  console.log('[handlePinVerification] Waiting for PIN modal...')
+  await expect(pinModal).toBeVisible({ timeout: 5000 })
+  
+  // Enter PIN digit by digit
+  console.log(`[handlePinVerification] Entering PIN: ${pin}`)
+  for (const digit of pin.split('')) {
+    const digitButton = page.getByRole('button', { name: digit, exact: true })
+    await digitButton.click()
+    await page.waitForTimeout(200) // Small delay between clicks
+  }
+  
+  // Wait for PIN display to show completion
+  const pinDisplay = page.getByTestId('testid-pin-display')
+  await expect(pinDisplay).toContainText('4 / 4', { timeout: 2000 })
+  await page.waitForTimeout(300)
+  
+  // Click Start button in PIN modal
+  console.log('[handlePinVerification] Clicking Start button')
+  const modalStartButton = pinModal.getByRole('button', { name: /^start$/i })
+  await expect(modalStartButton).toBeEnabled({ timeout: 2000 })
+  await modalStartButton.click()
 }
 

@@ -1,4 +1,5 @@
 import React from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Lock, ChevronRight, Check } from 'lucide-react'
 import type { LevelRequirement } from '../data/levelRequirements'
@@ -6,12 +7,23 @@ import type { LevelRequirement } from '../data/levelRequirements'
 type LevelRequirementCardProps = {
   requirement: LevelRequirement
   index: number
+  userId?: string
 }
 
-export const LevelRequirementCard: React.FC<LevelRequirementCardProps> = ({ requirement, index }) => {
+export const LevelRequirementCard: React.FC<LevelRequirementCardProps> = ({ requirement, index, userId }) => {
+  const navigate = useNavigate()
+  const params = useParams<{ userId?: string }>()
+  const effectiveUserId = userId || params.userId
+  
   const allCompleted = requirement.requirements.every((req) => req.completed)
   const completedCount = requirement.requirements.filter((req) => req.completed).length
   const totalCount = requirement.requirements.length
+  
+  const handleAchievementClick = (achievementCode: string) => {
+    if (effectiveUserId) {
+      navigate(`/journey/${effectiveUserId}/achievements?text=${encodeURIComponent(achievementCode)}`)
+    }
+  }
 
   return (
     <motion.div
@@ -82,9 +94,20 @@ export const LevelRequirementCard: React.FC<LevelRequirementCardProps> = ({ requ
                 {req.completed ? <Check className="h-3 w-3 text-white" /> : <div className={`h-2 w-2 rounded-full ${requirement.isLocked ? 'bg-gray-400' : 'bg-gray-400'}`} />}
               </div>
               <div className="flex-1">
-                <p className={`text-sm font-medium ${requirement.isLocked ? 'text-gray-400' : req.completed ? 'text-gray-700' : 'text-gray-900'}`}>
-                  {req.description}
-                </p>
+                {req.achievementCode && effectiveUserId ? (
+                  <button
+                    onClick={() => handleAchievementClick(req.achievementCode!)}
+                    className={`text-left text-sm font-medium transition-colors hover:text-blue-600 ${
+                      requirement.isLocked ? 'text-gray-400 hover:text-gray-500' : req.completed ? 'text-gray-700 hover:text-blue-600' : 'text-gray-900 hover:text-blue-600'
+                    }`}
+                  >
+                    {req.description}
+                  </button>
+                ) : (
+                  <p className={`text-sm font-medium ${requirement.isLocked ? 'text-gray-400' : req.completed ? 'text-gray-700' : 'text-gray-900'}`}>
+                    {req.description}
+                  </p>
+                )}
                 {req.progress !== undefined && req.maxProgress !== undefined && (
                   <div className="mt-2">
                     <div className="mb-1 flex justify-between text-xs text-gray-600">

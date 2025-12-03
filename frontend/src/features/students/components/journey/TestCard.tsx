@@ -1,33 +1,46 @@
 import React from 'react'
 import { motion } from 'framer-motion'
 import { Lock, Play, Eye } from 'lucide-react'
-import type { FrontendTest } from '../../utils/testMapping'
+import type { FrontendTest, NewTier } from '../../utils/testMapping'
 
 type TestCardProps = {
   test: FrontendTest
   index: number
   onClick: (test: FrontendTest) => void
   onStartTest?: (test: FrontendTest) => void
+  matchesFilter?: boolean
 }
 
-const getTierColor = (tier: 'B' | 'A' | 'S' | 'SS' | 'SSS'): string => {
+const getTierColor = (tier: NewTier): string => {
   switch (tier) {
-    case 'SSS':
+    case 'Champion':
+      return 'from-yellow-400 via-orange-500 to-red-600'
+    case 'Divine':
       return 'from-purple-600 to-pink-600'
-    case 'SS':
-      return 'from-blue-600 to-purple-600'
-    case 'S':
-      return 'from-green-500 to-emerald-600'
-    case 'A':
-      return 'from-yellow-500 to-orange-500'
-    case 'B':
-      return 'from-gray-500 to-gray-600'
+    case 'Mythic':
+      return 'from-indigo-600 to-purple-600'
+    case 'Legendary':
+      return 'from-blue-600 to-indigo-600'
+    case 'Grandmaster':
+      return 'from-cyan-500 to-blue-600'
+    case 'Master':
+      return 'from-teal-500 to-cyan-600'
+    case 'Diamond':
+      return 'from-blue-400 to-cyan-500'
+    case 'Platinum':
+      return 'from-gray-300 to-gray-400'
+    case 'Gold':
+      return 'from-yellow-400 to-yellow-600'
+    case 'Silver':
+      return 'from-gray-200 to-gray-400'
+    case 'Bronze':
+      return 'from-orange-600 to-orange-800'
     default:
       return 'from-gray-500 to-gray-600'
   }
 }
 
-export const TestCard: React.FC<TestCardProps> = ({ test, index, onClick, onStartTest }) => {
+export const TestCard: React.FC<TestCardProps> = ({ test, index, onClick, onStartTest, matchesFilter = true }) => {
   const isLocked = test.isLocked
   const hasAttempts = test.attemptCount > 0
 
@@ -39,13 +52,19 @@ export const TestCard: React.FC<TestCardProps> = ({ test, index, onClick, onStar
         y: 20,
       }}
       animate={{
-        opacity: 1,
+        opacity: isLocked ? 0.5 : matchesFilter ? 1 : 0.6,
         y: 0,
       }}
       transition={{
         delay: index * 0.05,
       }}
-      className={`relative cursor-pointer rounded-2xl border-2 p-6 transition-all hover:shadow-lg ${
+      className={`relative rounded-2xl border-2 p-6 transition-all ${
+        isLocked
+          ? 'cursor-not-allowed border-gray-300 bg-gray-100'
+          : matchesFilter
+            ? 'cursor-pointer hover:shadow-lg'
+            : 'cursor-pointer opacity-60 hover:shadow-md'
+      } ${
         isLocked
           ? 'border-gray-300 bg-gray-100'
           : hasAttempts
@@ -71,10 +90,30 @@ export const TestCard: React.FC<TestCardProps> = ({ test, index, onClick, onStar
         {test.question_count} questions
       </div>
 
-      {/* Level Requirement */}
-      <div className={`mb-3 text-xs font-medium ${isLocked ? 'text-gray-400' : 'text-gray-600'}`}>
-        {isLocked ? `Unlocks at Level ${test.level_requirement}` : `Level ${test.level_requirement}+`}
-      </div>
+      {/* Unlock Requirements or Level Requirement */}
+      {test.unlockRequirements ? (
+        <div className={`mb-3 space-y-1 text-xs ${isLocked ? 'text-gray-400' : 'text-gray-600'}`}>
+          <div className="font-medium">
+            {isLocked ? 'Unlock Requirements:' : 'Unlocked'}
+          </div>
+          <div className="text-xs">
+            {test.unlockProgress && (
+              <span className="font-semibold">
+                {test.unlockProgress.met}/{test.unlockProgress.total}
+              </span>
+            )}{' '}
+            {test.unlockRequirements.achievementCode 
+              ? `${test.unlockRequirements.achievementCode.replace(/-/g, ' ')} achievements`
+              : 'achievements'}
+            {test.unlockRequirements.level && ` at level ${test.unlockRequirements.level}`}
+            {test.unlockRequirements.minAccuracy && ` (${(test.unlockRequirements.minAccuracy * 100).toFixed(0)}%+ accuracy)`}
+          </div>
+        </div>
+      ) : (
+        <div className={`mb-3 text-xs font-medium ${isLocked ? 'text-gray-400' : 'text-gray-600'}`}>
+          {isLocked ? `Unlocks at Level ${test.level_requirement}` : `Level ${test.level_requirement}+`}
+        </div>
+      )}
 
       {/* Best Result Badge */}
       {test.bestResult && !isLocked && (
@@ -82,12 +121,12 @@ export const TestCard: React.FC<TestCardProps> = ({ test, index, onClick, onStar
           className={`mb-3 inline-block rounded-full bg-gradient-to-r px-3 py-1 text-xs font-bold text-white ${getTierColor(test.bestResult.tier)}`}
           data-testid="testid-test-best-result-badge"
         >
-          {test.bestResult.tier} Rank - {test.bestResult.accuracy.toFixed(0)}%
+          {test.bestResult.tier} Tier - {test.bestResult.accuracy.toFixed(0)}%
         </div>
       )}
 
       {/* Action Button */}
-      {!isLocked && (
+      {!isLocked ? (
         <div className="mt-4 flex gap-2">
           {hasAttempts ? (
             <button
@@ -114,6 +153,16 @@ export const TestCard: React.FC<TestCardProps> = ({ test, index, onClick, onStar
               Start Test
             </button>
           )}
+        </div>
+      ) : (
+        <div className="mt-4 flex gap-2">
+          <button
+            disabled
+            className="flex flex-1 cursor-not-allowed items-center justify-center gap-2 rounded-xl bg-gray-300 px-4 py-2 text-sm font-semibold text-gray-500"
+          >
+            <Lock className="h-4 w-4" />
+            Locked
+          </button>
         </div>
       )}
     </motion.div>

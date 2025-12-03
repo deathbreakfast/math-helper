@@ -29,6 +29,7 @@ class User(db.Model):
     practice_sessions = db.relationship("PracticeSession", back_populates="user", cascade="all, delete")
     flagged_questions = db.relationship("FlaggedQuestion", back_populates="user", cascade="all, delete")
     daily_stats = db.relationship("DailyStat", back_populates="user", cascade="all, delete")
+    test_attempts = db.relationship("TestAttempt", back_populates="user", cascade="all, delete")
 
 
 class PracticeSession(db.Model):
@@ -108,10 +109,12 @@ class Achievement(db.Model):
     icon = db.Column(db.String(8), nullable=False)
     category = db.Column(db.String(64), nullable=False, index=True)
     earned_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
+    session_id = db.Column(db.Integer, db.ForeignKey("practice_sessions.id", ondelete="SET NULL"), nullable=True, index=True)
 
     __table_args__ = (db.UniqueConstraint("user_id", "code", name="uq_user_achievement_code"),)
 
     user = db.relationship("User", back_populates="achievements")
+    session = db.relationship("PracticeSession", backref="achievements")
 
 
 class FlaggedQuestion(db.Model):
@@ -192,4 +195,19 @@ class TestAttempt(db.Model):
     passed = db.Column(db.Boolean, nullable=False, index=True)  # True if score >= passing threshold
     attempted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
 
-    user = db.relationship("User", backref="test_attempts")
+    user = db.relationship("User", back_populates="test_attempts")
+
+
+class ServerRecord(db.Model):
+    __tablename__ = "server_records"
+
+    id = db.Column(db.Integer, primary_key=True)
+    achievement_type = db.Column(db.String(64), nullable=False, unique=True, index=True)
+    record_type = db.Column(db.String(32), nullable=False)  # 'speed', 'accuracy', 'volume', 'streak'
+    record_value = db.Column(db.Float, nullable=False)  # The actual record value
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    achieved_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    session_id = db.Column(db.Integer, db.ForeignKey("practice_sessions.id", ondelete="SET NULL"), nullable=True)
+
+    user = db.relationship("User", backref="server_records")
+    session = db.relationship("PracticeSession", backref="server_records")

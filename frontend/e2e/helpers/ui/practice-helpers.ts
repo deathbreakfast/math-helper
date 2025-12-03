@@ -257,22 +257,40 @@ export async function submitPracticeSession(page: Page): Promise<any> {
   
   const { submitButton } = getPracticeElements(page)
   
-  // Wait for submission API response
+  // Set up response listener BEFORE clicking to catch the response
+  // The endpoint is /api/practice/sessions/{sessionId}/complete
   const responsePromise = page.waitForResponse(
-    (response) =>
-      (response.url().includes('/api/practice/sessions') ||
-        response.url().includes('/api/practice/submissions')) &&
-      response.request().method() === 'POST'
-  ).catch(() => null)
+    (response) => {
+      const url = response.url()
+      const method = response.request().method()
+      const status = response.status()
+      // Match either the complete endpoint or the submissions endpoint
+      // Be lenient with URL matching to catch variations
+      const matchesSessions = url.includes('/api/practice/sessions')
+      const matchesComplete = matchesSessions && (url.includes('/complete') || url.match(/\/sessions\/\d+\//))
+      const matchesSubmissions = url.includes('/api/practice/submissions')
+      // Accept POST requests with 2xx status codes
+      return (matchesComplete || matchesSubmissions) && method === 'POST' && status >= 200 && status < 300
+    },
+    { timeout: 10000 } // 10 second timeout - should be enough for API response
+  ).catch(() => {
+    // If response wait fails, return null (navigation is the key indicator)
+    return null
+  })
   
   // Submit the session (button is confirmed ready, so use short timeout)
   await submitButton.click({ timeout: 2000 })
   
-  // Should navigate to summary page
+  // Wait for navigation to summary page - this is the primary indicator of success
+  // If navigation succeeds, the submission worked regardless of response wait
   await page.waitForURL(/\/summary/, { timeout: 10000 })
   
-  // Wait for API response
-  return await responsePromise
+  // Try to get the response, but don't block - navigation already succeeded
+  // Use Promise.race to avoid waiting too long if response is slow
+  return await Promise.race([
+    responsePromise,
+    new Promise((resolve) => setTimeout(() => resolve(null), 1000)) // Max 1s wait after navigation
+  ])
 }
 
 /**

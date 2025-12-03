@@ -186,6 +186,7 @@ export async function startTestSession(request: APIRequestContext, userId: numbe
 /**
  * Create completed practice sessions for test eligibility
  * Creates count number of completed practice sessions at the specified level
+ * Includes error handling, retries, and logging to prevent request context disposal issues
  */
 export async function createCompletedPracticeSessions(
   request: APIRequestContext,
@@ -195,43 +196,105 @@ export async function createCompletedPracticeSessions(
 ): Promise<void> {
   const { startPracticeSessionViaAPI, answerQuestionViaAPI } = await import('./practice-api')
   
+  const startTime = Date.now()
+  console.log(`[createCompletedPracticeSessions] Starting: userId=${userId}, level=${level}, count=${count}`)
+  
   for (let i = 0; i < count; i++) {
-    // Start a practice session
-    const sessionData = await startPracticeSessionViaAPI(request, userId, {
-      level: level,
-      mode: 'standard'
-    })
+    const sessionStartTime = Date.now()
+    console.log(`[createCompletedPracticeSessions] Creating session ${i + 1}/${count}`)
     
-    const sessionId = sessionData.session_id
-    const questions = sessionData.questions || []
-    
-    // Answer all questions correctly to complete the session
-    for (const question of questions) {
-      await answerQuestionViaAPI(
-        request,
-        sessionId,
-        question.question_id || question.id,
-        question.correct_answer || question.correctAnswer,
-        1000 // 1 second per question
-      )
-    }
-    
-    // Complete the session
-    const completeResponse = await request.post(`/api/practice/sessions/${sessionId}/complete`, {
-      data: {
-        total_duration_ms: questions.length * 1000
+    try {
+      // Start a practice session
+      const sessionData = await startPracticeSessionViaAPI(request, userId, {
+        level: level,
+        mode: 'standard'
+      })
+      
+      const sessionId = sessionData.session_id
+      const questions = sessionData.questions || []
+      console.log(`[createCompletedPracticeSessions] Session ${i + 1} started: sessionId=${sessionId}, questions=${questions.length}`)
+      
+      // Answer all questions correctly to complete the session
+      for (let qIdx = 0; qIdx < questions.length; qIdx++) {
+        const question = questions[qIdx]
+        try {
+          await answerQuestionViaAPI(
+            request,
+            sessionId,
+            question.question_id || question.id,
+            question.correct_answer || question.correctAnswer,
+            1000 // 1 second per question
+          )
+        } catch (error) {
+          console.error(`[createCompletedPracticeSessions] Error answering question ${qIdx + 1}/${questions.length} in session ${i + 1}:`, error)
+          throw error
+        }
       }
-    })
-    
-    if (!completeResponse.ok()) {
-      throw new Error(`Failed to complete practice session: ${completeResponse.status()}`)
+      
+      console.log(`[createCompletedPracticeSessions] All questions answered for session ${i + 1}, completing...`)
+      
+      // Complete the session with retry logic
+      let completeResponse
+      let retries = 3
+      let lastError: Error | null = null
+      
+      while (retries > 0) {
+        try {
+          completeResponse = await request.post(`/api/practice/sessions/${sessionId}/complete`, {
+            data: {
+              total_duration_ms: questions.length * 1000
+            },
+            timeout: 30000 // 30 second timeout per request
+          })
+          
+          if (completeResponse.ok()) {
+            const sessionDuration = Date.now() - sessionStartTime
+            console.log(`[createCompletedPracticeSessions] Session ${i + 1} completed successfully in ${sessionDuration}ms`)
+            break
+          } else {
+            const errorText = await completeResponse.text().catch(() => 'Unknown error')
+            throw new Error(`Failed to complete practice session: ${completeResponse.status()} - ${errorText}`)
+          }
+        } catch (error: any) {
+          lastError = error
+          retries--
+          if (retries > 0) {
+            const waitTime = 1000 * (4 - retries) // Exponential backoff: 1s, 2s, 3s
+            console.warn(`[createCompletedPracticeSessions] Session ${i + 1} completion failed, retrying in ${waitTime}ms (${retries} retries left):`, error.message)
+            await new Promise(resolve => setTimeout(resolve, waitTime))
+          }
+        }
+      }
+      
+      if (!completeResponse || !completeResponse.ok()) {
+        throw lastError || new Error(`Failed to complete practice session ${i + 1} after retries`)
+      }
+      
+      // Small delay between sessions to avoid overwhelming the API
+      if (i < count - 1) {
+        await new Promise(resolve => setTimeout(resolve, 100))
+      }
+    } catch (error: any) {
+      const errorMessage = error?.message || String(error)
+      console.error(`[createCompletedPracticeSessions] Failed to create session ${i + 1}/${count}:`, errorMessage)
+      
+      // Check if it's a request context disposal error
+      if (errorMessage.includes('Request context disposed') || errorMessage.includes('disposed')) {
+        throw new Error(`Request context was disposed while creating session ${i + 1}/${count}. This may indicate a timeout issue. Original error: ${errorMessage}`)
+      }
+      
+      throw error
     }
   }
+  
+  const totalDuration = Date.now() - startTime
+  console.log(`[createCompletedPracticeSessions] Completed all ${count} sessions in ${totalDuration}ms`)
 }
 
 /**
  * Create a passed test attempt for retake eligibility
  * Creates a completed test session with passing score (≥80%)
+ * Includes error handling and logging to prevent request context disposal issues
  */
 export async function createPassedTestAttempt(
   request: APIRequestContext,
@@ -241,49 +304,99 @@ export async function createPassedTestAttempt(
 ): Promise<void> {
   const { answerQuestionViaAPI } = await import('./practice-api')
   
-  // Start test session
-  const sessionData = await startTestSession(request, userId, testType)
-  const sessionId = sessionData.session_id
-  const questions = sessionData.questions || []
+  const startTime = Date.now()
+  console.log(`[createPassedTestAttempt] Starting: userId=${userId}, level=${level}, testType=${testType}`)
   
-  // Answer questions to achieve passing score (≥80%)
-  // Calculate how many need to be correct: Math.ceil(questions.length * 0.8)
-  const passingCount = Math.ceil(questions.length * 0.8)
-  
-  for (let i = 0; i < questions.length; i++) {
-    const question = questions[i]
-    const isCorrect = i < passingCount // First passingCount questions are correct
+  try {
+    // Start test session
+    const sessionData = await startTestSession(request, userId, testType)
+    const sessionId = sessionData.session_id
+    const questions = sessionData.questions || []
+    console.log(`[createPassedTestAttempt] Test session started: sessionId=${sessionId}, questions=${questions.length}`)
     
-    if (isCorrect) {
-      // Answer correctly
-      await answerQuestionViaAPI(
-        request,
-        sessionId,
-        question.question_id || question.id,
-        question.correct_answer || question.correctAnswer,
-        2000 // 2 seconds per question
-      )
-    } else {
-      // Answer incorrectly (use wrong answer)
-      await answerQuestionViaAPI(
-        request,
-        sessionId,
-        question.question_id || question.id,
-        '999', // Wrong answer
-        2000
-      )
+    // Answer questions to achieve passing score (≥80%)
+    // Calculate how many need to be correct: Math.ceil(questions.length * 0.8)
+    const passingCount = Math.ceil(questions.length * 0.8)
+    console.log(`[createPassedTestAttempt] Answering ${passingCount} correctly out of ${questions.length} for passing score`)
+    
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i]
+      const isCorrect = i < passingCount // First passingCount questions are correct
+      
+      try {
+        if (isCorrect) {
+          // Answer correctly
+          await answerQuestionViaAPI(
+            request,
+            sessionId,
+            question.question_id || question.id,
+            question.correct_answer || question.correctAnswer,
+            2000 // 2 seconds per question
+          )
+        } else {
+          // Answer incorrectly (use wrong answer)
+          await answerQuestionViaAPI(
+            request,
+            sessionId,
+            question.question_id || question.id,
+            '999', // Wrong answer
+            2000
+          )
+        }
+      } catch (error) {
+        console.error(`[createPassedTestAttempt] Error answering question ${i + 1}/${questions.length}:`, error)
+        throw error
+      }
     }
-  }
-  
-  // Complete the test session
-  const completeResponse = await request.post(`/api/practice/sessions/${sessionId}/complete`, {
-    data: {
-      total_duration_ms: questions.length * 2000
+    
+    console.log(`[createPassedTestAttempt] All questions answered, completing test session...`)
+    
+    // Complete the test session with retry logic
+    let completeResponse
+    let retries = 3
+    let lastError: Error | null = null
+    
+    while (retries > 0) {
+      try {
+        completeResponse = await request.post(`/api/practice/sessions/${sessionId}/complete`, {
+          data: {
+            total_duration_ms: questions.length * 2000
+          },
+          timeout: 30000 // 30 second timeout per request
+        })
+        
+        if (completeResponse.ok()) {
+          const totalDuration = Date.now() - startTime
+          console.log(`[createPassedTestAttempt] Test session completed successfully in ${totalDuration}ms`)
+          break
+        } else {
+          const errorText = await completeResponse.text().catch(() => 'Unknown error')
+          throw new Error(`Failed to complete test session: ${completeResponse.status()} - ${errorText}`)
+        }
+      } catch (error: any) {
+        lastError = error
+        retries--
+        if (retries > 0) {
+          const waitTime = 1000 * (4 - retries) // Exponential backoff: 1s, 2s, 3s
+          console.warn(`[createPassedTestAttempt] Test session completion failed, retrying in ${waitTime}ms (${retries} retries left):`, error.message)
+          await new Promise(resolve => setTimeout(resolve, waitTime))
+        }
+      }
     }
-  })
-  
-  if (!completeResponse.ok()) {
-    throw new Error(`Failed to complete test session: ${completeResponse.status()}`)
+    
+    if (!completeResponse || !completeResponse.ok()) {
+      throw lastError || new Error(`Failed to complete test session after retries`)
+    }
+  } catch (error: any) {
+    const errorMessage = error?.message || String(error)
+    console.error(`[createPassedTestAttempt] Failed to create test attempt:`, errorMessage)
+    
+    // Check if it's a request context disposal error
+    if (errorMessage.includes('Request context disposed') || errorMessage.includes('disposed')) {
+      throw new Error(`Request context was disposed while creating test attempt. This may indicate a timeout issue. Original error: ${errorMessage}`)
+    }
+    
+    throw error
   }
 }
 

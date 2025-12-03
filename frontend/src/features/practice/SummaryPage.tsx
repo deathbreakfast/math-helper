@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useRouter } from '../../utils/routing'
 import { PillButton } from '../../components/ui'
 import { Home } from 'lucide-react'
 import { useSummaryData, type FilterType, type ProblemResult } from './hooks/useSummaryData'
@@ -13,6 +14,7 @@ import { ProblemDetailModal } from './components/summary/ProblemDetailModal'
 import { SummaryActionButtons } from './components/summary/SummaryActionButtons'
 
 const SummaryPage = () => {
+  const router = useRouter()
   const [filter, setFilter] = useState<FilterType>('all')
   const [selectedProblem, setSelectedProblem] = useState<ProblemResult | null>(null)
   const [showAchievements, setShowAchievements] = useState(false)
@@ -34,30 +36,28 @@ const SummaryPage = () => {
   }, [achievements.length])
 
   const handleBackToDashboard = () => {
-    window.location.href = '/'
+    router.navigate('/')
   }
 
   const handlePracticeAgain = () => {
     if (sessionSummary?.user) {
-      const params = new URLSearchParams({
+      router.navigate('/practice', {
         user: sessionSummary.user.name,
         userId: String(sessionSummary.user.id),
         avatar: sessionSummary.user.avatar || '',
       })
-      window.location.href = `/practice?${params.toString()}`
     } else {
-      window.location.href = '/practice'
+      router.navigate('/practice')
     }
   }
 
   const handleTryNextLevel = () => {
     if (sessionSummary?.user) {
-      const params = new URLSearchParams({
+      router.navigate('/practice', {
         user: sessionSummary.user.name,
         userId: String(sessionSummary.user.id),
         avatar: sessionSummary.user.avatar || '',
       })
-      window.location.href = `/practice?${params.toString()}`
     }
   }
 

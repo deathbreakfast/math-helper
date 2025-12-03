@@ -3,6 +3,8 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { X, Play, Clock, Target } from 'lucide-react'
 import type { FrontendTest, FrontendTestAttempt, FrontendTestAttemptDetail } from '../../utils/testMapping'
 import { AttemptCard } from './AttemptCard'
+import PINVerificationModal from '../../modals/PINVerificationModal'
+import type { User } from '../../hooks/useLearners'
 
 type TestDetailModalProps = {
   test: FrontendTest | null
@@ -11,6 +13,7 @@ type TestDetailModalProps = {
   onStartTest: (test: FrontendTest) => void
   getTestAttempts: (testType: string) => Promise<FrontendTestAttempt[]>
   getTestAttemptDetail: (attemptId: number) => Promise<FrontendTestAttemptDetail | null>
+  selectedUser: User | null
 }
 
 export const TestDetailModal: React.FC<TestDetailModalProps> = ({
@@ -20,9 +23,11 @@ export const TestDetailModal: React.FC<TestDetailModalProps> = ({
   onStartTest,
   getTestAttempts,
   getTestAttemptDetail,
+  selectedUser,
 }) => {
   const [attempts, setAttempts] = useState<FrontendTestAttempt[]>([])
   const [isLoadingAttempts, setIsLoadingAttempts] = useState(false)
+  const [isPinModalOpen, setIsPinModalOpen] = useState(false)
 
   useEffect(() => {
     if (isOpen && test) {
@@ -62,12 +67,25 @@ export const TestDetailModal: React.FC<TestDetailModalProps> = ({
     }
   }
 
+  const handleStartTestClick = () => {
+    if (!test) return
+    setIsPinModalOpen(true)
+  }
+
+  const handlePinVerified = (pin: string) => {
+    setIsPinModalOpen(false)
+    if (test) {
+      onStartTest(test)
+    }
+  }
+
   if (!test) return null
 
   return (
+    <>
     <AnimatePresence>
       {isOpen && (
-        <>
+        <React.Fragment key="test-detail-modal">
           {/* Backdrop */}
           <motion.div
             initial={{ opacity: 0 }}
@@ -98,9 +116,21 @@ export const TestDetailModal: React.FC<TestDetailModalProps> = ({
                       <Target className="h-4 w-4" />
                       {test.question_count} questions
                     </div>
-                    <div className="flex items-center gap-1" data-testid="testid-test-detail-level-requirement">
-                      Level {test.level_requirement}+ required
-                    </div>
+                    {test.unlockRequirements ? (
+                      <div className="flex items-center gap-1" data-testid="testid-test-detail-unlock-requirement">
+                        {test.unlockProgress ? (
+                          <span>
+                            {test.unlockProgress.met}/{test.unlockProgress.total} achievements
+                          </span>
+                        ) : (
+                          <span>Unlock requirements</span>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1" data-testid="testid-test-detail-level-requirement">
+                        Level {test.level_requirement}+ required
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button
@@ -125,9 +155,40 @@ export const TestDetailModal: React.FC<TestDetailModalProps> = ({
                   <div>
                     <span className="font-medium">Question Count:</span> {test.question_count}
                   </div>
-                  <div>
-                    <span className="font-medium">Level Requirement:</span> Level {test.level_requirement}
-                  </div>
+                  {test.unlockRequirements ? (
+                    <div className="mt-3 rounded-lg border border-gray-200 bg-white p-3">
+                      <div className="mb-2 font-semibold text-gray-900">Unlock Requirements</div>
+                      {test.unlockProgress && (
+                        <div className="mb-2">
+                          <div className="mb-1 flex items-center justify-between text-xs">
+                            <span>Progress:</span>
+                            <span className="font-semibold">
+                              {test.unlockProgress.met}/{test.unlockProgress.total}
+                            </span>
+                          </div>
+                          <div className="h-2 w-full overflow-hidden rounded-full bg-gray-200">
+                            <div
+                              className="h-full bg-green-500 transition-all"
+                              style={{
+                                width: `${(test.unlockProgress.met / test.unlockProgress.total) * 100}%`,
+                              }}
+                            />
+                          </div>
+                        </div>
+                      )}
+                      <div className="text-xs text-gray-600">
+                        Complete <span className="font-semibold">{test.unlockProgress?.total || test.unlockRequirements.quantity}</span>{' '}
+                        {test.unlockRequirements.achievementCode.replace(/-/g, ' ')} achievements
+                        {test.unlockRequirements.level && ` at level ${test.unlockRequirements.level}`}
+                        {test.unlockRequirements.minAccuracy && ` with ${(test.unlockRequirements.minAccuracy * 100).toFixed(0)}%+ accuracy`}
+                        {test.unlockRequirements.operation && ` for ${test.unlockRequirements.operation}`}
+                      </div>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="font-medium">Level Requirement:</span> Level {test.level_requirement}
+                    </div>
+                  )}
                   {test.bestResult && (
                     <div>
                       <span className="font-medium">Best Result:</span> {test.bestResult.tier} Rank -{' '}
@@ -150,7 +211,7 @@ export const TestDetailModal: React.FC<TestDetailModalProps> = ({
                   <div className="space-y-3">
                     {attempts.map((attempt, index) => (
                       <AttemptCard
-                        key={attempt.attempt_id}
+                        key={attempt.attempt_id || `attempt-${index}`}
                         attempt={attempt}
                         index={index}
                         onExpand={handleExpandAttempt}
@@ -165,7 +226,7 @@ export const TestDetailModal: React.FC<TestDetailModalProps> = ({
             <div className="border-t border-gray-200 bg-gray-50 p-6">
               <div className="flex gap-3">
                 <button
-                  onClick={() => onStartTest(test)}
+                  onClick={handleStartTestClick}
                   className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-green-500 to-emerald-600 px-6 py-3 font-semibold text-white transition-all hover:from-green-600 hover:to-emerald-700"
                   data-testid="testid-test-detail-start-button"
                 >
@@ -182,9 +243,17 @@ export const TestDetailModal: React.FC<TestDetailModalProps> = ({
               </div>
             </div>
           </motion.div>
-        </>
+        </React.Fragment>
       )}
     </AnimatePresence>
+    {/* PIN Verification Modal - outside AnimatePresence to avoid nesting */}
+    <PINVerificationModal
+      isOpen={isPinModalOpen}
+      onClose={() => setIsPinModalOpen(false)}
+      onVerified={handlePinVerified}
+      selectedUser={selectedUser}
+    />
+  </>
   )
 }
 

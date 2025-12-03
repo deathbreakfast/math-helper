@@ -13,7 +13,8 @@ from ..config.tests.test_definitions import (
     get_test_definitions_by_level,
 )
 from ..database import log_query
-from ..models import PracticeSession, Response, TestAttempt, db
+from ..models import PracticeSession, Response, TestAttempt, User, db
+from ..services.achievement_service import AchievementService
 from ..services.session_engine_service import SessionEngineService
 
 
@@ -22,11 +23,129 @@ class TestService:
 
     @staticmethod
     @log_query
-    def get_all_test_definitions(user_level: int | None = None) -> list[dict[str, Any]]:
+    def check_test_unlock_requirements(user_id: int, test_type: str) -> dict[str, Any]:
+        """Check if a user meets the unlock requirements for a test.
+        
+        Args:
+            user_id: User ID
+            test_type: Test type identifier
+            
+        Returns:
+            Dictionary with unlock status:
+            {
+                "is_unlocked": bool,
+                "requirements_met": int,
+                "requirements_total": int,
+                "unlock_requirements": dict,
+                "reason": str
+            }
+        """
+        # Get test definition (checks both new and legacy tests)
+        test_def = get_test_definition(test_type)
+        
+        # If not found in new definitions, check legacy test types
+        if not test_def:
+            # Check LEVEL_TEST_TYPES (e.g., "level_1", "level_2")
+            if test_type in SessionEngineService.LEVEL_TEST_TYPES:
+                operation, level, question_count, constraints = SessionEngineService.LEVEL_TEST_TYPES[test_type]
+                test_def = {
+                    "test_type": test_type,
+                    "operation": operation,
+                    "level_requirement": level,
+                    "question_count": question_count,
+                    "constraints": constraints,
+                    "display_name": f"Level {level} Test",
+                    "is_legacy": True,
+                }
+            # Check TEST_TYPES (e.g., "multiplication_1", "division_1")
+            elif test_type in SessionEngineService.TEST_TYPES:
+                operation, level, question_count, constraints = SessionEngineService.TEST_TYPES[test_type]
+                test_def = {
+                    "test_type": test_type,
+                    "operation": operation,
+                    "level_requirement": level,
+                    "question_count": question_count,
+                    "constraints": constraints,
+                    "display_name": test_type.replace("_", " ").title(),
+                    "is_legacy": True,
+                }
+        
+        if not test_def:
+            return {
+                "is_unlocked": False,
+                "requirements_met": 0,
+                "requirements_total": 0,
+                "unlock_requirements": None,
+                "reason": f"Test type '{test_type}' not found",
+            }
+        
+        # Check if test has unlock_requirements
+        unlock_reqs = test_def.get("unlock_requirements")
+        if not unlock_reqs:
+            # Fall back to level-based check
+            user = User.query.get(user_id)
+            if not user:
+                return {
+                    "is_unlocked": False,
+                    "requirements_met": 0,
+                    "requirements_total": 0,
+                    "unlock_requirements": None,
+                    "reason": "User not found",
+                }
+            
+            level_requirement = test_def.get("level_requirement", 1)
+            is_unlocked = user.level >= level_requirement
+            return {
+                "is_unlocked": is_unlocked,
+                "requirements_met": 1 if is_unlocked else 0,
+                "requirements_total": 1,
+                "unlock_requirements": None,
+                "reason": f"Level-based: user level {user.level} {'>=' if is_unlocked else '<'} required level {level_requirement}",
+            }
+        
+        # Achievement-based unlock check
+        achievement_code = unlock_reqs.get("achievement_code")
+        quantity = unlock_reqs.get("quantity", 0)
+        level = unlock_reqs.get("level")
+        min_accuracy = unlock_reqs.get("min_accuracy")
+        operation = unlock_reqs.get("operation")
+        
+        # Count achievements matching requirements
+        count = AchievementService.count_achievements_by_code_with_filters(
+            user_id=user_id,
+            achievement_code=achievement_code,
+            level=level,
+            min_accuracy=min_accuracy,
+            operation=operation,
+        )
+        
+        is_unlocked = count >= quantity
+        
+        reason_parts = [f"{count}/{quantity} {achievement_code} achievements"]
+        if level is not None:
+            reason_parts.append(f"at level {level}")
+        if min_accuracy is not None:
+            reason_parts.append(f"with {min_accuracy * 100:.0f}%+ accuracy")
+        if operation is not None:
+            reason_parts.append(f"for {operation}")
+        
+        return {
+            "is_unlocked": is_unlocked,
+            "requirements_met": count,
+            "requirements_total": quantity,
+            "unlock_requirements": unlock_reqs,
+            "reason": " ".join(reason_parts),
+        }
+
+    @staticmethod
+    @log_query
+    def get_all_test_definitions(user_level: int | None = None, user_id: int | None = None, include_unlock_status: bool = False) -> list[dict[str, Any]]:
         """Get all test definitions (legacy + new).
         
         Args:
-            user_level: Optional user level to filter available tests
+            user_level: Optional user level to filter available tests (deprecated, use unlock_status instead)
+            user_id: Optional user ID to check unlock status
+            include_unlock_status: If True and user_id provided, include unlock_status for each test
             
         Returns:
             List of test definition dictionaries
@@ -68,8 +187,14 @@ class TestService:
                 test_def["is_legacy"] = False
                 definitions.append(test_def)
         
-        # Filter by level if provided
-        if user_level is not None:
+        # Add unlock status if requested
+        if include_unlock_status and user_id:
+            for test_def in definitions:
+                unlock_status = TestService.check_test_unlock_requirements(user_id, test_def["test_type"])
+                test_def["unlock_status"] = unlock_status
+        
+        # Filter by level if provided (backward compatibility)
+        if user_level is not None and not include_unlock_status:
             definitions = [d for d in definitions if d["level_requirement"] <= user_level]
         
         return definitions

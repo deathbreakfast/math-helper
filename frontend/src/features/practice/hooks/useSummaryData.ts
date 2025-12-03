@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import type { PracticeSessionSummary } from '../types'
 import { parsePrompt } from '../utils/summaryUtils'
 import { useLearners } from '../../../lib/learners/hooks'
@@ -44,31 +45,41 @@ export interface SummaryMetrics {
 
 export const useSummaryData = (filter: FilterType) => {
   const { learners } = useLearners()
+  const [searchParams] = useSearchParams()
 
   // Get session data from URL parameters or localStorage
   const sessionSummary = useMemo<PracticeSessionSummary | null>(() => {
-    const params = new URLSearchParams(window.location.search)
-    const sessionParam = params.get('session')
+    // Read sessionId from URL (new approach - only ID in URL)
+    const sessionId = searchParams.get('sessionId')
+    
+    // Also support legacy 'session' param for backward compatibility during transition
+    const legacySessionParam = searchParams.get('session')
 
-    if (sessionParam) {
+    // If legacy session param exists, try to parse it (backward compatibility)
+    if (legacySessionParam) {
       try {
-        return JSON.parse(decodeURIComponent(sessionParam)) as PracticeSessionSummary
+        return JSON.parse(decodeURIComponent(legacySessionParam)) as PracticeSessionSummary
       } catch {
-        // Invalid JSON
+        // Invalid JSON, fall through to localStorage
       }
     }
 
+    // Get session from localStorage (stored with key 'lastPracticeSession')
     const savedSession = localStorage.getItem('lastPracticeSession')
     if (savedSession) {
       try {
-        return JSON.parse(savedSession) as PracticeSessionSummary
+        const parsed = JSON.parse(savedSession) as PracticeSessionSummary
+        // If sessionId was provided in URL, verify it matches (for future multi-session support)
+        if (!sessionId || parsed.id === sessionId) {
+          return parsed
+        }
       } catch {
         // Invalid JSON
       }
     }
 
     return null
-  }, [])
+  }, [searchParams])
 
   // Find user data
   const user = useMemo(() => {
@@ -150,15 +161,8 @@ export const useSummaryData = (filter: FilterType) => {
   // Convert backend achievement format to AchievementBadge format
   const achievements = useMemo<AchievementBadge[]>(() => {
     if (!sessionSummary?.achievements || sessionSummary.achievements.length === 0) {
-      // Fallback: show session complete if no achievements
-      return [{
-        id: 'session-complete',
-        title: 'Session Complete',
-        description: `Great job completing ${metrics.totalProblems} questions!`,
-        icon: '✅',
-        category: 'milestone',
-        earnedAt: new Date(),
-      }]
+      // Return empty array if no achievements (removed fallback "Session Complete")
+      return []
     }
     
     // Convert backend achievements to AchievementBadge format

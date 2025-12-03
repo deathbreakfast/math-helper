@@ -39,8 +39,8 @@ export {
 } from './api/test-setup-api'
 
 // UI Helpers - Dashboard
+// Note: navigateToDashboard is now exported from routing-helpers (router-based)
 export {
-  navigateToDashboard,
   waitForDashboardLoad,
   clickUserCard,
   clickStartPractice,
@@ -55,6 +55,8 @@ export {
   navigateToAchievementsTab,
   navigateToLevelsTab,
   navigateToTestsTab,
+  waitForTestCards,
+  handlePinVerification,
 } from './ui/journey-helpers'
 
 // UI Helpers - Learner Management
@@ -66,9 +68,9 @@ export {
 } from './ui/learner-management-helpers'
 
 // UI Helpers - Practice
+// Note: navigateToPractice is now exported from routing-helpers (router-based)
 export {
   getPracticeElements,
-  navigateToPractice,
   answerQuestion,
   moveToNextQuestion,
   isSubmitButtonReady,
@@ -86,6 +88,48 @@ export {
   getLevelRequirementStatus,
 } from './assertions/achievement-helpers'
 
+// Testing Framework Core
+export {
+  setupTestScenario,
+  waitForComponent,
+  cleanupScenario,
+  runTestWithScenario,
+  waitForComponents,
+  type TestScenario,
+  type TestScenarioContext,
+  type WaitForComponentOptions,
+} from './test-framework'
+
+// Router Navigation Helpers
+export {
+  navigateToRoute,
+  navigateToJourneyTab,
+  navigateToDashboard,
+  waitForRoute,
+  getCurrentRoute,
+  getCurrentQueryParams,
+  navigateToPractice,
+  navigateToSummary,
+} from './routing-helpers'
+
+// Loading & Animation Helpers
+export {
+  waitForFramerMotion,
+  waitForDataLoad,
+  waitForNetworkIdle,
+  waitForAPIResponse,
+  waitForFullLoad,
+} from './ui/loading-helpers'
+
+// Test Scenarios Builder
+export {
+  createTestScenario,
+  ScenarioBuilder,
+  scenario,
+  type ScenarioConfig,
+  type ScenarioContext,
+} from './test-scenarios'
+
 // Utility Functions
 import { Page } from '@playwright/test'
 
@@ -101,8 +145,10 @@ export async function waitForVisible(
 
 /**
  * Wait for API response
+ * Note: This is a legacy function. Use waitForAPIResponse from loading-helpers for better functionality.
+ * @deprecated Use waitForAPIResponse from './ui/loading-helpers' instead
  */
-export async function waitForAPIResponse(
+export async function waitForAPIResponseLegacy(
   page: any,
   urlPattern: string | RegExp,
   timeout: number = 10000

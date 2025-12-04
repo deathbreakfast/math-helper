@@ -141,7 +141,6 @@ def init_db(app):
                 
                 # Reset SQLite sequence counters so IDs start from 1 after wipe
                 try:
-                    from sqlalchemy import text
                     db.session.execute(text("DELETE FROM sqlite_sequence WHERE name IN ('practice_sessions', 'users', 'questions', 'responses', 'achievements', 'test_attempts', 'daily_stats', 'flagged_questions', 'server_records', 'level_problem_configs', 'level_progressions')"))
                     db.session.commit()
                     logger.info("SQLite sequence counters reset")

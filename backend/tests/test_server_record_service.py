@@ -15,7 +15,7 @@ from app.services.server_record_service import ServerRecordService
 @pytest.fixture
 def app():
     """Create test Flask application."""
-    app = create_app(testing=True)
+    app = create_app(test_config={'TESTING': True})
     with app.app_context():
         db.create_all()
         yield app
@@ -29,6 +29,8 @@ def test_user(app):
         user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
         db.session.add(user)
         db.session.commit()
+        # Access id to ensure it's loaded before returning (prevents DetachedInstanceError)
+        _ = user.id
         return user
 
 
@@ -51,6 +53,8 @@ def test_session(app, test_user):
         )
         db.session.add(session)
         db.session.commit()
+        # Access id to ensure it's loaded before returning (prevents DetachedInstanceError)
+        _ = session.id
         return session
 
 

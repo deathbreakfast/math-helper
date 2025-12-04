@@ -14,7 +14,7 @@ from app.models import User, Achievement, PracticeSession, Question, Response
 @pytest.fixture
 def app():
     """Create test Flask application with database setup."""
-    app = create_app(testing=True)
+    app = create_app(test_config={'TESTING': True})
     with app.app_context():
         db.create_all()
         yield app
@@ -29,6 +29,8 @@ def test_user(app):
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)
+        # Access id to ensure it's loaded before returning (prevents DetachedInstanceError)
+        _ = user.id
         return user
 
 
@@ -82,6 +84,8 @@ def test_question(app):
         db.session.add(question)
         db.session.commit()
         db.session.refresh(question)
+        # Access id to ensure it's loaded before returning (prevents DetachedInstanceError)
+        _ = question.id
         return question
 
 
@@ -123,6 +127,8 @@ def test_session(app, test_user, test_question):
         
         db.session.commit()
         db.session.refresh(session)
+        # Access id to ensure it's loaded before returning (prevents DetachedInstanceError)
+        _ = session.id
         return session
 
 
@@ -162,6 +168,8 @@ def test_test_session(app, test_user, test_question):
         
         db.session.commit()
         db.session.refresh(session)
+        # Access id to ensure it's loaded before returning (prevents DetachedInstanceError)
+        _ = session.id
         return session
 
 

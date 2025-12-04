@@ -26,3 +26,8 @@ instance/
 *.swp
 .idea/
 .vscode/
+
+# Playwright / E2E Tests
+frontend/playwright-report/
+frontend/test-results/
+backend/test_output.txt

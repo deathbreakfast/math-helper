@@ -36,7 +36,7 @@ def test_coverage_baseline():
     from app.models import db
     
     # Create app to ensure it's loaded
-    app = create_app(testing=True)
+    app = create_app(test_config={'TESTING': True})
     with app.app_context():
         # Just verify app loads - no assertions needed
         assert app is not None

@@ -204,7 +204,7 @@ def migrate_database(app=None):
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         target_level INTEGER NOT NULL,
                         required_achievement_code VARCHAR(64) NOT NULL,
-                        order INTEGER,
+                        "order" INTEGER,
                         created_at DATETIME NOT NULL,
                         UNIQUE(target_level, required_achievement_code)
                     )

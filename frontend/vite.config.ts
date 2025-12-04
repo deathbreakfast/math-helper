@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      '/api': 'http://192.168.1.41:5004',
+      '/api': process.env.VITE_BACKEND_URL || (process.env.CI ? 'http://localhost:5004' : 'http://192.168.1.41:5004'),
     },
   },
 })

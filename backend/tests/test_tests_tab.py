@@ -16,7 +16,7 @@ from app.config.tests.test_definitions import NEW_TEST_DEFINITIONS
 @pytest.fixture
 def app():
     """Create test Flask application."""
-    app = create_app(testing=True)
+    app = create_app(test_config={'TESTING': True})
     with app.app_context():
         db.create_all()
         yield app
@@ -24,20 +24,20 @@ def app():
 
 
 @pytest.fixture
-def test_user(app):
-    """Create a test user."""
+def test_user_id(app):
+    """Create a test user and return ID."""
     with app.app_context():
         user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
         db.session.add(user)
         db.session.commit()
-        return user
+        return user.id
 
 
 @pytest.fixture
-def test_questions(app):
-    """Create test questions."""
+def test_questions_ids(app):
+    """Create test questions and return IDs."""
     with app.app_context():
-        questions = []
+        question_ids = []
         for i in range(10):
             question = Question(
                 operation="addition",
@@ -49,14 +49,18 @@ def test_questions(app):
                 level_tag="Level 1"
             )
             db.session.add(question)
-            questions.append(question)
+            # Need to flush/commit to get ID
+            db.session.flush()
+            question_ids.append(question.id)
         db.session.commit()
-        return questions
+        return question_ids
 
 
-def test_tst_be_001_get_all_test_definitions(app, test_user):
+def test_tst_be_001_get_all_test_definitions(app, test_user_id):
     """TST-BE-001: Get all test definitions returns merged legacy+new catalog."""
     with app.app_context():
+        # Reload user
+        test_user = db.session.get(User, test_user_id)
         definitions = TestService.get_all_test_definitions(user_level=test_user.level)
         
         # Should return both legacy and new test definitions
@@ -78,12 +82,12 @@ def test_tst_be_001_get_all_test_definitions(app, test_user):
             assert "question_count" in test_def
 
 
-def test_tst_be_002_get_test_attempts(app, test_user, test_questions):
+def test_tst_be_002_get_test_attempts(app, test_user_id, test_questions_ids):
     """TST-BE-002: Get test attempts for user returns correct data."""
     with app.app_context():
         # Create a test attempt
         test_attempt = TestAttempt(
-            user_id=test_user.id,
+            user_id=test_user_id,
             level=1,
             test_type="level_1",
             score=0.85,
@@ -93,9 +97,10 @@ def test_tst_be_002_get_test_attempts(app, test_user, test_questions):
         )
         db.session.add(test_attempt)
         db.session.commit()
+        db.session.refresh(test_attempt)
         
         # Get attempts
-        attempts = TestService.get_test_attempts(test_user.id, test_type="level_1")
+        attempts = TestService.get_test_attempts(test_user_id, test_type="level_1")
         
         assert len(attempts) == 1
         attempt = attempts[0]
@@ -107,12 +112,12 @@ def test_tst_be_002_get_test_attempts(app, test_user, test_questions):
         assert "tier" in attempt
 
 
-def test_tst_be_003_get_test_attempt_detail(app, test_user, test_questions):
+def test_tst_be_003_get_test_attempt_detail(app, test_user_id, test_questions_ids):
     """TST-BE-003: Get test attempt detail includes all questions and responses."""
     with app.app_context():
         # Create a test session
         session = PracticeSession(
-            user_id=test_user.id,
+            user_id=test_user_id,
             mode="standard",
             level=1,
             is_test=True,
@@ -127,12 +132,15 @@ def test_tst_be_003_get_test_attempt_detail(app, test_user, test_questions):
         db.session.flush()
         
         # Create responses
-        for i, question in enumerate(test_questions[:10]):
+        for i, question_id in enumerate(test_questions_ids[:10]):
+            # Load question to get correct answer
+            question = db.session.get(Question, question_id)
             response = Response(
                 session_id=session.id,
-                user_id=test_user.id,
-                question_id=question.id,
+                user_id=test_user_id,
+                question_id=question_id,
                 submitted_answer=question.correct_answer if i < 8 else "999",
+                correct_answer=question.correct_answer,
                 is_correct=i < 8,
                 duration_ms=3000,
                 answered_at=datetime.utcnow(),
@@ -141,7 +149,7 @@ def test_tst_be_003_get_test_attempt_detail(app, test_user, test_questions):
         
         # Create test attempt
         test_attempt = TestAttempt(
-            user_id=test_user.id,
+            user_id=test_user_id,
             level=1,
             test_type="level_1",
             score=0.80,
@@ -151,6 +159,7 @@ def test_tst_be_003_get_test_attempt_detail(app, test_user, test_questions):
         )
         db.session.add(test_attempt)
         db.session.commit()
+        db.session.refresh(test_attempt)
         
         # Get attempt detail
         detail = TestService.get_test_attempt_detail(test_attempt.id)
@@ -187,7 +196,7 @@ def test_tst_be_004_tier_calculation(app):
         assert tier == "SSS"
 
 
-def test_tst_be_005_test_discovery_logic(app, test_user):
+def test_tst_be_005_test_discovery_logic(app, test_user_id):
     """TST-BE-005: Test discovery logic locks/unlocks based on level."""
     with app.app_context():
         # Get definitions for level 1 user
@@ -198,8 +207,10 @@ def test_tst_be_005_test_discovery_logic(app, test_user):
             assert test_def["level_requirement"] <= 1
         
         # Update user to level 5
+        test_user = db.session.get(User, test_user_id)
         test_user.level = 5
         db.session.commit()
+        db.session.refresh(test_user)
         
         # Get definitions for level 5 user
         definitions_level_5 = TestService.get_all_test_definitions(user_level=5)
@@ -212,12 +223,12 @@ def test_tst_be_005_test_discovery_logic(app, test_user):
             assert test_def["level_requirement"] <= 5
 
 
-def test_tst_be_006_test_attempts_api_endpoint(app, test_user, test_questions):
+def test_tst_be_006_test_attempts_api_endpoint(app, test_user_id, test_questions_ids):
     """TST-BE-006: Test attempts API endpoint returns correct format."""
     with app.app_context():
         # Create test attempt
         test_attempt = TestAttempt(
-            user_id=test_user.id,
+            user_id=test_user_id,
             level=1,
             test_type="addition-1digit",
             score=0.90,
@@ -227,9 +238,10 @@ def test_tst_be_006_test_attempts_api_endpoint(app, test_user, test_questions):
         )
         db.session.add(test_attempt)
         db.session.commit()
+        db.session.refresh(test_attempt)
         
         # Test the service method (API endpoint would call this)
-        attempts = TestService.get_test_attempts(test_user.id, test_type="addition-1digit")
+        attempts = TestService.get_test_attempts(test_user_id, test_type="addition-1digit")
         
         assert len(attempts) == 1
         attempt = attempts[0]
@@ -240,12 +252,12 @@ def test_tst_be_006_test_attempts_api_endpoint(app, test_user, test_questions):
         assert "passed" in attempt
 
 
-def test_tst_be_007_test_attempt_detail_api_endpoint(app, test_user, test_questions):
+def test_tst_be_007_test_attempt_detail_api_endpoint(app, test_user_id, test_questions_ids):
     """TST-BE-007: Test attempt detail API endpoint includes all data."""
     with app.app_context():
         # Create session and attempt (similar to TST-BE-003)
         session = PracticeSession(
-            user_id=test_user.id,
+            user_id=test_user_id,
             mode="standard",
             level=1,
             is_test=True,
@@ -259,12 +271,14 @@ def test_tst_be_007_test_attempt_detail_api_endpoint(app, test_user, test_questi
         db.session.add(session)
         db.session.flush()
         
-        for question in test_questions[:10]:
+        for question_id in test_questions_ids[:10]:
+            question = db.session.get(Question, question_id)
             response = Response(
                 session_id=session.id,
-                user_id=test_user.id,
-                question_id=question.id,
+                user_id=test_user_id,
+                question_id=question_id,
                 submitted_answer=question.correct_answer,
+                correct_answer=question.correct_answer,
                 is_correct=True,
                 duration_ms=3000,
                 answered_at=datetime.utcnow(),
@@ -272,7 +286,7 @@ def test_tst_be_007_test_attempt_detail_api_endpoint(app, test_user, test_questi
             db.session.add(response)
         
         test_attempt = TestAttempt(
-            user_id=test_user.id,
+            user_id=test_user_id,
             level=1,
             test_type="addition-1digit",
             score=1.0,
@@ -282,6 +296,7 @@ def test_tst_be_007_test_attempt_detail_api_endpoint(app, test_user, test_questi
         )
         db.session.add(test_attempt)
         db.session.commit()
+        db.session.refresh(test_attempt)
         
         # Get detail
         detail = TestService.get_test_attempt_detail(test_attempt.id)
@@ -295,9 +310,10 @@ def test_tst_be_007_test_attempt_detail_api_endpoint(app, test_user, test_questi
         assert all("is_correct" in q for q in detail["questions"])
 
 
-def test_tst_be_008_test_definitions_api_endpoint(app, test_user):
+def test_tst_be_008_test_definitions_api_endpoint(app, test_user_id):
     """TST-BE-008: Test definitions API endpoint returns all definitions."""
     with app.app_context():
+        test_user = db.session.get(User, test_user_id)
         definitions = TestService.get_all_test_definitions(user_level=test_user.level)
         
         # Should return definitions
@@ -312,35 +328,36 @@ def test_tst_be_008_test_definitions_api_endpoint(app, test_user):
             assert "display_name" in test_def or "test_type" in test_def
 
 
-def test_tst_be_009_test_tier_achievements_for_new_tests(app, test_user, test_questions):
+def test_tst_be_009_test_tier_achievements_for_new_tests(app, test_user_id, test_questions_ids):
     """TST-BE-009: Test tier achievements for new tests (B→SSS) still function."""
     with app.app_context():
         # This test verifies that tier calculation works for new test types
         # Create a test attempt with specific accuracy/speed for a new test type
         test_attempt = TestAttempt(
-            user_id=test_user.id,
+            user_id=test_user_id,
             level=1,
             test_type="addition-1digit",
             score=1.0,  # 100% accuracy
             avg_time_per_question_ms=2500,  # 2.5s per question
-            total_duration_ms=125000,  # 50 questions * 2.5s
+            total_duration_ms=250000,  # 100 questions * 2.5s = 250s = 250000ms
             passed=True,
         )
         db.session.add(test_attempt)
         db.session.commit()
+        db.session.refresh(test_attempt)
         
         # Calculate tier
         tier = TestService._calculate_tier(
             test_attempt.score,
             test_attempt.avg_time_per_question_ms,
-            50  # question_count
+            100  # question_count
         )
         
-        # Should be SSS tier (100% accuracy, 50 questions, <3s/question)
+        # Should be SSS tier (100% accuracy, 90+ questions, <3s/question)
         assert tier == "SSS"
 
 
-def test_tst_be_010_backward_compatibility_with_old_test_types(app, test_user):
+def test_tst_be_010_backward_compatibility_with_old_test_types(app, test_user_id):
     """TST-BE-010: Backward compatibility - old test types still work."""
     with app.app_context():
         # Verify old test types are still in TEST_TYPES
@@ -355,7 +372,7 @@ def test_tst_be_010_backward_compatibility_with_old_test_types(app, test_user):
         
         # Verify old test types can be used for test attempts
         test_attempt = TestAttempt(
-            user_id=test_user.id,
+            user_id=test_user_id,
             level=9,
             test_type="multiplication_1",  # Old test type
             score=0.90,
@@ -365,9 +382,9 @@ def test_tst_be_010_backward_compatibility_with_old_test_types(app, test_user):
         )
         db.session.add(test_attempt)
         db.session.commit()
+        db.session.refresh(test_attempt)
         
         # Should be able to retrieve the attempt
-        attempts = TestService.get_test_attempts(test_user.id, test_type="multiplication_1")
+        attempts = TestService.get_test_attempts(test_user_id, test_type="multiplication_1")
         assert len(attempts) == 1
         assert attempts[0]["test_type"] == "multiplication_1"
-

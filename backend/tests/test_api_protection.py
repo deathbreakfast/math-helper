@@ -36,6 +36,8 @@ def test_user(app_with_testing):
         user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
         db.session.add(user)
         db.session.commit()
+        # Access id to ensure it's loaded before returning (prevents DetachedInstanceError)
+        _ = user.id
         return user
 
 

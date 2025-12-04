@@ -131,7 +131,7 @@ from app.models import User
 @pytest.fixture
 def app():
     """Create test Flask application."""
-    app = create_app(testing=True)
+    app = create_app(test_config={'TESTING': True})
     with app.app_context():
         db.create_all()
         yield app

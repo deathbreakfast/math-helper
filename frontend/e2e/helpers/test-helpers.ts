@@ -22,6 +22,10 @@ export {
 export {
   startPracticeSessionViaAPI,
   answerQuestionViaAPI,
+  completeSessionViaAPI,
+  analyzeQuestionDistribution,
+  createMissedQuestions,
+  createSlowResponses,
 } from './api/practice-api'
 
 // API Helpers - Test Setup

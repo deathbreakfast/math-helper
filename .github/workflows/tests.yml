@@ -71,15 +71,18 @@ jobs:
       - name: Start backend server
         working-directory: backend
         env:
+          FLASK_RUN_PORT: 5004
           BACKEND_PORT: 5004
         run: |
           .venv/bin/python -m flask --app app run --port 5004 --host 0.0.0.0 &
           echo $! > /tmp/flask.pid
       
       - name: Wait for backend to be ready
+        env:
+          BACKEND_PORT: 5004
         run: |
           for i in {1..30}; do
-            if curl -f http://localhost:5004/healthz > /dev/null 2>&1; then
+            if curl -f http://localhost:${BACKEND_PORT}/healthz > /dev/null 2>&1; then
               echo "Backend is ready"
               exit 0
             fi
@@ -93,7 +96,9 @@ jobs:
         working-directory: frontend
         env:
           BACKEND_PORT: 5004
+          FRONTEND_PORT: 5003
           VITE_BACKEND_URL: http://localhost:5004
+          FRONTEND_URL: http://localhost:5003
         run: npx playwright test --workers=1
       
       - name: Stop backend server

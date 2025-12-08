@@ -17,19 +17,19 @@ LEVELS_CONFIG: dict[int, dict[str, Any]] = {
     },
     2: {
         "operation": "addition",
-        "operand1_range": {"min": 0, "max": 9},
-        "operand2_range": {"min": 0, "max": 9},
+        "operand1_range": {"min": 0, "max": 10},
+        "operand2_range": {"min": 0, "max": 0},
         "constraints": {
-            "exclude_zeros": False,
-            "answer_min": 2
+            "exclude_zeros": True,
+            "answer_min": 0
         },
         "layout_type": "vertical",
         "answer_format": "integer",
     },
     3: {
         "operation": "subtraction",
-        "operand1_range": {"min": 1, "max": 9},
-        "operand2_range": {"min": 1, "max": 9},
+        "operand1_range": {"min": 1, "max": 10},
+        "operand2_range": {"min": 1, "max": 10},
         "constraints": {
             "exclude_zeros": True,
             "answer_min": 1
@@ -39,8 +39,8 @@ LEVELS_CONFIG: dict[int, dict[str, Any]] = {
     },
     4: {
         "operation": "subtraction",
-        "operand1_range": {"min": 0, "max": 9},
-        "operand2_range": {"min": 0, "max": 9},
+        "operand1_range": {"min": 0, "max": 10},
+        "operand2_range": {"min": 0, "max": 0},
         "constraints": {
             "exclude_zeros": False,
             "answer_min": 0
@@ -50,7 +50,7 @@ LEVELS_CONFIG: dict[int, dict[str, Any]] = {
     },
     5: {
         "operation": "addition",
-        "operand1_range": {"min": 1, "max": 9},
+        "operand1_range": {"min": 0, "max": 9},
         "operand2_range": {"min": 10, "max": 99},
         "constraints": {},
         "layout_type": "vertical",
@@ -58,7 +58,7 @@ LEVELS_CONFIG: dict[int, dict[str, Any]] = {
     },
     6: {
         "operation": "subtraction",
-        "operand1_range": {"min": 1, "max": 9},
+        "operand1_range": {"min": 0, "max": 9},
         "operand2_range": {"min": 10, "max": 99},
         "constraints": {
             "answer_min": 0
@@ -85,21 +85,19 @@ LEVELS_CONFIG: dict[int, dict[str, Any]] = {
         "answer_format": "integer",
     },
     9: {
-        "operation": "multiplication",
-        "operand1_range": {"min": 1, "max": 12},
-        "operand2_range": {"min": 1, "max": 1},
-        "constraints": {
-            "fixed_operand2": 1
-        },
+        "operation": "subtraction",
+        "operand1_range": {"min": 0, "max": 1},
+        "operand2_range": {"min": 1, "max": 10},
+        "constraints": {},
         "layout_type": "vertical",
         "answer_format": "integer",
     },
     10: {
-        "operation": "multiplication",
-        "operand1_range": {"min": 1, "max": 12},
-        "operand2_range": {"min": 2, "max": 2},
+        "operation": "subtraction",
+        "operand1_range": {"min": -99, "max": 0},
+        "operand2_range": {"min": 0, "max": 99},
         "constraints": {
-            "fixed_operand2": 2
+            "answer_min": -100
         },
         "layout_type": "vertical",
         "answer_format": "integer",
@@ -107,9 +105,9 @@ LEVELS_CONFIG: dict[int, dict[str, Any]] = {
     11: {
         "operation": "multiplication",
         "operand1_range": {"min": 1, "max": 12},
-        "operand2_range": {"min": 3, "max": 3},
+        "operand2_range": {"min": 1, "max": 1},
         "constraints": {
-            "fixed_operand2": 3
+            "fixed_operand2": 1
         },
         "layout_type": "vertical",
         "answer_format": "integer",
@@ -383,27 +381,30 @@ LEVELS_CONFIG: dict[int, dict[str, Any]] = {
     },
     37: {
         "operation": "division",
-        "operand1_range": {"min": 12, "max": 144},
-        "operand2_range": {"min": 12, "max": 12},
+        "operand1_range": {"min": 0, "max": 0},
+        "operand2_range": {"min": 0, "max": 0},
         "constraints": {
-            "fixed_operand2": 12,
-            "no_remainder": True,
-            "multiple_of": 12
+            "fixed_operand2": 0,
+            "no_remainder": True
         },
         "layout_type": "longDivision",
         "answer_format": "integer",
     },
     38: {
         "operation": "division",
-        "operand1_range": {"min": 1, "max": 99},
-        "operand2_range": {"min": 2, "max": 9},
-        "constraints": {},
+        "operand1_range": {"min": 10, "max": 120},
+        "operand2_range": {"min": 10, "max": 10},
+        "constraints": {
+            "fixed_operand2": 10,
+            "no_remainder": True,
+            "multiple_of": 10
+        },
         "layout_type": "longDivision",
-        "answer_format": "remainder",
+        "answer_format": "integer",
     },
     39: {
         "operation": "division",
-        "operand1_range": {"min": 10, "max": 99},
+        "operand1_range": {"min": 1, "max": 99},
         "operand2_range": {"min": 2, "max": 9},
         "constraints": {},
         "layout_type": "longDivision",
@@ -411,13 +412,21 @@ LEVELS_CONFIG: dict[int, dict[str, Any]] = {
     },
     40: {
         "operation": "division",
+        "operand1_range": {"min": 10, "max": 99},
+        "operand2_range": {"min": 2, "max": 9},
+        "constraints": {},
+        "layout_type": "longDivision",
+        "answer_format": "remainder",
+    },
+    41: {
+        "operation": "division",
         "operand1_range": {"min": 1, "max": 99},
         "operand2_range": {"min": 2, "max": 9},
         "constraints": {},
         "layout_type": "longDivision",
         "answer_format": "fraction",
     },
-    41: {
+    42: {
         "operation": "division",
         "operand1_range": {"min": 10, "max": 99},
         "operand2_range": {"min": 2, "max": 9},
@@ -425,7 +434,7 @@ LEVELS_CONFIG: dict[int, dict[str, Any]] = {
         "layout_type": "longDivision",
         "answer_format": "fraction",
     },
-    42: {
+    43: {
         "operation": "multiplication",
         "operand1_range": {"min": 10, "max": 99},
         "operand2_range": {"min": 100, "max": 999},
@@ -434,7 +443,7 @@ LEVELS_CONFIG: dict[int, dict[str, Any]] = {
         "partial_products_mode": "normal",
         "answer_format": "integer",
     },
-    43: {
+    44: {
         "operation": "division",
         "operand1_range": {"min": 100, "max": 999},
         "operand2_range": {"min": 2, "max": 9},
@@ -442,7 +451,7 @@ LEVELS_CONFIG: dict[int, dict[str, Any]] = {
         "layout_type": "longDivision",
         "answer_format": "fraction",
     },
-    44: {
+    45: {
         "operation": "division",
         "operand1_range": {"min": 1, "max": 99},
         "operand2_range": {"min": 2, "max": 9},
@@ -450,7 +459,7 @@ LEVELS_CONFIG: dict[int, dict[str, Any]] = {
         "layout_type": "longDivision",
         "answer_format": "decimal",
     },
-    45: {
+    46: {
         "operation": "division",
         "operand1_range": {"min": 10, "max": 99},
         "operand2_range": {"min": 10, "max": 99},

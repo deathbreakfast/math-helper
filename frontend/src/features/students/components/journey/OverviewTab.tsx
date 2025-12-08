@@ -6,6 +6,7 @@ import { AchievementCard } from '../AchievementCard'
 import { PillButton } from '../../../../components/ui'
 import type { Achievement } from '../../data/achievements'
 import type { UserProgressData } from '../../utils/progressMapping'
+import { logError } from '../../../../utils/logger'
 
 type OverviewTabProps = {
   allAchievements: Achievement[]
@@ -18,10 +19,10 @@ export const OverviewTab = ({ allAchievements, onViewAllTests, userData, onRefre
   const [searchParams] = useSearchParams()
   const [isResetting, setIsResetting] = useState(false)
 
-  // Check if dev mode is enabled via URL parameter
+  // Check if dev mode is enabled via environment variable
   const isDevMode = useMemo(() => {
-    return searchParams.get('env') === 'dev'
-  }, [searchParams])
+    return import.meta.env.VITE_DEV_MODE === 'true'
+  }, [])
 
   // Get all recent achievements (not just test achievements)
   const recentAchievements = allAchievements
@@ -65,7 +66,7 @@ export const OverviewTab = ({ allAchievements, onViewAllTests, userData, onRefre
       // Show success message
       alert(`✅ User data reset successfully! ${userData.name} has been reset to level 1.`)
     } catch (error) {
-      console.error('Error resetting user:', error)
+      logError('Error resetting user:', error)
       alert(`❌ Failed to reset user data: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsResetting(false)

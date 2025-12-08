@@ -39,6 +39,8 @@ class QuestionService:
         elif operation == "multiplication":
             return a * b
         elif operation == "division":
+            if b == 0:
+                raise ValueError("Division by zero is not allowed")
             return a // b
         else:
             raise ValueError(f"Unknown operation: {operation}")
@@ -53,6 +55,10 @@ class QuestionService:
         """Format answer based on answer format type."""
         if operation != "division":
             return str(QuestionService.solve(operation, operand1, operand2))
+        
+        # Check for division by zero
+        if operand2 == 0:
+            return "undefined"
         
         quotient = operand1 // operand2
         remainder = operand1 % operand2
@@ -141,11 +147,15 @@ class QuestionService:
             
             if test_constraints.get("division_table"):
                 operand2 = test_constraints["division_table"]
-                # Generate operand1 as multiple of operand2
-                min_quotient = max(1, op1_range["min"] // operand2)
-                max_quotient = op1_range["max"] // operand2
-                quotient = random.randint(min_quotient, max_quotient)
-                operand1 = operand2 * quotient
+                if operand2 == 0:
+                    # Division by zero - use default generation
+                    operand1 = random.randint(op1_range["min"], op1_range["max"])
+                else:
+                    # Generate operand1 as multiple of operand2
+                    min_quotient = max(1, op1_range["min"] // operand2)
+                    max_quotient = op1_range["max"] // operand2
+                    quotient = random.randint(min_quotient, max_quotient)
+                    operand1 = operand2 * quotient
                 return operand1, operand2
         
         # Handle fixed operand2 from level config
@@ -153,21 +163,43 @@ class QuestionService:
             operand2 = constraints["fixed_operand2"]
             operand1 = random.randint(op1_range["min"], op1_range["max"])
             
+            # For division, operand2 cannot be 0
+            if operation == "division" and operand2 == 0:
+                # Division by zero - invalid configuration, use operand2_range instead
+                # If range is also invalid (0-0), fall through to regular generation
+                if op2_range["min"] > 0 or op2_range["max"] > 0:
+                    operand2 = random.randint(max(1, op2_range["min"]), max(1, op2_range["max"]))
+                else:
+                    # Invalid level config - cannot generate valid division question
+                    raise ValueError(f"Level {level} has invalid division configuration: fixed_operand2=0 and operand2_range=[0,0]")
+            
             # For division with fixed divisor and no remainder, ensure operand1 is multiple
             if operation == "division" and constraints.get("no_remainder"):
-                min_quotient = max(1, op1_range["min"] // operand2)
-                max_quotient = op1_range["max"] // operand2
-                quotient = random.randint(min_quotient, max_quotient)
-                operand1 = operand2 * quotient
+                if operand2 == 0:
+                    # This should not happen after the check above, but handle it anyway
+                    raise ValueError(f"Division by zero: operand2 cannot be 0 for division operation")
+                else:
+                    min_quotient = max(1, op1_range["min"] // operand2)
+                    max_quotient = op1_range["max"] // operand2
+                    quotient = random.randint(min_quotient, max_quotient)
+                    operand1 = operand2 * quotient
             
             # For multiple_of constraint
             if "multiple_of" in constraints:
                 multiple = constraints["multiple_of"]
-                # Generate operand1 as multiple
-                min_multiple = max(1, op1_range["min"] // multiple)
-                max_multiple = op1_range["max"] // multiple
-                multiplier = random.randint(min_multiple, max_multiple)
-                operand1 = multiple * multiplier
+                if multiple == 0:
+                    # Can't generate multiple of 0 - use default
+                    operand1 = random.randint(op1_range["min"], op1_range["max"])
+                else:
+                    # Generate operand1 as multiple
+                    min_multiple = max(1, op1_range["min"] // multiple)
+                    max_multiple = op1_range["max"] // multiple
+                    if min_multiple <= max_multiple:
+                        multiplier = random.randint(min_multiple, max_multiple)
+                        operand1 = multiple * multiplier
+                    else:
+                        # Range invalid, use default
+                        operand1 = random.randint(op1_range["min"], op1_range["max"])
             
             return operand1, operand2
         
@@ -176,8 +208,16 @@ class QuestionService:
             operand1 = random.randint(op1_range["min"], op1_range["max"])
             operand2 = random.randint(op2_range["min"], op2_range["max"])
             
+            # For division, operand2 cannot be 0
+            if operation == "division" and operand2 == 0:
+                # Skip this attempt and try again
+                continue
+            
             # For division, ensure it divides evenly if no_remainder
             if operation == "division" and constraints.get("no_remainder"):
+                if operand2 == 0:
+                    # Skip this attempt
+                    continue
                 operand1 = operand2 * random.randint(
                     max(1, op1_range["min"] // operand2),
                     op1_range["max"] // operand2
@@ -197,6 +237,15 @@ class QuestionService:
         # Fallback: return valid operands even if constraints aren't perfect
         operand1 = random.randint(op1_range["min"], op1_range["max"])
         operand2 = random.randint(op2_range["min"], op2_range["max"])
+        
+        # For division, ensure operand2 is not 0
+        if operation == "division" and operand2 == 0:
+            # Use minimum of 1 if range allows, otherwise raise error
+            if op2_range["max"] > 0:
+                operand2 = max(1, op2_range["min"])
+            else:
+                raise ValueError(f"Level {level} has invalid division configuration: operand2_range=[0,0]")
+        
         return operand1, operand2
 
     @staticmethod

@@ -15,6 +15,7 @@ import PINVerificationModal from './modals/PINVerificationModal'
 import { useLearners } from './hooks/useLearners'
 import { PillButton } from '../../components/ui'
 import type { LearnerAchievement } from '../../lib/learners/types'
+import { logError } from '../../utils/logger'
 
 const LearnersDashboard = () => {
   const router = useRouter()
@@ -95,7 +96,7 @@ const LearnersDashboard = () => {
           setRecentAchievements(achievements)
         })
         .catch(error => {
-          console.error('Error fetching recent achievements:', error)
+          logError('Error fetching recent achievements:', error)
           setRecentAchievements([])
         })
         .finally(() => {
@@ -116,10 +117,10 @@ const LearnersDashboard = () => {
     }
   }
 
-  // Check if dev mode is enabled via URL parameter
+  // Check if dev mode is enabled via environment variable
   const isDevMode = useMemo(() => {
-    return searchParams.get('env') === 'dev'
-  }, [searchParams])
+    return import.meta.env.VITE_DEV_MODE === 'true'
+  }, [])
 
   const handleOpenModal = () => {
     setCreationError(null)
@@ -187,7 +188,7 @@ const LearnersDashboard = () => {
       // Show success message
       alert(`✅ User data reset successfully! ${selectedUser.name} has been reset to level 1.`)
     } catch (error) {
-      console.error('Error resetting user:', error)
+      logError('Error resetting user:', error)
       alert(`❌ Failed to reset user data: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsResetting(false)
@@ -227,7 +228,7 @@ const LearnersDashboard = () => {
       // Show success message
       alert(`✅ User ${selectedUser.name} has been permanently deleted.`)
     } catch (error) {
-      console.error('Error deleting user:', error)
+      logError('Error deleting user:', error)
       alert(`❌ Failed to delete user: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setIsDeleting(false)

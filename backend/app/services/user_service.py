@@ -117,20 +117,24 @@ class UserService:
             # No requirements defined, allow level up
             return True, []
 
-        # Get user's achievement codes
-        user_achievement_codes = {a.code for a in user.achievements}
-
         # Check which requirements are missing
         missing = []
         for req in requirements:
             achievement_code = req.get("achievement_code", "")
             quantity = req.get("quantity", 1)
+            metadata_filter = req.get("metadata_filter")
             
-            # Count exact matches (all codes are now tiered, no base codes)
-            count = sum(1 for code in user_achievement_codes if code == achievement_code)
+            # Count achievements with metadata filter support
+            from .achievement_service import AchievementService
+            count = AchievementService.count_achievements_by_code_with_filters(
+                user_id=user.id,
+                achievement_code=achievement_code,
+                metadata_filter=metadata_filter,
+            )
             
             if count < quantity:
-                missing.append(f"{achievement_code} (need {quantity}, have {count})")
+                filter_str = f" with metadata {metadata_filter}" if metadata_filter else ""
+                missing.append(f"{achievement_code}{filter_str} (need {quantity}, have {count})")
 
         return len(missing) == 0, missing
 

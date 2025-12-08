@@ -214,48 +214,6 @@ def test_generic_achievement_002_count_achievements_by_code_zero(app, test_user_
 # 'check_test_tier_achievements' is the modern replacement and is tested in other files.
 
 
-def test_generic_achievement_006_check_generic_test_bronze(app, test_user_id, test_test_session_id):
-    """GEN-ACH-006: check_generic_test_achievements() awards Bronze tier for completing test."""
-    with app.app_context():
-        test_test_session = db.session.get(PracticeSession, test_test_session_id)
-        achievements = AchievementService.check_generic_test_achievements(
-            test_test_session
-        )
-        
-        # Should award at least Bronze tier
-        assert len(achievements) > 0
-        assert all(a.session_id == test_test_session.id for a in achievements)
-
-
-def test_generic_achievement_007_check_generic_test_divine(app, test_user_id, test_test_session_id):
-    """GEN-ACH-007: check_generic_test_achievements() awards Divine tier for 100% accuracy, 100+ questions, <1.5s/question."""
-    with app.app_context():
-        test_test_session = db.session.get(PracticeSession, test_test_session_id)
-        achievements = AchievementService.check_generic_test_achievements(
-            test_test_session
-        )
-        
-        # Should award highest tier achieved
-        assert len(achievements) > 0
-        awarded_codes = [a.code for a in achievements]
-        # May award Divine or Champion depending on server record
-        assert any("divine" in code or "champion" in code for code in awarded_codes)
-        assert all(a.session_id == test_test_session.id for a in achievements)
-
-
-def test_generic_achievement_008_check_generic_test_awards_highest_tier(app, test_user_id, test_test_session_id):
-    """GEN-ACH-008: check_generic_test_achievements() awards only highest tier achieved."""
-    with app.app_context():
-        test_test_session = db.session.get(PracticeSession, test_test_session_id)
-        achievements = AchievementService.check_generic_test_achievements(
-            test_test_session
-        )
-        
-        # Should award only one achievement (the highest tier)
-        assert len(achievements) == 1
-        assert achievements[0].session_id == test_test_session.id
-
-
 def test_generic_achievement_009_champion_eligibility_check(app, test_user_id, test_practice_session_id):
     """GEN-ACH-009: checkChampionEligibility() checks Champion tier qualification."""
     with app.app_context():
@@ -286,22 +244,6 @@ def test_generic_achievement_010_champion_eligibility_returns_false_for_non_cham
 # Test 011 removed (generic accuracy session tracking) - obsolete.
 
 
-def test_generic_achievement_012_test_achievements_session_id_tracking(app, test_user_id, test_test_session_id):
-    """GEN-ACH-012: Generic test achievements record session_id."""
-    with app.app_context():
-        test_test_session = db.session.get(PracticeSession, test_test_session_id)
-        achievements = AchievementService.check_generic_test_achievements(
-            test_test_session
-        )
-        
-        # All achievements should have session_id set
-        for achievement in achievements:
-            assert achievement.session_id == test_test_session.id
-            # Verify persisted
-            db.session.refresh(achievement)
-            assert achievement.session_id == test_test_session.id
-
-
 # Tests 013-014 removed (level accuracy helpers) - obsolete.
 
 
@@ -321,42 +263,7 @@ def test_generic_achievement_015_level_accuracy_supports_max_speed(app, test_use
 # Test 016 removed (accuracy not awarded twice) - obsolete.
 
 
-def test_generic_achievement_017_test_achievements_not_awarded_twice(app, test_user_id, test_test_session_id):
-    """GEN-ACH-017: Generic test achievements are not awarded twice for same tier."""
-    with app.app_context():
-        test_test_session = db.session.get(PracticeSession, test_test_session_id)
-        # Award achievement first time
-        achievements1 = AchievementService.check_generic_test_achievements(
-            test_test_session
-        )
-        
-        assert len(achievements1) > 0
-        awarded_code = achievements1[0].code
-        db.session.commit()
-        
-        # Try to award again
-        achievements2 = AchievementService.check_generic_test_achievements(
-            test_test_session
-        )
-        
-        # Should not award the same achievement again
-        if len(achievements2) > 0:
-            assert awarded_code not in [a.code for a in achievements2]
-
-
 # Test 018 removed (accuracy only for practice) - obsolete.
-
-
-def test_generic_achievement_019_test_only_for_test_sessions(app, test_user_id, test_practice_session_id):
-    """GEN-ACH-019: check_generic_test_achievements() only checks test sessions."""
-    with app.app_context():
-        test_practice_session = db.session.get(PracticeSession, test_practice_session_id)
-        # Practice session should return empty list (because it's not a test session? Or is_test=False?)
-        # check_generic_test_achievements likely checks session.is_test
-        achievements = AchievementService.check_generic_test_achievements(
-            test_practice_session
-        )
-        assert len(achievements) == 0
 
 
 # Test 020 removed (incomplete session) - obsolete/covered by others.
@@ -367,47 +274,65 @@ def test_generic_achievement_021_accuracy_achievements_in_config(app):
     with app.app_context():
         from app.config.achievements import ACHIEVEMENTS_CONFIG
         
-        # Check that generic accuracy achievements exist (updated keys)
-        assert "addition-1digit-bronze" in ACHIEVEMENTS_CONFIG
-        assert "addition-1digit-silver" in ACHIEVEMENTS_CONFIG
-        assert "addition-1digit-diamond" in ACHIEVEMENTS_CONFIG
-        assert "addition-1digit-champion" in ACHIEVEMENTS_CONFIG
+        # Test achievements have been removed - check that existing achievements are in config
+        assert "level-master-bronze" in ACHIEVEMENTS_CONFIG
+        assert "level-master-silver" in ACHIEVEMENTS_CONFIG
+        assert "level-master-gold" in ACHIEVEMENTS_CONFIG
+        # Check for lightning-fast achievements (they have level-specific codes like lightning-fast-bronze-level-1)
+        lightning_fast_keys = [k for k in ACHIEVEMENTS_CONFIG.keys() if k.startswith("lightning-fast-")]
+        assert len(lightning_fast_keys) > 0, "Should have lightning-fast achievements"
+        assert "speed-demon-bronze" in ACHIEVEMENTS_CONFIG
 
 
 def test_generic_achievement_022_test_achievements_in_config(app):
-    """GEN-ACH-022: Generic test achievements are included in ACHIEVEMENTS_CONFIG."""
+    """GEN-ACH-022: Generic achievements are included in ACHIEVEMENTS_CONFIG."""
     with app.app_context():
         from app.config.achievements import ACHIEVEMENTS_CONFIG
         
-        # Check that generic test achievements exist for new test types
-        assert "addition-1digit-bronze" in ACHIEVEMENTS_CONFIG
-        assert "addition-1digit-champion" in ACHIEVEMENTS_CONFIG
+        # Check that generic achievements exist (test-specific achievements removed)
+        # Check for level-master achievements (used with metadata for level-specific requirements)
+        assert "level-master-bronze" in ACHIEVEMENTS_CONFIG
+        assert "level-master-champion" in ACHIEVEMENTS_CONFIG
         
         # Check that tiers are included
-        assert "addition-1digit-divine" in ACHIEVEMENTS_CONFIG
+        assert "level-master-divine" in ACHIEVEMENTS_CONFIG
+        
+        # Check for new achievements
+        assert "accuracy-ace-bronze" in ACHIEVEMENTS_CONFIG
+        assert "so-wow-bronze" in ACHIEVEMENTS_CONFIG
+        assert "human-calculator" in ACHIEVEMENTS_CONFIG
+        assert "master-of-times-tables-bronze" in ACHIEVEMENTS_CONFIG
+        assert "master-of-division-tables-bronze" in ACHIEVEMENTS_CONFIG
 
 
 def test_generic_achievement_023_all_tiers_present_in_accuracy(app):
-    """GEN-ACH-023: All tiers (Bronze through Champion) are present for accuracy achievements."""
+    """GEN-ACH-023: All tiers (Bronze through Champion) are present for accuracy achievements.
+    
+    Note: Test-specific achievements (e.g., addition-1digit-bronze) have been removed.
+    System now uses generic achievements (accuracy-ace-{tier}) with metadata filters.
+    """
     with app.app_context():
         from app.config.achievements import ACHIEVEMENTS_CONFIG
         from app.utils.tier_utils import ALL_TIERS
         
-        test_type = "addition-1digit"
+        # Check for generic accuracy-ace achievements instead of test-specific ones
         for tier in ALL_TIERS:
-            code = f"{test_type}-{tier}"
-            if tier in ["bronze", "silver", "diamond", "champion"]:
-                 assert code in ACHIEVEMENTS_CONFIG, f"Missing achievement: {code}"
+            code = f"accuracy-ace-{tier}"
+            assert code in ACHIEVEMENTS_CONFIG, f"Missing achievement: {code}"
 
 
 def test_generic_achievement_024_all_tiers_present_in_tests(app):
-    """GEN-ACH-024: All tiers (Bronze through Champion) are present for test achievements."""
+    """GEN-ACH-024: All tiers (Bronze through Champion) are present for test achievements.
+    
+    Note: Test-specific achievements (e.g., addition-1digit-bronze) have been removed.
+    System now uses generic achievements (accuracy-ace-{tier}) with metadata filters for test requirements.
+    """
     with app.app_context():
         from app.config.achievements import ACHIEVEMENTS_CONFIG
         from app.utils.tier_utils import ALL_TIERS
         
-        test_type = "addition-1digit"
+        # Check for generic accuracy-ace achievements instead of test-specific ones
+        # All tiers should be present
         for tier in ALL_TIERS:
-            code = f"{test_type}-{tier}"
-            if tier == "bronze":
-                assert code in ACHIEVEMENTS_CONFIG, f"Missing achievement: {code}"
+            code = f"accuracy-ace-{tier}"
+            assert code in ACHIEVEMENTS_CONFIG, f"Missing achievement: {code}"

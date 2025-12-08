@@ -87,20 +87,38 @@ def migrate_database(app=None):
             )
             server_records_exists = cursor.fetchone() is not None
 
-            # Check if questions table has new columns
-            cursor.execute("PRAGMA table_info(questions)")
-            question_columns = {row[1] for row in cursor.fetchall()}
-            needs_question_update = "operand1" not in question_columns
+            # Check if questions table exists and has new columns
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='questions'"
+            )
+            questions_exists = cursor.fetchone() is not None
+            needs_question_update = False
+            if questions_exists:
+                cursor.execute("PRAGMA table_info(questions)")
+                question_columns = {row[1] for row in cursor.fetchall()}
+                needs_question_update = "operand1" not in question_columns
 
-            # Check if responses table has new columns
-            cursor.execute("PRAGMA table_info(responses)")
-            response_columns = {row[1] for row in cursor.fetchall()}
-            needs_response_update = "session_id" not in response_columns
+            # Check if responses table exists and has new columns
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='responses'"
+            )
+            responses_exists = cursor.fetchone() is not None
+            needs_response_update = False
+            if responses_exists:
+                cursor.execute("PRAGMA table_info(responses)")
+                response_columns = {row[1] for row in cursor.fetchall()}
+                needs_response_update = "session_id" not in response_columns
 
-            # Check if users table has updated_at
-            cursor.execute("PRAGMA table_info(users)")
-            user_columns = {row[1] for row in cursor.fetchall()}
-            needs_user_update = "updated_at" not in user_columns
+            # Check if users table exists and has updated_at
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='users'"
+            )
+            users_exists = cursor.fetchone() is not None
+            needs_user_update = False
+            if users_exists:
+                cursor.execute("PRAGMA table_info(users)")
+                user_columns = {row[1] for row in cursor.fetchall()}
+                needs_user_update = "updated_at" not in user_columns
 
             print("Starting database migration...")
 
@@ -301,51 +319,58 @@ def migrate_database(app=None):
                         math_type_label VARCHAR(128),
                         created_at DATETIME NOT NULL
                     )
-                """
+                    """
                 )
 
                 # Copy existing data (try to extract operands from prompt if possible)
-                cursor.execute("SELECT id, prompt, operation, level_tag, difficulty, created_at FROM questions")
-                old_questions = cursor.fetchall()
+                if questions_exists:
+                    cursor.execute("SELECT id, prompt, operation, level_tag, difficulty, created_at FROM questions")
+                    old_questions = cursor.fetchall()
 
-                for qid, prompt, operation, level_tag, difficulty, created_at in old_questions:
-                    # Try to parse operands from prompt (e.g., "5 + 3" -> operand1=5, operand2=3)
-                    operand1 = 0
-                    operand2 = 0
-                    correct_answer = "0"
+                    for qid, prompt, operation, level_tag, difficulty, created_at in old_questions:
+                        # Try to parse operands from prompt (e.g., "5 + 3" -> operand1=5, operand2=3)
+                        operand1 = 0
+                        operand2 = 0
+                        correct_answer = "0"
 
-                    # Simple parsing attempt
+                        # Simple parsing attempt
+                        try:
+                            if operation:
+                                parts = prompt.split()
+                                if len(parts) >= 3:
+                                    operand1 = int(parts[0])
+                                    operand2 = int(parts[2])
+                                    # Calculate correct answer
+                                    if operation == "addition":
+                                        correct_answer = str(operand1 + operand2)
+                                    elif operation == "subtraction":
+                                        correct_answer = str(operand1 - operand2)
+                                    elif operation == "multiplication":
+                                        correct_answer = str(operand1 * operand2)
+                                    elif operation == "division":
+                                        if operand2 != 0:
+                                            correct_answer = str(operand1 // operand2)
+                        except (ValueError, IndexError):
+                            pass
+
+                        cursor.execute(
+                            """
+                            INSERT INTO questions_new 
+                            (id, operation, operand1, operand2, correct_answer, prompt, difficulty, 
+                             required_level, level_tag, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """,
+                            (qid, operation or "addition", operand1, operand2, correct_answer, prompt, difficulty, 1, level_tag, created_at),
+                        )
+
+                # Drop old table if it exists and rename new one
+                if questions_exists:
+                    # Temporarily disable foreign key checks to allow dropping table
+                    cursor.execute("PRAGMA foreign_keys=OFF")
                     try:
-                        if operation:
-                            parts = prompt.split()
-                            if len(parts) >= 3:
-                                operand1 = int(parts[0])
-                                operand2 = int(parts[2])
-                                # Calculate correct answer
-                                if operation == "addition":
-                                    correct_answer = str(operand1 + operand2)
-                                elif operation == "subtraction":
-                                    correct_answer = str(operand1 - operand2)
-                                elif operation == "multiplication":
-                                    correct_answer = str(operand1 * operand2)
-                                elif operation == "division":
-                                    if operand2 != 0:
-                                        correct_answer = str(operand1 // operand2)
-                    except (ValueError, IndexError):
-                        pass
-
-                    cursor.execute(
-                        """
-                        INSERT INTO questions_new 
-                        (id, operation, operand1, operand2, correct_answer, prompt, difficulty, 
-                         required_level, level_tag, created_at)
-                        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-                    """,
-                        (qid, operation or "addition", operand1, operand2, correct_answer, prompt, difficulty, 1, level_tag, created_at),
-                    )
-
-                # Drop old table and rename new one
-                cursor.execute("DROP TABLE questions")
+                        cursor.execute("DROP TABLE questions")
+                    finally:
+                        cursor.execute("PRAGMA foreign_keys=ON")
                 cursor.execute("ALTER TABLE questions_new RENAME TO questions")
 
                 # Create indexes
@@ -387,22 +412,29 @@ def migrate_database(app=None):
                 """
                 )
 
-                # Copy data
-                cursor.execute(
+                # Copy data if responses table exists
+                if responses_exists:
+                    cursor.execute(
+                        """
+                        INSERT INTO responses_new 
+                        (id, question_id, user_id, submitted_answer, correct_answer, is_correct, 
+                         duration_ms, answered_at, is_flagged)
+                        SELECT id, question_id, user_id, submitted_answer, 
+                               COALESCE(correct_answer, ''), 
+                               COALESCE(is_correct, 0),
+                               duration_ms, answered_at, 0
+                        FROM responses
                     """
-                    INSERT INTO responses_new 
-                    (id, question_id, user_id, submitted_answer, correct_answer, is_correct, 
-                     duration_ms, answered_at, is_flagged)
-                    SELECT id, question_id, user_id, submitted_answer, 
-                           COALESCE(correct_answer, ''), 
-                           COALESCE(is_correct, 0),
-                           duration_ms, answered_at, 0
-                    FROM responses
-                """
-                )
+                    )
 
-                # Drop old and rename
-                cursor.execute("DROP TABLE responses")
+                # Drop old table if it exists and rename new one
+                if responses_exists:
+                    # Temporarily disable foreign key checks to allow dropping table
+                    cursor.execute("PRAGMA foreign_keys=OFF")
+                    try:
+                        cursor.execute("DROP TABLE responses")
+                    finally:
+                        cursor.execute("PRAGMA foreign_keys=ON")
                 cursor.execute("ALTER TABLE responses_new RENAME TO responses")
 
                 # Create indexes
@@ -413,16 +445,21 @@ def migrate_database(app=None):
                 cursor.execute("CREATE INDEX ix_responses_is_flagged ON responses(is_flagged)")
 
             # Update achievements table indexes if needed
-            cursor.execute("PRAGMA table_info(achievements)")
-            achievement_columns = {row[1] for row in cursor.fetchall()}
-            if "category" in achievement_columns:
-                # Check if index exists
-                cursor.execute(
-                    "SELECT name FROM sqlite_master WHERE type='index' AND name='ix_achievements_category'"
-                )
-                if cursor.fetchone() is None:
-                    print("Adding index on achievements.category...")
-                    cursor.execute("CREATE INDEX ix_achievements_category ON achievements(category)")
+            cursor.execute(
+                "SELECT name FROM sqlite_master WHERE type='table' AND name='achievements'"
+            )
+            achievements_exists = cursor.fetchone() is not None
+            if achievements_exists:
+                cursor.execute("PRAGMA table_info(achievements)")
+                achievement_columns = {row[1] for row in cursor.fetchall()}
+                if "category" in achievement_columns:
+                    # Check if index exists
+                    cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type='index' AND name='ix_achievements_category'"
+                    )
+                    if cursor.fetchone() is None:
+                        print("Adding index on achievements.category...")
+                        cursor.execute("CREATE INDEX ix_achievements_category ON achievements(category)")
 
             # Add composite indexes for performance optimization
             print("Adding composite indexes for performance optimization...")

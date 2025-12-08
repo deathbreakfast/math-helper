@@ -40,7 +40,7 @@ class PracticeSession(db.Model):
     mode = db.Column(db.String(32), nullable=False)  # standard/multiplication/division
     level = db.Column(db.Integer, nullable=True)
     is_test = db.Column(db.Boolean, default=False, nullable=False)
-    test_type = db.Column(db.String(64), nullable=True)  # e.g., "multiplication_1", "division_2digit"
+    test_type = db.Column(db.String(64), nullable=True)  # e.g., "multiplication-by-1", "division-2digit"
     started_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     completed_at = db.Column(db.DateTime, nullable=True)
     total_questions = db.Column(db.Integer, default=0, nullable=False)
@@ -110,6 +110,7 @@ class Achievement(db.Model):
     category = db.Column(db.String(64), nullable=False, index=True)
     earned_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     session_id = db.Column(db.Integer, db.ForeignKey("practice_sessions.id", ondelete="SET NULL"), nullable=True, index=True)
+    achievement_metadata = db.Column(db.Text, nullable=True)  # JSON string for level/operation filters
 
     __table_args__ = (db.UniqueConstraint("user_id", "code", name="uq_user_achievement_code"),)
 
@@ -188,7 +189,7 @@ class TestAttempt(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     level = db.Column(db.Integer, nullable=False, index=True)
-    test_type = db.Column(db.String(64), nullable=False, index=True)  # e.g., "level_1", "multiplication_1"
+    test_type = db.Column(db.String(64), nullable=False, index=True)  # e.g., "addition-1digit", "multiplication-by-1"
     score = db.Column(db.Float, nullable=False)  # Accuracy percentage (0.0 to 1.0)
     avg_time_per_question_ms = db.Column(db.Integer, nullable=True)  # Average time per question in milliseconds
     total_duration_ms = db.Column(db.Integer, nullable=True)  # Total test duration in milliseconds

@@ -57,7 +57,7 @@ test.describe('Test Flow', () => {
       await waitForComponent(page, 'testid-test-achievements-grid')
       
       // Actually start a test via API and verify it succeeds
-      const testSession = await startTestSession(request, context.user.id, 'level_1')
+      const testSession = await startTestSession(request, context.user.id, 'addition-1digit')
       expect(testSession).toBeDefined()
       expect(testSession.session_id).toBeDefined()
       expect(testSession.questions).toBeDefined()
@@ -76,7 +76,7 @@ test.describe('Test Flow', () => {
     
     try {
       // Start test session via API
-      const testSession = await startTestSession(request, context.user.id, 'level_1')
+      const testSession = await startTestSession(request, context.user.id, 'addition-1digit')
       expect(testSession.session_id).toBeDefined()
       expect(testSession.questions).toBeDefined()
       expect(testSession.questions.length).toBeGreaterThan(0)
@@ -123,7 +123,7 @@ test.describe('Test Flow', () => {
     try {
       // Create a passed test attempt (for retake eligibility)
       const { createPassedTestAttempt } = await import('./helpers/test-helpers')
-      await createPassedTestAttempt(request, context.user.id, 1, 'level_1')
+      await createPassedTestAttempt(request, context.user.id, 1, 'addition-1digit')
       
       // Verify retake eligibility is shown via API
       const eligibility = await getTestEligibility(request, context.user.id, 1)
@@ -150,7 +150,7 @@ test.describe('Test Flow', () => {
     try {
       // Create a passed test attempt (for tier filtering)
       const { createPassedTestAttempt } = await import('./helpers/test-helpers')
-      await createPassedTestAttempt(request, context.user.id, 1, 'level_1')
+      await createPassedTestAttempt(request, context.user.id, 1, 'addition-1digit')
       
       // Navigate directly to tests tab
       await navigateToJourneyTab(page, context.user.id, 'tests')

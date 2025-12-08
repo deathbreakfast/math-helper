@@ -237,9 +237,213 @@ def _generate_perfect_streak_achievements() -> dict[str, dict[str, Any]]:
     return achievements
 
 
+def _generate_level_grandmaster_achievements() -> dict[str, dict[str, Any]]:
+    """Generate Level Grandmaster milestone achievement definitions.
+    
+    Requires having Level Master (Bronze) achievement for all levels.
+    Previously named "Master Of All", renamed to "Level Grandmaster".
+    """
+    achievements = {}
+    
+    code = "level-grandmaster"
+    title = "Level Grandmaster"
+    description = "Level Master (Bronze) on all levels"
+    
+    requirements = {
+        "type": "level_grandmaster",
+        "required_achievement": "level-master-bronze",
+    }
+    
+    achievements[code] = {
+        "title": title,
+        "description": description,
+        "icon": "👑",
+        "category": "milestone",
+        "tier": "bronze",
+        "requirements": requirements,
+    }
+    
+    return achievements
+
+
+def _generate_so_wow_achievements() -> dict[str, dict[str, Any]]:
+    """Generate So, Wow! achievement definitions.
+    
+    Awarded for being awarded a new tier. E.g. You get "So, Wow! (Bronze)" when you acquire
+    your first bronze tier achievement. You get "So, Wow! (Gold)" when you get your first gold
+    achievement. If you only have bronze achievements and you skip to gold, you would get two
+    "So, Wow!" achievements, both gold and silver.
+    """
+    achievements = {}
+    
+    for tier in ALL_TIERS:
+        code = f"so-wow-{tier}"
+        tier_title = tier.capitalize()
+        title = f"So, Wow! ({tier_title})"
+        description = f"Acquire your first {tier_title} tier achievement"
+        
+        requirements = {
+            "type": "so_wow",
+            "tier": tier,
+        }
+        
+        achievements[code] = {
+            "title": title,
+            "description": description,
+            "icon": "✨",
+            "category": "milestone",
+            "tier": tier,
+            "requirements": requirements,
+        }
+    
+    return achievements
+
+
+def _generate_human_calculator_achievements() -> dict[str, dict[str, Any]]:
+    """Generate Human Calculator achievement definitions.
+    
+    Like Level Grandmaster, but for Lightning Fast. Requires Lightning Fast (Bronze) at all levels.
+    """
+    achievements = {}
+    
+    code = "human-calculator"
+    title = "Human Calculator"
+    description = "Lightning Fast (Bronze) on all levels"
+    
+    requirements = {
+        "type": "human_calculator",
+        "required_achievement": "lightning-fast-bronze",
+    }
+    
+    achievements[code] = {
+        "title": title,
+        "description": description,
+        "icon": "🧮",
+        "category": "milestone",
+        "tier": "bronze",
+        "requirements": requirements,
+    }
+    
+    return achievements
+
+
+def _generate_master_of_times_tables_achievements() -> dict[str, dict[str, Any]]:
+    """Generate Master of Times Tables achievement definitions.
+    
+    Milestone achievement, bronze awarded if all "Multiplication by n" tests have
+    Level Master Bronze and Lightning Fast. Higher tier can be substituted.
+    """
+    achievements = {}
+    
+    tier_requirements = {
+        "bronze": {"required_tier": "bronze"},
+        "silver": {"required_tier": "silver"},
+        "gold": {"required_tier": "gold"},
+        "platinum": {"required_tier": "platinum"},
+        "diamond": {"required_tier": "diamond"},
+        "master": {"required_tier": "master"},
+        "grandmaster": {"required_tier": "grandmaster"},
+        "legendary": {"required_tier": "legendary"},
+        "mythic": {"required_tier": "mythic"},
+        "divine": {"required_tier": "divine"},
+        "champion": {"required_tier": "divine"},  # Same as divine, requires server record
+    }
+    
+    for tier in ALL_TIERS:
+        code = f"master-of-times-tables-{tier}"
+        req = tier_requirements.get(tier, {})
+        required_tier = req.get("required_tier", "bronze")
+        
+        tier_title = tier.capitalize()
+        title = f"Master of Times Tables ({tier_title})"
+        
+        if tier == "champion":
+            description = f"Level Master ({required_tier.capitalize()}) and Lightning Fast ({required_tier.capitalize()}) on all multiplication tables (server record)"
+        else:
+            description = f"Level Master ({required_tier.capitalize()}) and Lightning Fast ({required_tier.capitalize()}) on all multiplication tables"
+        
+        requirements = {
+            "type": "master_of_times_tables",
+            "required_tier": required_tier,
+        }
+        
+        if tier == "champion":
+            requirements["requires_champion_check"] = True
+        
+        achievements[code] = {
+            "title": title,
+            "description": description,
+            "icon": "✖️",
+            "category": "milestone",
+            "tier": tier,
+            "requirements": requirements,
+        }
+    
+    return achievements
+
+
+def _generate_master_of_division_tables_achievements() -> dict[str, dict[str, Any]]:
+    """Generate Master of Division Tables achievement definitions.
+    
+    Same as Master of Times Tables, but for division tables.
+    """
+    achievements = {}
+    
+    tier_requirements = {
+        "bronze": {"required_tier": "bronze"},
+        "silver": {"required_tier": "silver"},
+        "gold": {"required_tier": "gold"},
+        "platinum": {"required_tier": "platinum"},
+        "diamond": {"required_tier": "diamond"},
+        "master": {"required_tier": "master"},
+        "grandmaster": {"required_tier": "grandmaster"},
+        "legendary": {"required_tier": "legendary"},
+        "mythic": {"required_tier": "mythic"},
+        "divine": {"required_tier": "divine"},
+        "champion": {"required_tier": "divine"},  # Same as divine, requires server record
+    }
+    
+    for tier in ALL_TIERS:
+        code = f"master-of-division-tables-{tier}"
+        req = tier_requirements.get(tier, {})
+        required_tier = req.get("required_tier", "bronze")
+        
+        tier_title = tier.capitalize()
+        title = f"Master of Division Tables ({tier_title})"
+        
+        if tier == "champion":
+            description = f"Level Master ({required_tier.capitalize()}) and Lightning Fast ({required_tier.capitalize()}) on all division tables (server record)"
+        else:
+            description = f"Level Master ({required_tier.capitalize()}) and Lightning Fast ({required_tier.capitalize()}) on all division tables"
+        
+        requirements = {
+            "type": "master_of_division_tables",
+            "required_tier": required_tier,
+        }
+        
+        if tier == "champion":
+            requirements["requires_champion_check"] = True
+        
+        achievements[code] = {
+            "title": title,
+            "description": description,
+            "icon": "➗",
+            "category": "milestone",
+            "tier": tier,
+            "requirements": requirements,
+        }
+    
+    return achievements
+
+
 # Generate all milestone achievements
 MILESTONE_ACHIEVEMENTS.update(_generate_week_warrior_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_question_master_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_speed_demon_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_perfect_streak_achievements())
+MILESTONE_ACHIEVEMENTS.update(_generate_level_grandmaster_achievements())
+MILESTONE_ACHIEVEMENTS.update(_generate_so_wow_achievements())
+MILESTONE_ACHIEVEMENTS.update(_generate_human_calculator_achievements())
+MILESTONE_ACHIEVEMENTS.update(_generate_master_of_times_tables_achievements())
+MILESTONE_ACHIEVEMENTS.update(_generate_master_of_division_tables_achievements())
 

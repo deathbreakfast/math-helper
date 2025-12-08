@@ -80,6 +80,33 @@ export async function completeSessionViaAPI(
 }
 
 /**
+ * Get incomplete session for a user
+ * Returns session data if found, null otherwise
+ */
+export async function getIncompleteSession(
+  request: APIRequestContext,
+  userId: number,
+  mode?: string
+): Promise<{ session: any; response_count: number; questions: any[] } | null> {
+  const params: any = { user_id: userId }
+  if (mode) {
+    params.mode = mode
+  }
+
+  const response = await request.get('/api/practice/sessions/incomplete', {
+    params,
+  })
+
+  if (!response.ok()) {
+    const error = await response.json()
+    throw new Error(`Failed to get incomplete session: ${JSON.stringify(error)}`)
+  }
+
+  const data = await response.json()
+  return data.session ? data : null
+}
+
+/**
  * Analyze question distribution across multiple questions
  * Returns level counts and percentages
  */

@@ -142,6 +142,20 @@ export async function waitForTestCards(page: Page, minCount: number = 1): Promis
 }
 
 /**
+ * Safely click on a test card by clicking on the test name (h3) instead of the entire card.
+ * This avoids accidentally clicking on achievement links or other interactive elements within the card.
+ * @param page Playwright page object
+ * @param testCardLocator Locator for the test card (e.g., page.locator('[data-testid^="testid-test-card-"]').first())
+ */
+export async function clickTestCardSafely(page: Page, testCardLocator: ReturnType<Page['locator']>): Promise<void> {
+  // Click on the test name (h3) which is a safe click target that will trigger the card's onClick handler
+  // This avoids clicking on achievement links or other interactive elements
+  const testName = testCardLocator.locator('h3').first()
+  await expect(testName).toBeVisible({ timeout: 5000 })
+  await testName.click()
+}
+
+/**
  * Handle PIN verification modal that appears when starting tests
  * Enters the provided PIN and clicks Start button
  * @param page Playwright page object

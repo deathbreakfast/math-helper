@@ -35,8 +35,22 @@ export async function createTestUser(
   })
 
   if (!response.ok()) {
-    const error = await response.json()
-    throw new Error(`Failed to create test user: ${JSON.stringify(error)}`)
+    // Try to parse as JSON, but handle HTML error pages
+    let errorMessage = `Failed to create test user: ${response.status()} ${response.statusText()}`
+    try {
+      const contentType = response.headers()['content-type'] || ''
+      if (contentType.includes('application/json')) {
+        const error = await response.json()
+        errorMessage = `Failed to create test user: ${JSON.stringify(error)}`
+      } else {
+        const text = await response.text()
+        errorMessage = `Failed to create test user: ${response.status()} ${response.statusText()}. Response: ${text.substring(0, 200)}`
+      }
+    } catch (e) {
+      const text = await response.text().catch(() => 'Unable to read response')
+      errorMessage = `Failed to create test user: ${response.status()} ${response.statusText()}. Response: ${text.substring(0, 200)}`
+    }
+    throw new Error(errorMessage)
   }
 
   const user = await response.json()
@@ -63,8 +77,22 @@ export async function deleteTestUser(
     if (response.status() === 404) {
       return
     }
-    const error = await response.json()
-    throw new Error(`Failed to delete test user: ${JSON.stringify(error)}`)
+    // Try to parse as JSON, but handle HTML error pages
+    let errorMessage = `Failed to delete test user: ${response.status()} ${response.statusText()}`
+    try {
+      const contentType = response.headers()['content-type'] || ''
+      if (contentType.includes('application/json')) {
+        const error = await response.json()
+        errorMessage = `Failed to delete test user: ${JSON.stringify(error)}`
+      } else {
+        const text = await response.text()
+        errorMessage = `Failed to delete test user: ${response.status()} ${response.statusText()}. Response: ${text.substring(0, 200)}`
+      }
+    } catch (e) {
+      const text = await response.text().catch(() => 'Unable to read response')
+      errorMessage = `Failed to delete test user: ${response.status()} ${response.statusText()}. Response: ${text.substring(0, 200)}`
+    }
+    throw new Error(errorMessage)
   }
 }
 
@@ -82,8 +110,22 @@ export async function getUser(
   }
 
   if (!response.ok()) {
-    const error = await response.json()
-    throw new Error(`Failed to get user: ${JSON.stringify(error)}`)
+    // Try to parse as JSON, but handle HTML error pages
+    let errorMessage = `Failed to get user: ${response.status()} ${response.statusText()}`
+    try {
+      const contentType = response.headers()['content-type'] || ''
+      if (contentType.includes('application/json')) {
+        const error = await response.json()
+        errorMessage = `Failed to get user: ${JSON.stringify(error)}`
+      } else {
+        const text = await response.text()
+        errorMessage = `Failed to get user: ${response.status()} ${response.statusText()}. Response: ${text.substring(0, 200)}`
+      }
+    } catch (e) {
+      const text = await response.text().catch(() => 'Unable to read response')
+      errorMessage = `Failed to get user: ${response.status()} ${response.statusText()}. Response: ${text.substring(0, 200)}`
+    }
+    throw new Error(errorMessage)
   }
 
   const user = await response.json()
@@ -103,8 +145,24 @@ export async function listUsers(request: APIRequestContext): Promise<TestUser[]>
   const response = await request.get('/api/users')
 
   if (!response.ok()) {
-    const error = await response.json()
-    throw new Error(`Failed to list users: ${JSON.stringify(error)}`)
+    // Try to parse as JSON, but handle HTML error pages
+    let errorMessage = `Failed to list users: ${response.status()} ${response.statusText()}`
+    try {
+      const contentType = response.headers()['content-type'] || ''
+      if (contentType.includes('application/json')) {
+        const error = await response.json()
+        errorMessage = `Failed to list users: ${JSON.stringify(error)}`
+      } else {
+        // Response is HTML or other non-JSON format
+        const text = await response.text()
+        errorMessage = `Failed to list users: ${response.status()} ${response.statusText()}. Response: ${text.substring(0, 200)}`
+      }
+    } catch (e) {
+      // If parsing fails, use the status and text
+      const text = await response.text().catch(() => 'Unable to read response')
+      errorMessage = `Failed to list users: ${response.status()} ${response.statusText()}. Response: ${text.substring(0, 200)}`
+    }
+    throw new Error(errorMessage)
   }
 
   const data = await response.json()

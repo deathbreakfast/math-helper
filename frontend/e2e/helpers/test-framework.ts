@@ -71,8 +71,7 @@ export async function setupTestScenario(
     })
   }
 
-  // TODO: Handle sessions setup when needed
-  // For now, sessions would need to be created via createCompletedPracticeSessions
+  // Sessions can be created via createCompletedPracticeSessions when needed
 
   // Return context with cleanup function
   return {

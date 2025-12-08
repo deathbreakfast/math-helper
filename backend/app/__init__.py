@@ -1,4 +1,5 @@
 import os
+import logging
 from flask import Flask
 from flask_cors import CORS
 
@@ -21,10 +22,26 @@ def create_app(test_config: dict | None = None) -> Flask:
             "pool_timeout": 30,
             "pool_pre_ping": True,
         },
-        # Default TESTING to true until v1.0
-        # Can be overridden with TESTING=false environment variable
-        TESTING=os.getenv('TESTING', 'true').lower() == 'true',
+        # Default TESTING to false for production readiness
+        # Can be overridden with TESTING=true environment variable
+        TESTING=os.getenv('TESTING', 'false').lower() == 'true',
     )
+
+    # Configure logging
+    log_level = os.getenv('LOG_LEVEL', 'INFO').upper()
+    try:
+        level = getattr(logging, log_level)
+    except AttributeError:
+        level = logging.INFO
+    
+    logging.basicConfig(
+        level=level,
+        format='%(asctime)s [%(levelname)s] %(name)s: %(message)s',
+        datefmt='%Y-%m-%d %H:%M:%S'
+    )
+    
+    # Set Flask's logger level
+    app.logger.setLevel(level)
 
     if test_config:
         app.config.update(test_config)

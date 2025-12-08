@@ -25,15 +25,19 @@ export async function setUserLevelDirectly(
 /**
  * Award achievements directly via test setup endpoint (DEV ONLY)
  * Bypasses requirement checks for test setup purposes
+ * 
+ * Supports both string array and object array formats:
+ * - String format: ["first-steps", "first-victory"]
+ * - Object format: [{"code": "accuracy-ace-platinum", "metadata": {"test_type": "addition-1digit"}}]
  */
 export async function awardAchievements(
   request: APIRequestContext,
   userId: number,
-  achievementCodes: string[]
+  achievements: string[] | Array<{ code: string; metadata?: Record<string, any> }>
 ): Promise<void> {
   const response = await request.post(`/api/users/${userId}/test-setup`, {
     data: {
-      achievements: achievementCodes
+      achievements: achievements
     }
   })
   
@@ -45,13 +49,17 @@ export async function awardAchievements(
 
 /**
  * Set up user with level and achievements in one call (DEV ONLY)
+ * 
+ * Achievements can be:
+ * - String array: ["first-steps", "first-victory"]
+ * - Object array: [{"code": "accuracy-ace-platinum", "metadata": {"test_type": "addition-1digit"}}]
  */
 export async function setupTestUserState(
   request: APIRequestContext,
   userId: number,
   options: {
     level?: number
-    achievements?: string[]
+    achievements?: string[] | Array<{ code: string; metadata?: Record<string, any> }>
   }
 ): Promise<void> {
   const response = await request.post(`/api/users/${userId}/test-setup`, {
@@ -70,6 +78,10 @@ export async function setupTestUserState(
 /**
  * Create a test user and set up their state (level, achievements) in one call
  * Returns the created user with the requested state
+ * 
+ * Achievements can be:
+ * - String array: ["first-steps", "first-victory"]
+ * - Object array: [{"code": "accuracy-ace-platinum", "metadata": {"test_type": "addition-1digit"}}]
  */
 export async function createTestUserWithState(
   request: APIRequestContext,
@@ -78,7 +90,7 @@ export async function createTestUserWithState(
     avatar?: string
     pin?: string
     level?: number
-    achievements?: string[]
+    achievements?: string[] | Array<{ code: string; metadata?: Record<string, any> }>
   }
 ): Promise<import('../types/test-types').TestUser> {
   const { createTestUser } = await import('./user-api')
@@ -116,10 +128,6 @@ export async function setupUserForLevelUp(
 ): Promise<void> {
   // Get level requirements from config (may need API endpoint for this)
   // For now, manually specify known requirements
-  // TODO: Add API endpoint to get level requirements, or import from config
-  
-  // Example: Level 2 requires "addition-basics"
-  // Level 3 requires "level-2-mastery"
   // This is a placeholder - actual implementation depends on how we access level requirements
   
   // For now, use direct achievement codes based on known requirements

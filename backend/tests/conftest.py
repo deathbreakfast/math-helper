@@ -25,7 +25,10 @@ def app():
 def test_user(app):
     """Create a basic test user."""
     with app.app_context():
-        user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
+        # Use a unique display name to avoid UNIQUE constraint violations
+        import uuid
+        unique_name = f"TestUser_{uuid.uuid4().hex[:8]}"
+        user = User(display_name=unique_name, pin="1234", avatar="🐯", level=1)
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)

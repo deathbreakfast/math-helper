@@ -74,6 +74,12 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, i
       {/* Title and Description */}
       <h3 className={`mb-2 text-lg font-bold ${isLocked ? 'text-gray-500' : 'text-gray-900'}`}>{achievement.title}</h3>
       <p className={`mb-3 text-sm ${isLocked ? 'text-gray-400' : 'text-gray-600'}`}>{achievement.description}</p>
+      {achievement.metadata && (
+        <div className={`mb-2 text-xs font-medium ${isLocked ? 'text-gray-400' : 'text-blue-600'}`}>
+          {achievement.metadata.level && `Level ${achievement.metadata.level}`}
+          {achievement.metadata.operation && ` • ${achievement.metadata.operation}`}
+        </div>
+      )}
 
       {/* Requirement */}
       <div className={`text-xs font-medium ${isLocked ? 'text-gray-400' : 'text-gray-500'}`}>

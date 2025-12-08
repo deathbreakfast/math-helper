@@ -67,9 +67,17 @@ test.describe('Leveling', () => {
 
   test('LVL-003: Level up after requirements met', async ({ page, request }) => {
     // Create user at level 1 with all requirements for level 2
+    // Level 2 requires (per level_progression_config.py):
+    // 1. first-steps
+    // 2. first-victory
+    // 3. accuracy-ace-platinum with metadata {"test_type": "addition-1digit"}
     const testUser = await createTestUserWithState(request, {
       level: 1,
-      achievements: ['addition-1digit-bronze'] // Required for level 2 (per level_progression_config.py)
+      achievements: [
+        'first-steps' as any,
+        'first-victory' as any,
+        { code: 'accuracy-ace-platinum', metadata: { test_type: 'addition-1digit' } }
+      ]
     })
     
     try {
@@ -173,22 +181,62 @@ test.describe('Leveling', () => {
       // For each missing achievement, verify it appears in at least one requirement's text
       for (const missingAchievement of eligibility.missing_achievements) {
         // Extract just the achievement code (strip quantity info like "(need 1, have 0)")
-        // API returns: "addition-1digit-bronze (need 1, have 0)"
-        // UI shows: "Complete achievement: addition 1digit bronze"
-        const achievementCode = missingAchievement.split(' (')[0] // Gets "addition-1digit-bronze" from "addition-1digit-bronze (need 1, have 0)"
+        // API returns: "accuracy-ace-platinum with metadata {'test_type': 'addition-1digit'} (need 1, have 0)"
+        // UI shows: "Complete achievement: accuracy ace platinum (1 Digit Addition)"
+        const achievementCode = missingAchievement.split(' (')[0] // Gets base code or code with metadata
+        
+        // Check if achievement code includes metadata
+        // Format: "accuracy-ace-platinum with metadata {'test_type': 'addition-1digit'}"
+        let baseCode = achievementCode
+        let metadata: Record<string, any> | null = null
+        
+        if (achievementCode.includes(' with metadata ')) {
+          const parts = achievementCode.split(' with metadata ')
+          baseCode = parts[0]
+          // Parse metadata from string like "{'test_type': 'addition-1digit'}"
+          try {
+            const metadataStr = parts[1].replace(/'/g, '"') // Convert single quotes to double quotes
+            metadata = JSON.parse(metadataStr)
+          } catch {
+            // If parsing fails, try to extract test_type manually
+            const testTypeMatch = achievementCode.match(/test_type['"]:\s*['"]([^'"]+)['"]/)
+            if (testTypeMatch) {
+              metadata = { test_type: testTypeMatch[1] }
+            }
+          }
+        }
         
         // The UI displays achievement codes with hyphens replaced by spaces
-        // e.g., "addition-1digit-bronze" becomes "addition 1digit bronze"
-        // The description format is: "Complete achievement: addition 1digit bronze"
-        const normalizedCode = achievementCode.replace(/-/g, ' ')
+        // e.g., "accuracy-ace-platinum" becomes "accuracy ace platinum"
+        // If metadata has test_type, UI shows: "Complete achievement: accuracy ace platinum (1 Digit Addition)"
+        const normalizedCode = baseCode.replace(/-/g, ' ')
+        
+        // Get test display name if metadata has test_type
+        let testDisplayName: string | null = null
+        if (metadata?.test_type) {
+          // Map test_type to display name
+          const testTypeMap: Record<string, string> = {
+            'addition-1digit': '1 Digit Addition',
+            'addition-1digit-zeros': '1 Digit Addition w/ Zeros',
+            'addition-2digit': '2 Digit Addition',
+            'subtraction-1digit': '1 Digit Subtraction',
+            'subtraction-1digit-zeros': '1 Digit Subtraction w/ Zeros',
+            'subtraction-2digit': '2 Digit Subtraction',
+            // Add more mappings as needed
+          }
+          testDisplayName = testTypeMap[metadata.test_type] || metadata.test_type.replace(/-/g, ' ')
+        }
         
         // Debug logging
         console.log(`[LVL-005] Looking for missing achievement: "${missingAchievement}"`)
         console.log(`[LVL-005] Extracted achievement code: "${achievementCode}"`)
+        console.log(`[LVL-005] Base code: "${baseCode}"`)
         console.log(`[LVL-005] Normalized code: "${normalizedCode}"`)
+        console.log(`[LVL-005] Metadata:`, metadata)
+        console.log(`[LVL-005] Test display name:`, testDisplayName)
         
         // Check if any requirement item contains this achievement code (in either format)
-        // The UI may show it as "Complete achievement: {code}" or just the code
+        // The UI may show it as "Complete achievement: {code}" or "Complete achievement: {code} ({test_name})"
         let found = false
         for (let i = 0; i < requirementCount; i++) {
           const requirementItem = requirementItems.nth(i)
@@ -213,7 +261,7 @@ test.describe('Leveling', () => {
             // Normalize text: trim whitespace and replace multiple spaces/newlines with single space
             const normalizedText = text.replace(/\s+/g, ' ').trim()
             const lowerText = normalizedText.toLowerCase()
-            const lowerCode = achievementCode.toLowerCase()
+            const lowerCode = baseCode.toLowerCase()
             const lowerNormalized = normalizedCode.toLowerCase()
             
             // Debug logging for each requirement item
@@ -227,6 +275,22 @@ test.describe('Leveling', () => {
               `complete achievement: ${lowerNormalized}`,
               `complete: ${lowerNormalized}`
             ]
+            
+            // If metadata has test_type, also check for pattern with test display name
+            if (testDisplayName) {
+              patterns.push(
+                `complete achievement: ${lowerNormalized} (${testDisplayName.toLowerCase()})`,
+                `complete: ${lowerNormalized} (${testDisplayName.toLowerCase()})`
+              )
+            }
+            
+            // If metadata has level, also check for pattern with level
+            if (metadata?.level) {
+              patterns.push(
+                `complete achievement: ${lowerNormalized} (level ${metadata.level})`,
+                `complete: ${lowerNormalized} (level ${metadata.level})`
+              )
+            }
             
             console.log(`[LVL-005] Checking patterns:`, patterns)
             

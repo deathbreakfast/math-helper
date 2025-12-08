@@ -120,16 +120,61 @@ const convertBackendDefinitionToFrontend = (
     category,
     count: achievementCount,
     lastEarnedAt: earnedAchievement?.earnedAt ? new Date(earnedAchievement.earnedAt) : undefined,
+    // Metadata is not available in userAchievements array - it comes from backend requirements
+    metadata: undefined,
     testType,
     performanceTier,
   }
 }
 
 /**
+ * Get test display name from test_type
+ */
+const getTestDisplayName = (testType: string): string => {
+  // Map common test types to display names
+  const testTypeMap: Record<string, string> = {
+    'addition-1digit': '1 Digit Addition',
+    'addition-1digit-zeros': '1 Digit Addition w/ Zeros',
+    'addition-2digit': '2 Digit Addition',
+    'addition-3digit': '3 Digit Addition',
+    'subtraction-1digit': '1 Digit Subtraction',
+    'subtraction-1digit-zeros': '1 Digit Subtraction w/ Zeros',
+    'subtraction-2digit': '2 Digit Subtraction',
+    'subtraction-3digit': '3 Digit Subtraction',
+    'multiplication-by-1': 'Multiplication by 1',
+    'multiplication-by-2': 'Multiplication by 2',
+    'multiplication-by-3': 'Multiplication by 3',
+    'multiplication-by-4': 'Multiplication by 4',
+    'multiplication-by-5': 'Multiplication by 5',
+    'multiplication-by-6': 'Multiplication by 6',
+    'multiplication-by-7': 'Multiplication by 7',
+    'multiplication-by-8': 'Multiplication by 8',
+    'multiplication-by-9': 'Multiplication by 9',
+    'multiplication-by-10': 'Multiplication by 10',
+    'multiplication-by-11': 'Multiplication by 11',
+    'multiplication-by-12': 'Multiplication by 12',
+    'division-by-1': 'Division by 1',
+    'division-by-2': 'Division by 2',
+    'division-by-3': 'Division by 3',
+    'division-by-4': 'Division by 4',
+    'division-by-5': 'Division by 5',
+    'division-by-6': 'Division by 6',
+    'division-by-7': 'Division by 7',
+    'division-by-8': 'Division by 8',
+    'division-by-9': 'Division by 9',
+    'division-by-10': 'Division by 10',
+    'division-by-11': 'Division by 11',
+    'division-by-12': 'Division by 12',
+  }
+  
+  return testTypeMap[testType] || testType.replace(/-/g, ' ')
+}
+
+/**
  * Convert backend level requirements to frontend level requirements format
  */
 const convertBackendRequirementsToFrontend = (
-  backendRequirements: Array<{ achievement_code: string; order: number; quantity?: number }>,
+  backendRequirements: Array<{ achievement_code: string; order: number; quantity?: number; metadata_filter?: Record<string, any> }>,
   userAchievements: Array<{ code?: string; title?: string }>,
   level: number,
   nextLevel: number
@@ -154,9 +199,30 @@ const convertBackendRequirementsToFrontend = (
     
     // Try to get a friendly description from the user's achievements or use the code
     const userAchievement = userAchievements.find((a) => a.code === req.achievement_code)
-    const baseDescription = userAchievement?.title 
+    let baseDescription = userAchievement?.title 
       ? `Complete: ${userAchievement.title}`
       : `Complete achievement: ${req.achievement_code.replace(/-/g, ' ')}`
+    
+    // Add metadata to description if present (test_type or level)
+    if (req.metadata_filter) {
+      const metadataParts: string[] = []
+      
+      // Add test_type if present
+      if (req.metadata_filter.test_type) {
+        const testDisplayName = getTestDisplayName(req.metadata_filter.test_type)
+        metadataParts.push(testDisplayName)
+      }
+      
+      // Add level if present
+      if (req.metadata_filter.level) {
+        metadataParts.push(`Level ${req.metadata_filter.level}`)
+      }
+      
+      // Append metadata to description in parentheses
+      if (metadataParts.length > 0) {
+        baseDescription = `${baseDescription} (${metadataParts.join(', ')})`
+      }
+    }
     
     // Include quantity in description if > 1
     const description = quantity > 1 
@@ -293,6 +359,8 @@ export const mapUserToProgressData = (
         // Count how many times this achievement code appears
         count: userBackendAchievements.filter((a) => a.code === code).length,
         lastEarnedAt: backendAchievement.earnedAt ? new Date(backendAchievement.earnedAt) : undefined,
+        // Metadata is not available in LearnerAchievement type - it comes from backend requirements
+        metadata: undefined,
         testType,
         performanceTier,
       }

@@ -72,11 +72,13 @@ export interface BackendTestDefinition {
   is_legacy?: boolean
   unlock_requirements?: {
     type: string
-    achievement_code: string
+    achievement_code?: string
+    achievement_codes?: string[]
     quantity: number
     level?: number
     min_accuracy?: number
     operation?: string
+    metadata_filters?: Record<string, Record<string, any>>  // Maps achievement code to metadata filter
   }
   unlock_status?: {
     is_unlocked: boolean
@@ -84,11 +86,13 @@ export interface BackendTestDefinition {
     requirements_total: number
     unlock_requirements?: {
       type: string
-      achievement_code: string
+      achievement_code?: string
+      achievement_codes?: string[]
       quantity: number
       level?: number
       min_accuracy?: number
       operation?: string
+      metadata_filters?: Record<string, Record<string, any>>
     }
     reason?: string
   }
@@ -132,11 +136,13 @@ export interface FrontendTest extends TestDefinition {
   }
   attemptCount: number
   unlockRequirements?: {
-    achievementCode: string
+    achievementCode?: string  // Single code (backward compatible)
+    achievementCodes?: string[]  // Multiple codes (new format)
     quantity: number
     level?: number
     minAccuracy?: number
     operation?: string
+    metadataFilters?: Record<string, Record<string, any>>  // Maps achievement code to metadata filter (e.g., {"level-master-bronze": {"level": 1}})
   }
   unlockProgress?: {
     met: number
@@ -192,19 +198,23 @@ export function mapTestDefinitionToFrontend(
     if (backendTest.unlock_requirements) {
       unlockRequirements = {
         achievementCode: backendTest.unlock_requirements.achievement_code,
+        achievementCodes: backendTest.unlock_requirements.achievement_codes,
         quantity: backendTest.unlock_requirements.quantity,
         level: backendTest.unlock_requirements.level,
         minAccuracy: backendTest.unlock_requirements.min_accuracy,
         operation: backendTest.unlock_requirements.operation,
+        metadataFilters: backendTest.unlock_requirements.metadata_filters,
       }
-    } else if (backendTest.unlock_status.unlock_requirements) {
+    } else if (backendTest.unlock_status?.unlock_requirements) {
       // Fallback to unlock_status.unlock_requirements
       unlockRequirements = {
         achievementCode: backendTest.unlock_status.unlock_requirements.achievement_code,
+        achievementCodes: backendTest.unlock_status.unlock_requirements.achievement_codes,
         quantity: backendTest.unlock_status.unlock_requirements.quantity,
         level: backendTest.unlock_status.unlock_requirements.level,
         minAccuracy: backendTest.unlock_status.unlock_requirements.min_accuracy,
         operation: backendTest.unlock_status.unlock_requirements.operation,
+        metadataFilters: backendTest.unlock_status.unlock_requirements.metadata_filters,
       }
     }
   } else {

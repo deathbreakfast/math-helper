@@ -3,11 +3,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { ChevronDown, ChevronUp, Clock, Target, CheckCircle, XCircle } from 'lucide-react'
 import type { FrontendTestAttempt, FrontendTestAttemptDetail } from '../../utils/testMapping'
 import { QuestionResponseCard } from './QuestionResponseCard'
+import { logError } from '../../../../utils/logger'
 
 type AttemptCardProps = {
   attempt: FrontendTestAttempt | FrontendTestAttemptDetail
   index: number
-  onExpand?: (attemptId: number) => Promise<void>
+  onExpand?: (attemptId: number) => Promise<FrontendTestAttemptDetail | null>
 }
 
 const getTierColor = (tier: 'B' | 'A' | 'S' | 'SS' | 'SSS'): string => {
@@ -71,7 +72,7 @@ export const AttemptCard: React.FC<AttemptCardProps> = ({ attempt, index, onExpa
         setIsExpanded(true)
       }
     } catch (error) {
-      console.error('Error loading attempt details:', error)
+      logError('Error loading attempt details:', error)
     } finally {
       setIsLoading(false)
     }

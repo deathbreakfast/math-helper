@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import { Lock, ChevronRight, Check } from 'lucide-react'
+import { Lock, ChevronRight, Check, Info } from 'lucide-react'
 import type { LevelRequirement } from '../data/levelRequirements'
 
 type LevelRequirementCardProps = {
@@ -21,7 +21,7 @@ export const LevelRequirementCard: React.FC<LevelRequirementCardProps> = ({ requ
   
   const handleAchievementClick = (achievementCode: string) => {
     if (effectiveUserId) {
-      navigate(`/journey/${effectiveUserId}/achievements?text=${encodeURIComponent(achievementCode)}`)
+      navigate(`/journey/${effectiveUserId}/achievements?achievement=${encodeURIComponent(achievementCode)}`)
     }
   }
 
@@ -110,8 +110,14 @@ export const LevelRequirementCard: React.FC<LevelRequirementCardProps> = ({ requ
                 )}
                 {req.progress !== undefined && req.maxProgress !== undefined && (
                   <div className="mt-2">
-                    <div className="mb-1 flex justify-between text-xs text-gray-600">
-                      <span>Progress</span>
+                    <div className="mb-1 flex justify-between items-center text-xs text-gray-600">
+                      <span className="flex items-center gap-1">
+                        Progress
+                        <Info 
+                          className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" 
+                          title="Higher tier achievements can substitute for lower tier requirements (e.g., 4 bronze = 2 silver = 1 gold)"
+                        />
+                      </span>
                       <span>
                         {req.progress}/{req.maxProgress}
                       </span>

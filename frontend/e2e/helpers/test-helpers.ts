@@ -23,6 +23,7 @@ export {
   startPracticeSessionViaAPI,
   answerQuestionViaAPI,
   completeSessionViaAPI,
+  getIncompleteSession,
   analyzeQuestionDistribution,
   createMissedQuestions,
   createSlowResponses,
@@ -60,6 +61,7 @@ export {
   navigateToLevelsTab,
   navigateToTestsTab,
   waitForTestCards,
+  clickTestCardSafely,
   handlePinVerification,
 } from './ui/journey-helpers'
 
@@ -83,6 +85,8 @@ export {
   getProgressPercent,
   getQuestionText,
   waitForSummaryPage,
+  waitForSessionRestoration,
+  handleSessionRestorationAndAnswerToSubmit,
 } from './ui/practice-helpers'
 
 // Assertion Helpers

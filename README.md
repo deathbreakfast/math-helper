@@ -37,20 +37,43 @@ cd backend
 python -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+
+# Set port via environment variable or use --port flag
+export FLASK_RUN_PORT=5004  # Optional: Flask uses this by default
 flask --app app run --debug --port 5004
 ```
 
-API is served at `http://localhost:5004` with a `/api/hello` handshake and `/healthz` probe for readiness checks.
+API is served at `http://localhost:5004` (or configured port) with a `/api/hello` handshake and `/healthz` probe for readiness checks.
+
+**Environment Variables:**
+- `FLASK_RUN_PORT` - Port for Flask server (default: can be set via --port flag)
+- `TESTING` - Set to `true` to enable testing mode (default: `false`)
+- `LOG_LEVEL` - Logging level: DEBUG, INFO, WARN, ERROR (default: `INFO`)
+- `DEBUG_ACHIEVEMENTS` - Set to `true` for detailed achievement logging (default: `false`)
+
+See `backend/.env.example` for all available configuration options.
 
 ### Frontend
 
 ```bash
 cd frontend
 npm install
+
+# Set port via environment variable or use --port flag
+export VITE_PORT=5173  # Optional: Vite defaults to 5173
 npm run dev
 ```
 
 The Vite dev server proxies `/api/*` calls to Flask, confirming the end-to-end wiring while UI features are built out.
+
+**Environment Variables:**
+- `VITE_BACKEND_URL` - Backend API URL (default: `http://localhost:5004`)
+- `VITE_PORT` - Port for Vite dev server (default: `5173`)
+- `VITE_DEV_MODE` - Set to `true` to enable dev mode features (default: `false`)
+- `VITE_LOG_LEVEL` - Logging level: DEBUG, INFO, WARN, ERROR, NONE (default: DEBUG in dev, INFO in production)
+- `VITE_LOGGING_ENABLED` - Set to `false` to disable logging (default: `true`)
+
+See `frontend/.env.example` for all available configuration options.
 
 ### E2E Testing
 
@@ -62,16 +85,27 @@ The frontend includes Playwright E2E tests. See `frontend/README.md` for detaile
 # Terminal 1: Start backend
 cd backend
 source .venv/bin/activate
+export FLASK_RUN_PORT=5004  # Optional
 flask --app app run --debug --port 5004 --host 0.0.0.0
 
 # Terminal 2: Start frontend
 cd frontend
+export VITE_PORT=5003  # Optional
+export FRONTEND_PORT=5003  # For Playwright tests
 npm run dev -- --port 5003
 
 # Terminal 3: Run tests
 cd frontend
+export BACKEND_PORT=5004  # Optional: defaults to 5004
+export FRONTEND_PORT=5003  # Optional: defaults to 5003
 npm run test:e2e
 ```
+
+**Environment Variables for E2E Tests:**
+- `BACKEND_PORT` - Backend server port (default: `5004`)
+- `FRONTEND_PORT` - Frontend server port (default: `5003`)
+- `FRONTEND_URL` - Full frontend URL (default: `http://localhost:${FRONTEND_PORT}`)
+- `VITE_BACKEND_URL` - Backend API URL for frontend proxy (default: `http://localhost:5004`)
 
 ## Security posture
 
@@ -86,12 +120,3 @@ Math Helper is designed for trusted, local-network deployments while the curricu
 - `POST /api/practice/submissions` – Accepts `{ userId?, userName?, pin, attempts[] }`, verifies the PIN from share-link parameters, and returns a mocked practice session summary so the new practice UI can gate submissions before the real engine lands.
 
 Schema groundwork (SQLite via SQLAlchemy) also defines `questions` and `responses` tables, ready for future endpoints that log generated prompts and learner answers with timestamps.
-
-## TODOs
-
-1. Question engine with level definitions, flash-card pools, and long-division builders.
-2. SQLite-backed progress tracking for attempts, speed, hints, and accuracy trends.
-3. Results dashboard featuring charts, filters, and personalized recommendations.
-4. Parent-facing insights: historical exports, focus area suggestions, and progress share-outs.
-
-This repository keeps the implementation ready for those features while presenting the product vision in the present tense.

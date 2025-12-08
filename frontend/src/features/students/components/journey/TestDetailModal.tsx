@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Play, Clock, Target } from 'lucide-react'
+import { X, Play, Target } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import type { FrontendTest, FrontendTestAttempt, FrontendTestAttemptDetail } from '../../utils/testMapping'
 import { AttemptCard } from './AttemptCard'
 import PINVerificationModal from '../../modals/PINVerificationModal'
 import type { User } from '../../hooks/useLearners'
+import { logError } from '../../../../utils/logger'
 
 type TestDetailModalProps = {
   test: FrontendTest | null
@@ -28,6 +30,32 @@ export const TestDetailModal: React.FC<TestDetailModalProps> = ({
   const [attempts, setAttempts] = useState<FrontendTestAttempt[]>([])
   const [isLoadingAttempts, setIsLoadingAttempts] = useState(false)
   const [isPinModalOpen, setIsPinModalOpen] = useState(false)
+  const navigate = useNavigate()
+  const params = useParams<{ userId?: string }>()
+  
+  const handleAchievementClick = (achievementCode: string) => {
+    if (params.userId) {
+      navigate(`/journey/${params.userId}/achievements?achievement=${encodeURIComponent(achievementCode)}`)
+    }
+  }
+  
+  // Get list of achievement codes to display
+  const achievementCodes = test?.unlockRequirements?.achievementCodes || 
+    (test?.unlockRequirements?.achievementCode ? [test.unlockRequirements.achievementCode] : [])
+  
+  // Helper to format achievement code with metadata
+  const formatAchievementCode = (code: string): string => {
+    const metadataFilter = test?.unlockRequirements?.metadataFilters?.[code]
+    if (metadataFilter) {
+      const parts: string[] = []
+      if (metadataFilter.level) parts.push(`Level ${metadataFilter.level}`)
+      if (metadataFilter.operation) parts.push(metadataFilter.operation)
+      if (parts.length > 0) {
+        return `${code.replace(/-/g, ' ')} (${parts.join(', ')})`
+      }
+    }
+    return code.replace(/-/g, ' ')
+  }
 
   useEffect(() => {
     if (isOpen && test) {
@@ -45,7 +73,7 @@ export const TestDetailModal: React.FC<TestDetailModalProps> = ({
       const testAttempts = await getTestAttempts(test.test_type)
       setAttempts(testAttempts)
     } catch (error) {
-      console.error('Error loading test attempts:', error)
+      logError('Error loading test attempts:', error)
     } finally {
       setIsLoadingAttempts(false)
     }
@@ -62,7 +90,7 @@ export const TestDetailModal: React.FC<TestDetailModalProps> = ({
       }
       return detail
     } catch (error) {
-      console.error('Error loading attempt detail:', error)
+      logError('Error loading attempt detail:', error)
       return null
     }
   }
@@ -176,12 +204,38 @@ export const TestDetailModal: React.FC<TestDetailModalProps> = ({
                           </div>
                         </div>
                       )}
-                      <div className="text-xs text-gray-600">
-                        Complete <span className="font-semibold">{test.unlockProgress?.total || test.unlockRequirements.quantity}</span>{' '}
-                        {test.unlockRequirements.achievementCode.replace(/-/g, ' ')} achievements
-                        {test.unlockRequirements.level && ` at level ${test.unlockRequirements.level}`}
-                        {test.unlockRequirements.minAccuracy && ` with ${(test.unlockRequirements.minAccuracy * 100).toFixed(0)}%+ accuracy`}
-                        {test.unlockRequirements.operation && ` for ${test.unlockRequirements.operation}`}
+                      <div className="text-xs text-gray-600 space-y-1">
+                        {achievementCodes.length > 0 ? (
+                          <>
+                            <div>Complete the following achievements:</div>
+                            <div className="space-y-1 ml-2">
+                              {achievementCodes.map((code, idx) => (
+                                <div
+                                  key={idx}
+                                  onClick={() => handleAchievementClick(code)}
+                                  className="cursor-pointer hover:underline hover:text-blue-600 transition-colors"
+                                  title={`Click to view ${code.replace(/-/g, ' ')} achievement`}
+                                >
+                                  • {formatAchievementCode(code)}
+                                </div>
+                              ))}
+                            </div>
+                          </>
+                        ) : (
+                          <div>
+                            Complete <span className="font-semibold">{test.unlockProgress?.total || test.unlockRequirements.quantity}</span>{' '}
+                            {test.unlockRequirements.achievementCode?.replace(/-/g, ' ') || 'achievements'}
+                          </div>
+                        )}
+                        {test.unlockRequirements.level && (
+                          <div>at level {test.unlockRequirements.level}</div>
+                        )}
+                        {test.unlockRequirements.minAccuracy && (
+                          <div>with {(test.unlockRequirements.minAccuracy * 100).toFixed(0)}%+ accuracy</div>
+                        )}
+                        {test.unlockRequirements.operation && (
+                          <div>for {test.unlockRequirements.operation}</div>
+                        )}
                       </div>
                     </div>
                   ) : (

@@ -28,7 +28,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:5003',
+    baseURL: process.env.FRONTEND_URL || `http://localhost:${process.env.FRONTEND_PORT || '5003'}`,
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
   },
@@ -59,8 +59,8 @@ export default defineConfig({
   webServer: process.env.SKIP_WEBSERVER
     ? undefined
     : {
-        command: 'npm run dev -- --port 5003',
-        url: 'http://localhost:5003',
+        command: `npm run dev -- --port ${process.env.FRONTEND_PORT || '5003'}`,
+        url: process.env.FRONTEND_URL || `http://localhost:${process.env.FRONTEND_PORT || '5003'}`,
         reuseExistingServer: true, // Always try to reuse existing server
         timeout: 120 * 1000,
       },

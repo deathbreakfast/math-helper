@@ -57,22 +57,22 @@ def test_questions_ids(app):
 
 
 def test_tst_be_001_get_all_test_definitions(app, test_user_id):
-    """TST-BE-001: Get all test definitions returns merged legacy+new catalog."""
+    """TST-BE-001: Get all test definitions returns test catalog.
+    
+    Note: Legacy test types have been removed. All tests are now from NEW_TEST_DEFINITIONS.
+    """
     with app.app_context():
         # Reload user
         test_user = db.session.get(User, test_user_id)
         definitions = TestService.get_all_test_definitions(user_level=test_user.level)
         
-        # Should return both legacy and new test definitions
+        # Should return test definitions
         assert len(definitions) > 0
         
-        # Check for legacy test types
-        legacy_tests = [d for d in definitions if d.get("is_legacy", False)]
-        assert len(legacy_tests) > 0
-        
-        # Check for new test types
+        # All tests should be marked as new (not legacy)
+        # Legacy tests no longer exist - all tests are from NEW_TEST_DEFINITIONS
         new_tests = [d for d in definitions if not d.get("is_legacy", False)]
-        assert len(new_tests) > 0
+        assert len(new_tests) > 0, "Should have at least some test definitions"
         
         # Verify test metadata is correct
         for test_def in definitions:
@@ -89,7 +89,7 @@ def test_tst_be_002_get_test_attempts(app, test_user_id, test_questions_ids):
         test_attempt = TestAttempt(
             user_id=test_user_id,
             level=1,
-            test_type="level_1",
+            test_type="addition-1digit",
             score=0.85,
             avg_time_per_question_ms=3000,
             total_duration_ms=75000,
@@ -100,12 +100,12 @@ def test_tst_be_002_get_test_attempts(app, test_user_id, test_questions_ids):
         db.session.refresh(test_attempt)
         
         # Get attempts
-        attempts = TestService.get_test_attempts(test_user_id, test_type="level_1")
+        attempts = TestService.get_test_attempts(test_user_id, test_type="addition-1digit")
         
         assert len(attempts) == 1
         attempt = attempts[0]
         assert attempt["attempt_id"] == test_attempt.id
-        assert attempt["test_type"] == "level_1"
+        assert attempt["test_type"] == "addition-1digit"
         assert attempt["score"] == 0.85
         assert attempt["accuracy"] == 85.0
         assert attempt["passed"] is True
@@ -121,7 +121,7 @@ def test_tst_be_003_get_test_attempt_detail(app, test_user_id, test_questions_id
             mode="standard",
             level=1,
             is_test=True,
-            test_type="level_1",
+            test_type="addition-1digit",
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=10,
@@ -151,7 +151,7 @@ def test_tst_be_003_get_test_attempt_detail(app, test_user_id, test_questions_id
         test_attempt = TestAttempt(
             user_id=test_user_id,
             level=1,
-            test_type="level_1",
+            test_type="addition-1digit",
             score=0.80,
             avg_time_per_question_ms=3000,
             total_duration_ms=30000,
@@ -358,23 +358,26 @@ def test_tst_be_009_test_tier_achievements_for_new_tests(app, test_user_id, test
 
 
 def test_tst_be_010_backward_compatibility_with_old_test_types(app, test_user_id):
-    """TST-BE-010: Backward compatibility - old test types still work."""
+    """TST-BE-010: Backward compatibility - test types from NEW_TEST_DEFINITIONS work.
+    
+    Note: Legacy test types have been removed. All tests are now from NEW_TEST_DEFINITIONS.
+    Test types like "addition-1digit" are now defined in NEW_TEST_DEFINITIONS, not as legacy tests.
+    """
     with app.app_context():
-        # Verify old test types are still in TEST_TYPES
-        assert "multiplication_1" in SessionEngineService.TEST_TYPES
-        assert "division_1" in SessionEngineService.TEST_TYPES
-        assert "level_1" in SessionEngineService.LEVEL_TEST_TYPES or "level_1" in SessionEngineService.TEST_TYPES
+        # Verify test types are in TEST_TYPES (which now comes from NEW_TEST_DEFINITIONS)
+        assert "addition-1digit" in SessionEngineService.TEST_TYPES
         
-        # Verify old test types can be retrieved in definitions
+        # Verify test types can be retrieved in definitions
         definitions = TestService.get_all_test_definitions()
-        old_test_types = [d for d in definitions if d.get("is_legacy", False)]
-        assert len(old_test_types) > 0
+        # All tests should be new (not legacy) since legacy tests were removed
+        new_test_types = [d for d in definitions if not d.get("is_legacy", False)]
+        assert len(new_test_types) > 0, "Should have test definitions from NEW_TEST_DEFINITIONS"
         
-        # Verify old test types can be used for test attempts
+        # Verify new test types can be used for test attempts
         test_attempt = TestAttempt(
             user_id=test_user_id,
             level=9,
-            test_type="multiplication_1",  # Old test type
+            test_type="multiplication-by-2",  # New test type
             score=0.90,
             avg_time_per_question_ms=4000,
             total_duration_ms=80000,
@@ -385,6 +388,6 @@ def test_tst_be_010_backward_compatibility_with_old_test_types(app, test_user_id
         db.session.refresh(test_attempt)
         
         # Should be able to retrieve the attempt
-        attempts = TestService.get_test_attempts(test_user_id, test_type="multiplication_1")
+        attempts = TestService.get_test_attempts(test_user_id, test_type="multiplication-by-2")
         assert len(attempts) == 1
-        assert attempts[0]["test_type"] == "multiplication_1"
+        assert attempts[0]["test_type"] == "multiplication-by-2"

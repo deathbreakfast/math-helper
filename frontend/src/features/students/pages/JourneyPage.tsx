@@ -6,6 +6,7 @@ import { mapUserToProgressData } from '../utils/progressMapping'
 import { useLearners } from '../hooks/useLearners'
 import { useLevelRequirements, useAchievementDefinitions } from '../../../lib/levels/hooks'
 import type { TabId } from '../components/journey/JourneyTabNavigation'
+import { logError } from '../../../utils/logger'
 
 const JourneyPage = () => {
   const { userId, tab } = useParams<{ userId: string; tab?: TabId }>()
@@ -47,7 +48,7 @@ const JourneyPage = () => {
       // Always refetch when navigating to journey page to get latest achievements
       // This ensures achievements earned in the current session are displayed immediately
       fetchUserFullData(userId).catch((error) => {
-        console.error('Failed to fetch full user data:', error)
+        logError('Failed to fetch full user data:', error)
       })
     }
   }, [userId, fetchUserFullData, location.pathname])

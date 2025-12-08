@@ -184,12 +184,22 @@ def list_achievements():
     
     Query parameters:
     - user_id: Optional user ID to filter achievements
+    - code: Optional achievement code to filter by
     - limit: Optional limit for number of achievements (default: 50, max: 100)
     """
     user_id = request.args.get("user_id", type=int)
+    achievement_code = request.args.get("code", type=str)
     limit = request.args.get("limit", type=int, default=50)
     # Cap limit at 100 to prevent excessive queries
     limit = min(limit, 100) if limit else 50
+
+    # If filtering by code and user_id, fetch achievements by code
+    if achievement_code and user_id:
+        achievements = AchievementService.get_achievements_by_code(
+            user_id=user_id,
+            achievement_code=achievement_code
+        )
+        return jsonify({"achievements": [AchievementService.serialize_achievement(a) for a in achievements]})
 
     # Ensure achievements are up to date for all users or specific user
     if user_id:
@@ -704,14 +714,16 @@ def complete_session(session_id: int):
         user, session.test_type
     )
     
-    # Check for tiered test achievements (legacy B, A, S, SS, SSS)
-    tier_achievements = AchievementService.check_test_tier_achievements(session)
-    
-    # Check for generic test achievements (new metal/prestige tier system)
-    generic_test_achievements = AchievementService.check_generic_test_achievements(session)
+    # Test achievements removed - no longer checking for test achievements
     
     # Check for generic accuracy achievements (new metal/prestige tier system)
     generic_accuracy_achievements = AchievementService.check_generic_accuracy_achievements(session)
+    
+    # Check for lightning-fast achievements (level-specific speed)
+    lightning_fast_achievements = AchievementService.check_lightning_fast_achievements(user, session.id)
+    
+    # Check for level-master achievements (per-level consecutive correct)
+    level_master_achievements = AchievementService.check_level_master_achievements(user)
     
     # Ensure all achievements are committed before querying
     from .models import db
@@ -1026,20 +1038,50 @@ def test_setup_user(user_id: int):
     
     # Award achievements if specified (bypasses requirement checks)
     if 'achievements' in data:
-        for achievement_code in data['achievements']:
+        import json
+        achievements_list = data['achievements']
+        
+        # Support both string array and object array formats
+        # String format: ["first-steps", "first-victory"]
+        # Object format: [{"code": "accuracy-ace-platinum", "metadata": {"test_type": "addition-1digit"}}]
+        for achievement_item in achievements_list:
+            # Handle string format (backward compatible)
+            if isinstance(achievement_item, str):
+                achievement_code = achievement_item
+                metadata = None
+            # Handle object format with metadata
+            elif isinstance(achievement_item, dict):
+                achievement_code = achievement_item.get('code') or achievement_item.get('achievement_code')
+                metadata = achievement_item.get('metadata') or achievement_item.get('metadata_filter')
+            else:
+                continue  # Skip invalid format
+            
+            if not achievement_code:
+                continue
+            
             # Check if achievement exists in config
             if achievement_code not in ACHIEVEMENTS_CONFIG:
                 continue  # Skip invalid achievement codes
             
-            # Check if user already has this achievement
-            existing = Achievement.query.filter_by(
+            # Check if user already has this achievement (with same metadata if applicable)
+            existing_query = Achievement.query.filter_by(
                 user_id=user_id,
                 code=achievement_code
-            ).first()
+            )
+            
+            # If metadata is provided, check for exact match
+            if metadata:
+                metadata_json = json.dumps(metadata, sort_keys=True)
+                existing = existing_query.filter_by(achievement_metadata=metadata_json).first()
+            else:
+                existing = existing_query.filter_by(achievement_metadata=None).first()
             
             if not existing:
                 # Get achievement config to populate required fields
                 achievement_config = ACHIEVEMENTS_CONFIG[achievement_code]
+                
+                # Serialize metadata to JSON string if present
+                metadata_json = json.dumps(metadata, sort_keys=True) if metadata else None
                 
                 # Create achievement record with all required fields
                 achievement = Achievement(
@@ -1049,7 +1091,8 @@ def test_setup_user(user_id: int):
                     description=achievement_config.get('description', ''),
                     icon=achievement_config.get('icon', '🏆'),
                     category=achievement_config.get('category', 'milestone'),
-                    earned_at=datetime.utcnow()
+                    earned_at=datetime.utcnow(),
+                    achievement_metadata=metadata_json
                 )
                 db.session.add(achievement)
     

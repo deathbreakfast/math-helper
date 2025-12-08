@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from datetime import datetime
 from typing import Any
@@ -151,6 +152,26 @@ class AchievementService:
             db.session.commit()
         else:
             _debug_print(f"[ACHIEVEMENT DEBUG] No new level-specific achievements awarded")
+        
+        # Check Level Master achievements (consecutive correct at any level)
+        _debug_print(f"[ACHIEVEMENT DEBUG] Checking Level Master achievements...")
+        level_master_achievements = AchievementService.check_level_master_achievements(user)
+        if level_master_achievements:
+            level_master_codes = [a.code for a in level_master_achievements]
+            level_master_titles = [a.title for a in level_master_achievements]
+            _debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(level_master_achievements)} Level Master achievement(s): {level_master_codes}")
+            print(f"[ACHIEVEMENT INFO] Awarded {len(level_master_achievements)} Level Master achievement(s): {level_master_titles}")
+            db.session.commit()
+        
+        # Check Level Grandmaster milestone achievement (Level Master Bronze on all levels)
+        _debug_print(f"[ACHIEVEMENT DEBUG] Checking Level Grandmaster achievement...")
+        level_grandmaster_achievements = AchievementService.check_level_grandmaster_achievement(user)
+        if level_grandmaster_achievements:
+            level_grandmaster_codes = [a.code for a in level_grandmaster_achievements]
+            level_grandmaster_titles = [a.title for a in level_grandmaster_achievements]
+            _debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(level_grandmaster_achievements)} Level Grandmaster achievement(s): {level_grandmaster_codes}")
+            print(f"[ACHIEVEMENT INFO] Awarded {len(level_grandmaster_achievements)} Level Grandmaster achievement(s): {level_grandmaster_titles}")
+            db.session.commit()
 
         achievements = (
             Achievement.query.filter_by(user_id=user.id)
@@ -330,6 +351,24 @@ class AchievementService:
 
     @staticmethod
     @log_query
+    def get_achievements_by_code(user_id: int, achievement_code: str) -> list[Achievement]:
+        """Get all achievements for a user by achievement code (including metadata variants).
+        
+        Args:
+            user_id: The user ID to query achievements for
+            achievement_code: The achievement code to filter by
+        
+        Returns:
+            List of achievements with the given code for the user, ordered by earned_at DESC
+        """
+        achievements = Achievement.query.filter_by(
+            user_id=user_id,
+            code=achievement_code
+        ).order_by(Achievement.earned_at.desc()).all()
+        return achievements
+
+    @staticmethod
+    @log_query
     def get_achievements_by_category(
         user_id: int | None = None, category: str | None = None, limit: int = 50, include_user_name: bool = False
     ) -> list[Achievement]:
@@ -378,13 +417,41 @@ class AchievementService:
         category: str,
         earned_at: datetime | None = None,
         session_id: int | None = None,
+        metadata: dict[str, Any] | None = None,
     ) -> Achievement:
-        """Manually create an achievement for a user."""
+        """Manually create an achievement for a user.
+        
+        Args:
+            user_id: User ID
+            code: Achievement code
+            title: Achievement title
+            description: Achievement description
+            icon: Achievement icon
+            category: Achievement category
+            earned_at: When achievement was earned (defaults to now)
+            session_id: Optional session ID to link achievement
+            metadata: Optional metadata dict (will be stored as JSON string)
+        """
         if earned_at is None:
             earned_at = datetime.utcnow()
 
-        # Check if already exists
-        existing = Achievement.query.filter_by(user_id=user_id, code=code).first()
+        # Serialize metadata to JSON string if provided
+        metadata_json = json.dumps(metadata) if metadata else None
+
+        # Check if already exists - need to check both code and metadata
+        # For achievements without metadata, check by code only
+        # For achievements with metadata, check by code and metadata
+        if metadata_json:
+            existing = Achievement.query.filter_by(
+                user_id=user_id, code=code, achievement_metadata=metadata_json
+            ).first()
+        else:
+            existing = Achievement.query.filter_by(
+                user_id=user_id, code=code
+            ).filter(
+                (Achievement.achievement_metadata.is_(None)) | (Achievement.achievement_metadata == "")
+            ).first()
+        
         if existing:
             # If we have a session_id and the existing achievement doesn't have one (or has a different one),
             # update it to link to this session. This ensures achievements earned in this session are properly linked.
@@ -404,6 +471,7 @@ class AchievementService:
                 category=category,
                 earned_at=earned_at,
                 session_id=session_id,
+                achievement_metadata=metadata_json,
             )
             db.session.add(achievement)
             db.session.flush()
@@ -436,6 +504,11 @@ class AchievementService:
             "earnedAt": achievement.earned_at.isoformat(),
             "sessionId": achievement.session_id if achievement.session_id else None,
         }
+        if achievement.achievement_metadata:
+            try:
+                result["metadata"] = json.loads(achievement.achievement_metadata)
+            except (json.JSONDecodeError, TypeError):
+                result["metadata"] = None
         if user_name:
             result["userName"] = user_name
         return result
@@ -450,7 +523,7 @@ class AchievementService:
         
         Args:
             user: The user to check
-            test_type: Optional test type to check (e.g., "multiplication_1")
+            test_type: Optional test type to check (e.g., "multiplication-by-1")
         
         Returns:
             List of newly created achievements
@@ -461,12 +534,7 @@ class AchievementService:
         new_achievements = []
         
         # If test_type is provided, check only that type
-        test_types_to_check = [test_type] if test_type else [
-            "multiplication_1", "multiplication_2", "multiplication_3", "multiplication_4",
-            "multiplication_5", "multiplication_6", "multiplication_7", "multiplication_8",
-            "multiplication_9", "multiplication_10", "multiplication_11", "multiplication_12",
-            "division_2digit", "division_3digit", "division_fraction", "division_decimal",
-        ]
+        test_types_to_check = [test_type] if test_type else []
         
         _debug_print(f"\n[ACHIEVEMENT DEBUG] check_consecutive_correct_achievements: User {user.id}, test_type={test_type}")
         _debug_print(f"[ACHIEVEMENT DEBUG] Checking {len(test_types_to_check)} test types: {test_types_to_check}")
@@ -491,8 +559,6 @@ class AchievementService:
             
             if check_test_type in SessionEngineService.TEST_TYPES:
                 operation, required_level, _, _ = SessionEngineService.TEST_TYPES[check_test_type]
-            elif check_test_type in SessionEngineService.LEVEL_TEST_TYPES:
-                operation, required_level, _, _ = SessionEngineService.LEVEL_TEST_TYPES[check_test_type]
             else:
                 # Unknown test type, skip
                 _debug_print(f"[ACHIEVEMENT DEBUG]   ✗ Unknown test type: {check_test_type}")
@@ -1632,22 +1698,9 @@ class AchievementService:
             "subtraction_1digit": "subtraction-1digit",
             "subtraction_2digit": "subtraction-2digit",
             "subtraction_3digit": "subtraction-3digit",
-            "multiplication_1": "multiplication-2",
-            "multiplication_2": "multiplication-3",
-            "multiplication_3": "multiplication-4",
-            "multiplication_4": "multiplication-5",
-            "multiplication_5": "multiplication-6",
-            "multiplication_6": "multiplication-7",
-            "multiplication_7": "multiplication-8",
-            "multiplication_8": "multiplication-9",
-            "multiplication_9": "multiplication-10",
-            "multiplication_10": "multiplication-11",
-            "multiplication_11": "multiplication-12",
             "multiplication_2digit": "multiplication-2digit",
             "multiplication_3digit": "multiplication-3digit",
             "division_1digit": "division-1digit",
-            "division_2digit": "division-2digit",
-            "division_3digit": "division-3digit",
         }
         
         for achievement in tier_achievements:
@@ -1763,207 +1816,7 @@ class AchievementService:
         
         return removed_count
 
-    @staticmethod
-    @log_query
-    def check_test_tier_achievements(session: PracticeSession) -> list[Achievement]:
-        """Check and award tiered test achievements (B, A, S, SS, SSS) based on session performance.
-        
-        Args:
-            session: The completed practice session to check
-            
-        Returns:
-            List of newly created achievements
-        """
-        if not session.is_test or not session.test_type or not session.completed_at:
-            return []
-        
-        _debug_print(f"\n[ACHIEVEMENT DEBUG] check_test_tier_achievements: Session {session.id}, User {session.user_id}, test_type={session.test_type}")
-        
-        new_achievements = []
-        user_achievement_codes = AchievementService.get_achievement_codes(session.user_id)
-        
-        # Map backend test_type to frontend test type format
-        # Backend: "addition_1digit" -> Frontend: "addition-1digit"
-        test_type_mapping = {
-            "addition_1digit": "addition-1digit",
-            "addition_2digit": "addition-2digit",
-            "addition_3digit": "addition-3digit",
-            "subtraction_1digit": "subtraction-1digit",
-            "subtraction_2digit": "subtraction-2digit",
-            "subtraction_3digit": "subtraction-3digit",
-            "multiplication_1": "multiplication-2",
-            "multiplication_2": "multiplication-3",
-            "multiplication_3": "multiplication-4",
-            "multiplication_4": "multiplication-5",
-            "multiplication_5": "multiplication-6",
-            "multiplication_6": "multiplication-7",
-            "multiplication_7": "multiplication-8",
-            "multiplication_8": "multiplication-9",
-            "multiplication_9": "multiplication-10",
-            "multiplication_10": "multiplication-11",
-            "multiplication_11": "multiplication-12",
-            "multiplication_2digit": "multiplication-2digit",
-            "multiplication_3digit": "multiplication-3digit",
-            "division_1digit": "division-1digit",
-            "division_2digit": "division-2digit",
-            "division_3digit": "division-3digit",
-        }
-        
-        frontend_test_type = test_type_mapping.get(session.test_type)
-        if not frontend_test_type:
-            _debug_print(f"[ACHIEVEMENT DEBUG]   ✗ No frontend mapping for test_type: {session.test_type}")
-            return []
-        
-        _debug_print(f"[ACHIEVEMENT DEBUG]   frontend_test_type={frontend_test_type}")
-        
-        # Calculate session metrics
-        total_questions = session.total_questions
-        correct_count = session.correct_count
-        accuracy = session.accuracy  # Already in percentage (0-100)
-        total_duration_ms = session.total_duration_ms or 0
-        
-        # Calculate average time per question in seconds
-        avg_time_per_question = (total_duration_ms / 1000.0 / total_questions) if total_questions > 0 and total_duration_ms else None
-        
-        _debug_print(f"[ACHIEVEMENT DEBUG]   Session metrics: questions={total_questions}, correct={correct_count}, accuracy={accuracy}%, duration={total_duration_ms}ms, avg_time={avg_time_per_question:.2f}s" if avg_time_per_question else f"[ACHIEVEMENT DEBUG]   Session metrics: questions={total_questions}, correct={correct_count}, accuracy={accuracy}%, duration={total_duration_ms}ms, avg_time=None")
-        
-        # Tier definitions (check in order from highest to lowest tier)
-        tiers = [
-            {
-                "suffix": "sss",
-                "title": f"{frontend_test_type.replace('-', ' ').title()} - Rank SSS",
-                "description": "Legendary mastery",
-                "icon": "💎",
-                "requirements": {
-                    "min_accuracy": 100,
-                    "question_count": 100,  # Exactly 100
-                    "max_question_count": 100,
-                    "max_speed": 2,  # <2s per question
-                }
-            },
-            {
-                "suffix": "ss",
-                "title": f"{frontend_test_type.replace('-', ' ').title()} - Rank SS",
-                "description": "Elite performance",
-                "icon": "🌟",
-                "requirements": {
-                    "min_accuracy": 100,
-                    "max_question_count": 90,  # <90
-                    "max_speed": 4,  # <4s per question
-                }
-            },
-            {
-                "suffix": "s",
-                "title": f"{frontend_test_type.replace('-', ' ').title()} - Rank S",
-                "description": "Perfect score with speed",
-                "icon": "⭐",
-                "requirements": {
-                    "min_accuracy": 100,
-                    "min_question_count": 31,  # >30 (more than 30)
-                    "max_question_count": 59,  # <60 (less than 60)
-                    "max_speed": 6,  # <6s per question
-                }
-            },
-            {
-                "suffix": "a",
-                "title": f"{frontend_test_type.replace('-', ' ').title()} - Rank A",
-                "description": "100% accuracy (under 30 questions)",
-                "icon": "📗",
-                "requirements": {
-                    "min_accuracy": 100,
-                    "max_question_count": 29,  # <30
-                }
-            },
-            {
-                "suffix": "b",
-                "title": f"{frontend_test_type.replace('-', ' ').title()} - Rank B",
-                "description": "Complete test",
-                "icon": "📘",
-                "requirements": {
-                    "min_question_count": 30,  # >=30
-                }
-            },
-        ]
-        
-        # Check each tier from highest to lowest
-        for tier in tiers:
-            achievement_code = f"{frontend_test_type}-{tier['suffix']}"
-            
-            # Skip if already earned
-            if achievement_code in user_achievement_codes:
-                _debug_print(f"[ACHIEVEMENT DEBUG]   Skipping {achievement_code} - already earned")
-                continue
-            
-            _debug_print(f"[ACHIEVEMENT DEBUG]   Checking tier {tier['suffix'].upper()}: {achievement_code}")
-            
-            req = tier["requirements"]
-            meets_requirements = True
-            failure_reasons = []
-            
-            # Check accuracy requirement
-            if "min_accuracy" in req:
-                if accuracy < req["min_accuracy"]:
-                    meets_requirements = False
-                    failure_reasons.append(f"accuracy {accuracy}% < {req['min_accuracy']}%")
-                else:
-                    _debug_print(f"[ACHIEVEMENT DEBUG]     ✓ accuracy: {accuracy}% >= {req['min_accuracy']}%")
-            
-            # Check minimum question count
-            if "min_question_count" in req:
-                if total_questions < req["min_question_count"]:
-                    meets_requirements = False
-                    failure_reasons.append(f"questions {total_questions} < {req['min_question_count']}")
-                else:
-                    _debug_print(f"[ACHIEVEMENT DEBUG]     ✓ min_questions: {total_questions} >= {req['min_question_count']}")
-            
-            # Check maximum question count
-            if "max_question_count" in req:
-                if total_questions > req["max_question_count"]:
-                    meets_requirements = False
-                    failure_reasons.append(f"questions {total_questions} > {req['max_question_count']}")
-                else:
-                    _debug_print(f"[ACHIEVEMENT DEBUG]     ✓ max_questions: {total_questions} <= {req['max_question_count']}")
-            
-            # Check exact question count (for SSS)
-            if "question_count" in req:
-                if total_questions != req["question_count"]:
-                    meets_requirements = False
-                    failure_reasons.append(f"questions {total_questions} != {req['question_count']}")
-                else:
-                    _debug_print(f"[ACHIEVEMENT DEBUG]     ✓ question_count: {total_questions} == {req['question_count']}")
-            
-            # Check speed requirement
-            if "max_speed" in req:
-                if avg_time_per_question is None:
-                    meets_requirements = False
-                    failure_reasons.append("avg_time is None")
-                elif avg_time_per_question >= req["max_speed"]:
-                    meets_requirements = False
-                    failure_reasons.append(f"avg_time {avg_time_per_question:.2f}s >= {req['max_speed']}s")
-                else:
-                    _debug_print(f"[ACHIEVEMENT DEBUG]     ✓ speed: {avg_time_per_question:.2f}s < {req['max_speed']}s")
-            
-            if meets_requirements:
-                _debug_print(f"[ACHIEVEMENT DEBUG]   ✓ AWARDING {achievement_code}")
-                achievement = AchievementService.create_achievement(
-                    user_id=session.user_id,
-                    code=achievement_code,
-                    title=tier["title"],
-                    description=tier["description"],
-                    icon=tier["icon"],
-                    category="test",
-                    session_id=session.id,
-                )
-                new_achievements.append(achievement)
-                break  # Only award the highest tier achieved
-            else:
-                if failure_reasons:
-                    _debug_print(f"[ACHIEVEMENT DEBUG]   ✗ Not awarding {achievement_code} - reasons: {', '.join(failure_reasons)}")
-        
-        if new_achievements:
-            db.session.commit()
-        
-        return new_achievements
+    # Test achievement methods removed - test achievements are no longer used
 
     @staticmethod
     @log_query
@@ -1990,12 +1843,125 @@ class AchievementService:
         level: int | None = None,
         min_accuracy: float | None = None,
         operation: str | None = None,
+        metadata_filter: dict[str, Any] | None = None,
     ) -> int:
-        """Count achievements with filters for level, accuracy, and operation.
+        """Count achievements with filters for level, accuracy, operation, and metadata.
+        
+        Supports tier substitution: higher tier achievements can substitute for lower tier requirements.
+        Conversion: 4 bronze = 2 silver = 1 gold, etc.
         
         Args:
             user_id: User ID
             achievement_code: Achievement code to count (must be tiered code like "addition-basics-bronze")
+            level: Optional level filter (session level must match) - DEPRECATED, use metadata_filter instead
+            min_accuracy: Optional minimum accuracy filter (session accuracy must be >= this, as 0.0-1.0)
+            operation: Optional operation filter (session must have questions with this operation)
+            metadata_filter: Optional metadata filter dict (e.g., {"level": 1}) - filters achievements by metadata
+            
+        Returns:
+            Number of achievements matching all filters (with tier substitution applied)
+        """
+        from ..utils.tier_utils import (
+            extract_base_code_and_tier,
+            convert_tier_to_base_units,
+            TIER_HIERARCHY,
+        )
+        
+        # Extract base code and target tier
+        base_code, target_tier = extract_base_code_and_tier(achievement_code)
+        
+        # Build query for all achievements with same base code (all tiers)
+        # Match codes like "speed-demon-bronze", "speed-demon-silver", etc.
+        if target_tier:
+            # Use LIKE pattern to match base code with any tier
+            code_pattern = f"{base_code}-%"
+            query = Achievement.query.filter(
+                Achievement.user_id == user_id,
+                Achievement.code.like(code_pattern)
+            )
+        else:
+            # No tier in code, just match exactly
+            query = Achievement.query.filter_by(
+                user_id=user_id,
+                code=achievement_code
+            )
+        
+        # Filter by metadata if provided
+        if metadata_filter:
+            metadata_json = json.dumps(metadata_filter, sort_keys=True)
+            query = query.filter(Achievement.achievement_metadata == metadata_json)
+        else:
+            # If no metadata filter, only count achievements without metadata (global achievements)
+            # This maintains backward compatibility
+            query = query.filter(
+                (Achievement.achievement_metadata.is_(None)) | (Achievement.achievement_metadata == "")
+            )
+        
+        # If we have other filters, we need to join with PracticeSession
+        if level is not None or min_accuracy is not None or operation is not None:
+            query = query.join(PracticeSession, Achievement.session_id == PracticeSession.id)
+            
+            # Filter by session level (deprecated, but kept for backward compatibility)
+            if level is not None:
+                query = query.filter(PracticeSession.level == level)
+            
+            # Filter by session accuracy (stored as percentage 0-100)
+            if min_accuracy is not None:
+                # min_accuracy is passed as 0.0-1.0, convert to percentage
+                min_accuracy_percent = min_accuracy * 100.0
+                query = query.filter(PracticeSession.accuracy >= min_accuracy_percent)
+            
+            # Filter by operation (need to check if session has questions with this operation)
+            if operation is not None:
+                # Join with Response and Question to check operation
+                query = (
+                    query.join(Response, PracticeSession.id == Response.session_id)
+                    .join(Question, Response.question_id == Question.id)
+                    .filter(Question.operation == operation)
+                    .distinct()  # Avoid counting same achievement multiple times if multiple questions match
+                )
+        
+        # Get all matching achievements
+        achievements = query.all()
+        
+        # If no tier substitution needed (no tier in target code), just return count
+        if not target_tier:
+            return len(achievements)
+        
+        # Convert all matching achievements to bronze units, then to target tier
+        total_bronze_units = 0
+        target_tier_value = TIER_HIERARCHY.get(target_tier.lower(), 1)
+        
+        for ach in achievements:
+            _, ach_tier = extract_base_code_and_tier(ach.code)
+            if ach_tier:
+                # Convert this achievement to bronze units
+                total_bronze_units += convert_tier_to_base_units(ach_tier, 1)
+        
+        # Convert total bronze units to target tier count
+        # Each tier is worth 2^(tier_value - 1) bronze units
+        bronze_units_per_target = 2 ** (target_tier_value - 1) if target_tier_value > 1 else 1
+        equivalent_count = total_bronze_units // bronze_units_per_target
+        
+        return equivalent_count
+
+    @staticmethod
+    @log_query
+    def count_achievements_by_test_type_with_filters(
+        user_id: int,
+        test_type: str,
+        level: int | None = None,
+        min_accuracy: float | None = None,
+        operation: str | None = None,
+    ) -> int:
+        """Count achievements for a test type with filters for level, accuracy, and operation.
+        
+        This counts all achievements that match the test type pattern (e.g., "addition-1digit-bronze",
+        "addition-1digit-silver", etc.) with the specified filters.
+        
+        Args:
+            user_id: User ID
+            test_type: Test type identifier (e.g., "addition-1digit")
             level: Optional level filter (session level must match)
             min_accuracy: Optional minimum accuracy filter (session accuracy must be >= this, as 0.0-1.0)
             operation: Optional operation filter (session must have questions with this operation)
@@ -2003,10 +1969,11 @@ class AchievementService:
         Returns:
             Number of achievements matching all filters
         """
-        # Base query: achievements with matching code
-        query = Achievement.query.filter_by(
-            user_id=user_id,
-            code=achievement_code
+        # Base query: achievements matching test type pattern
+        # Match codes like "addition-1digit-bronze", "addition-1digit-silver", etc.
+        query = Achievement.query.filter(
+            Achievement.user_id == user_id,
+            Achievement.code.like(f"{test_type}-%")
         )
         
         # If we have filters, we need to join with PracticeSession
@@ -2034,6 +2001,471 @@ class AchievementService:
                 )
         
         return query.count()
+
+    @staticmethod
+    @log_query
+    def check_level_master_achievements(user: User) -> list[Achievement]:
+        """Check and award Level Master achievements (consecutive correct at any level).
+        
+        This checks consecutive correct answers at each level separately, ignoring incorrect
+        answers at other levels. For example, if a user gets level 1 questions correct
+        but misses a level 2 question in between, the level 1 consecutive count continues.
+        
+        The achievement is awarded based on the maximum consecutive correct achieved at any level.
+        We also track per-level to determine if user has achieved bronze at all levels (for Level Grandmaster).
+        
+        Args:
+            user: The user to check
+        
+        Returns:
+            List of newly created achievements
+        """
+        from ..utils.tier_utils import ALL_TIERS, get_tier_value
+        
+        new_achievements = []
+        user_achievement_codes = AchievementService.get_achievement_codes(user.id)
+        achievement_configs = _get_achievement_configs()
+        
+        # Get all distinct levels from questions
+        all_levels = [
+            row[0] for row in
+            db.session.query(Question.required_level)
+            .distinct()
+            .order_by(Question.required_level.asc())
+            .all()
+        ]
+        
+        if not all_levels:
+            return new_achievements
+        
+        _debug_print(f"\n[ACHIEVEMENT DEBUG] check_level_master_achievements: User {user.id}, levels={all_levels}")
+        
+        # Tier requirements
+        tier_requirements = {
+            "bronze": 30,
+            "silver": 60,
+            "gold": 120,
+            "platinum": 240,
+            "diamond": 480,
+            "master": 960,
+            "grandmaster": 1920,
+            "legendary": 3840,
+            "mythic": 7680,
+            "divine": 15360,
+            "champion": 15360,  # Same as divine, requires server record
+        }
+        
+        # Track maximum consecutive correct at any level
+        max_consecutive_any_level = 0
+        # Track which levels have achieved bronze threshold (for Level Grandmaster)
+        levels_with_bronze = set()
+        
+        # Check each level
+        for target_level in all_levels:
+            _debug_print(f"[ACHIEVEMENT DEBUG] Checking level {target_level}...")
+            
+            # Get all responses for this level, ordered chronologically
+            level_responses = (
+                Response.query.filter_by(user_id=user.id)
+                .join(Question)
+                .filter(Question.required_level == target_level)
+                .order_by(Response.answered_at.asc())
+                .all()
+            )
+            
+            if not level_responses:
+                _debug_print(f"[ACHIEVEMENT DEBUG]   No responses at level {target_level}, skipping")
+                continue
+            
+            # Calculate maximum consecutive correct count for this level
+            max_consecutive = 0
+            current_consecutive = 0
+            
+            for response in level_responses:
+                if response.is_correct:
+                    current_consecutive += 1
+                    max_consecutive = max(max_consecutive, current_consecutive)
+                else:
+                    current_consecutive = 0
+            
+            _debug_print(f"[ACHIEVEMENT DEBUG]   Level {target_level}: max_consecutive={max_consecutive}")
+            
+            # Track maximum across all levels
+            max_consecutive_any_level = max(max_consecutive_any_level, max_consecutive)
+            
+            # Track if this level has achieved bronze threshold
+            if max_consecutive >= tier_requirements.get("bronze", 30):
+                levels_with_bronze.add(target_level)
+        
+        _debug_print(f"[ACHIEVEMENT DEBUG]   Max consecutive at any level: {max_consecutive_any_level}")
+        _debug_print(f"[ACHIEVEMENT DEBUG]   Levels with bronze threshold: {levels_with_bronze}")
+        
+        # Check Level Master achievements per level (with metadata)
+        # Get existing level-master achievements with metadata to check what's already been awarded
+        existing_level_master = Achievement.query.filter_by(user_id=user.id).filter(
+            Achievement.code.like("level-master-%")
+        ).all()
+        
+        # Build a map of level -> existing achievements for that level
+        level_achievements_map: dict[int, list[Achievement]] = {}
+        for ach in existing_level_master:
+            if ach.achievement_metadata:
+                try:
+                    metadata_dict = json.loads(ach.achievement_metadata)
+                    level = metadata_dict.get("level")
+                    if level is not None:
+                        if level not in level_achievements_map:
+                            level_achievements_map[level] = []
+                        level_achievements_map[level].append(ach)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        
+        # Check each level separately
+        for target_level in all_levels:
+            # Get max consecutive for this level (already calculated above)
+            level_responses = (
+                Response.query.filter_by(user_id=user.id)
+                .join(Question)
+                .filter(Question.required_level == target_level)
+                .order_by(Response.answered_at.asc())
+                .all()
+            )
+            
+            if not level_responses:
+                continue
+            
+            # Calculate max consecutive for this level
+            max_consecutive = 0
+            current_consecutive = 0
+            for response in level_responses:
+                if response.is_correct:
+                    current_consecutive += 1
+                    max_consecutive = max(max_consecutive, current_consecutive)
+                else:
+                    current_consecutive = 0
+            
+            # Get existing achievements for this level
+            existing_for_level = level_achievements_map.get(target_level, [])
+            existing_tiers = {ach.code.split("-")[-1] for ach in existing_for_level}
+            
+            # Find highest qualifying tier for this level
+            qualifying_tiers = []
+            for tier in ALL_TIERS:
+                achievement_code = f"level-master-{tier}"
+                config = achievement_configs.get(achievement_code)
+                if not config:
+                    continue
+                
+                requirements = config.get("requirements", {})
+                min_consecutive = requirements.get("min_consecutive", 30)
+                
+                # Check if this tier is already awarded for this level
+                if achievement_code in existing_tiers:
+                    continue
+                
+                # Check if max_consecutive meets the requirement
+                if max_consecutive >= min_consecutive:
+                    qualifying_tiers.append((tier, achievement_code, config, min_consecutive))
+            
+            if qualifying_tiers:
+                # Sort by tier value (highest first) and award the highest tier
+                qualifying_tiers.sort(key=lambda x: get_tier_value(x[0]), reverse=True)
+                highest_tier, achievement_code, config, min_consecutive_req = qualifying_tiers[0]
+                
+                # Important: Don't award multiple for same streak
+                # If user has bronze for 30, and now has 35, don't award another bronze
+                # Only award if they've reached a NEW tier threshold
+                # Check if there's a lower tier already awarded that would prevent this
+                should_award = True
+                for existing_ach in existing_for_level:
+                    existing_tier = existing_ach.code.split("-")[-1]
+                    existing_tier_value = get_tier_value(existing_tier)
+                    new_tier_value = get_tier_value(highest_tier)
+                    
+                    # If we're trying to award the same tier, don't award
+                    if existing_tier == highest_tier:
+                        should_award = False
+                        break
+                    
+                    # If we're trying to award a lower tier than what's already awarded, don't award
+                    if new_tier_value < existing_tier_value:
+                        should_award = False
+                        break
+                
+                if should_award:
+                    # Check for Champion tier if this is Divine
+                    if highest_tier == "divine":
+                        champion_code = "level-master-champion"
+                        champion_config = achievement_configs.get(champion_code)
+                        if champion_config:
+                            # Check if champion already exists for this level
+                            champion_exists = any(
+                                ach.code == champion_code for ach in existing_for_level
+                            )
+                            if not champion_exists:
+                                # Champion tier can be checked during session completion
+                                pass
+                    
+                    _debug_print(f"[ACHIEVEMENT DEBUG]   ✓ AWARDING {achievement_code} with metadata level={target_level} ({max_consecutive} consecutive correct at level {target_level})")
+                    achievement = AchievementService.create_achievement(
+                        user_id=user.id,
+                        code=achievement_code,
+                        title=config["title"],
+                        description=config["description"],
+                        icon=config["icon"],
+                        category=config["category"],
+                        metadata={"level": target_level},
+                    )
+                    new_achievements.append(achievement)
+        
+        # Store levels_with_bronze in a way that can be checked for Level Grandmaster
+        # We'll check this in the Level Grandmaster method
+        if new_achievements:
+            db.session.commit()
+        
+        return new_achievements
+
+    @staticmethod
+    @log_query
+    def check_lightning_fast_achievements(user: User, session_id: int | None = None) -> list[Achievement]:
+        """Check and award Lightning Fast (level-specific speed) achievements.
+        
+        Awards lightning-fast achievements per level with metadata when user achieves
+        required speed at a specific level.
+        
+        Args:
+            user: The user to check
+            session_id: Optional session ID to link achievements
+            
+        Returns:
+            List of newly created achievements
+        """
+        from ..utils.tier_utils import ALL_TIERS, get_tier_value
+        
+        new_achievements = []
+        achievement_configs = _get_achievement_configs()
+        
+        # Get session if provided
+        session = None
+        if session_id:
+            session = PracticeSession.query.get(session_id)
+            if not session or not session.completed_at:
+                return []
+        
+        # Get all distinct levels from questions
+        all_levels = [
+            row[0] for row in
+            db.session.query(Question.required_level)
+            .distinct()
+            .order_by(Question.required_level.asc())
+            .all()
+        ]
+        
+        if not all_levels:
+            return new_achievements
+        
+        _debug_print(f"\n[ACHIEVEMENT DEBUG] check_lightning_fast_achievements: User {user.id}, levels={all_levels}")
+        
+        # Get existing lightning-fast achievements with metadata
+        existing_lightning_fast = Achievement.query.filter_by(user_id=user.id).filter(
+            Achievement.code.like("lightning-fast-%")
+        ).all()
+        
+        # Build a map of level -> existing achievements for that level
+        level_achievements_map: dict[int, list[Achievement]] = {}
+        for ach in existing_lightning_fast:
+            if ach.achievement_metadata:
+                try:
+                    metadata_dict = json.loads(ach.achievement_metadata)
+                    level = metadata_dict.get("level")
+                    if level is not None:
+                        if level not in level_achievements_map:
+                            level_achievements_map[level] = []
+                        level_achievements_map[level].append(ach)
+                except (json.JSONDecodeError, TypeError):
+                    pass
+        
+        # Check each level separately
+        for target_level in all_levels:
+            # Get responses for this level
+            level_responses = (
+                Response.query.filter_by(user_id=user.id)
+                .join(Question)
+                .filter(Question.required_level == target_level)
+                .all()
+            )
+            
+            if not level_responses:
+                continue
+            
+            # Calculate average speed for this level
+            total_duration_ms = sum(r.duration_ms or 0 for r in level_responses)
+            total_questions = len(level_responses)
+            avg_speed = (total_duration_ms / 1000.0 / total_questions) if total_questions > 0 else None
+            
+            if not avg_speed or total_questions < 10:  # Need at least 10 questions
+                continue
+            
+            # Get existing achievements for this level
+            existing_for_level = level_achievements_map.get(target_level, [])
+            existing_tiers = {ach.code.split("-")[-1] for ach in existing_for_level}
+            
+            # Find highest qualifying tier for this level
+            qualifying_tiers = []
+            for tier in ALL_TIERS:
+                achievement_code = f"lightning-fast-{tier}"
+                config = achievement_configs.get(achievement_code)
+                if not config:
+                    continue
+                
+                requirements = config.get("requirements", {})
+                max_speed = requirements.get("max_speed_seconds", 999)
+                min_questions = requirements.get("min_questions", 10)
+                
+                # Check if this tier is already awarded for this level
+                if achievement_code in existing_tiers:
+                    continue
+                
+                # Check if avg_speed meets the requirement
+                if avg_speed <= max_speed and total_questions >= min_questions:
+                    qualifying_tiers.append((tier, achievement_code, config, max_speed))
+            
+            if qualifying_tiers:
+                # Sort by tier value (highest first) and award the highest tier
+                qualifying_tiers.sort(key=lambda x: get_tier_value(x[0]), reverse=True)
+                highest_tier, achievement_code, config, max_speed_req = qualifying_tiers[0]
+                
+                # Don't award multiple for same performance
+                # Check if there's already a higher or equal tier awarded
+                should_award = True
+                for existing_ach in existing_for_level:
+                    existing_tier = existing_ach.code.split("-")[-1]
+                    existing_tier_value = get_tier_value(existing_tier)
+                    new_tier_value = get_tier_value(highest_tier)
+                    
+                    # If we're trying to award the same tier, don't award
+                    if existing_tier == highest_tier:
+                        should_award = False
+                        break
+                    
+                    # If we're trying to award a lower tier than what's already awarded, don't award
+                    if new_tier_value < existing_tier_value:
+                        should_award = False
+                        break
+                
+                if should_award:
+                    _debug_print(f"[ACHIEVEMENT DEBUG]   ✓ AWARDING {achievement_code} with metadata level={target_level} (avg speed {avg_speed:.2f}s at level {target_level})")
+                    achievement = AchievementService.create_achievement(
+                        user_id=user.id,
+                        code=achievement_code,
+                        title=config["title"],
+                        description=config["description"],
+                        icon=config["icon"],
+                        category=config["category"],
+                        session_id=session_id,
+                        metadata={"level": target_level},
+                    )
+                    new_achievements.append(achievement)
+        
+        if new_achievements:
+            db.session.commit()
+        
+        return new_achievements
+
+    @staticmethod
+    @log_query
+    def check_level_grandmaster_achievement(user: User) -> list[Achievement]:
+        """Check and award Level Grandmaster milestone achievement.
+        
+        Requires having Level Master (Bronze) achievement and having achieved
+        30 consecutive correct at ALL levels in the system.
+        Previously named "Master Of All", renamed to "Level Grandmaster".
+        
+        Args:
+            user: The user to check
+        
+        Returns:
+            List of newly created achievements
+        """
+        new_achievements = []
+        user_achievement_codes = AchievementService.get_achievement_codes(user.id)
+        achievement_configs = _get_achievement_configs()
+        
+        # Check if user has Level Master (Bronze) achievement
+        if "level-master-bronze" not in user_achievement_codes:
+            return new_achievements
+        
+        # Get all distinct levels from questions
+        all_levels = [
+            row[0] for row in
+            db.session.query(Question.required_level)
+            .distinct()
+            .order_by(Question.required_level.asc())
+            .all()
+        ]
+        
+        if not all_levels:
+            return new_achievements
+        
+        _debug_print(f"\n[ACHIEVEMENT DEBUG] check_level_grandmaster_achievement: User {user.id}, levels={all_levels}")
+        
+        milestone_code = "level-grandmaster"
+        
+        # Skip if already earned
+        if milestone_code in user_achievement_codes:
+            return new_achievements
+        
+        # Check if user has achieved 30 consecutive correct at ALL levels
+        all_levels_qualified = True
+        for target_level in all_levels:
+            # Get all responses for this level, ordered chronologically
+            level_responses = (
+                Response.query.filter_by(user_id=user.id)
+                .join(Question)
+                .filter(Question.required_level == target_level)
+                .order_by(Response.answered_at.asc())
+                .all()
+            )
+            
+            if not level_responses:
+                all_levels_qualified = False
+                break
+            
+            # Calculate maximum consecutive correct count for this level
+            max_consecutive = 0
+            current_consecutive = 0
+            
+            for response in level_responses:
+                if response.is_correct:
+                    current_consecutive += 1
+                    max_consecutive = max(max_consecutive, current_consecutive)
+                else:
+                    current_consecutive = 0
+            
+            # Check if this level has achieved bronze threshold (30 consecutive)
+            if max_consecutive < 30:
+                all_levels_qualified = False
+                _debug_print(f"[ACHIEVEMENT DEBUG]   Level {target_level} has only {max_consecutive} consecutive (need 30)")
+                break
+        
+        if all_levels_qualified:
+            config = achievement_configs.get(milestone_code)
+            if config:
+                _debug_print(f"[ACHIEVEMENT DEBUG]   ✓ AWARDING {milestone_code} (Level Master Bronze on all {len(all_levels)} levels)")
+                achievement = AchievementService.create_achievement(
+                    user_id=user.id,
+                    code=milestone_code,
+                    title=config["title"],
+                    description=config["description"],
+                    icon=config["icon"],
+                    category=config["category"],
+                )
+                new_achievements.append(achievement)
+        
+        if new_achievements:
+            db.session.commit()
+        
+        return new_achievements
 
     @staticmethod
     @log_query
@@ -2228,168 +2660,5 @@ class AchievementService:
         
         return new_achievements
 
-    @staticmethod
-    @log_query
-    def check_generic_test_achievements(session: PracticeSession) -> list[Achievement]:
-        """Check session for generic test achievements using new tier system and award highest tier.
-        
-        This replaces the old check_test_tier_achievements with the new metal/prestige tier system.
-        
-        Args:
-            session: Completed test session to check
-            
-        Returns:
-            List of newly created achievements
-        """
-        if not session.is_test or not session.test_type or not session.completed_at:
-            return []
-        
-        from ..config.achievements import ACHIEVEMENTS_CONFIG
-        from ..utils.tier_utils import ALL_TIERS, get_tier_value
-        
-        new_achievements = []
-        user_achievement_codes = AchievementService.get_achievement_codes(session.user_id)
-        
-        # Get all test achievements from config (includes both new and legacy)
-        # Filter to only test category achievements
-        test_achievements = {
-            code: config for code, config in ACHIEVEMENTS_CONFIG.items()
-            if config.get("category") == "test" and config.get("requirements", {}).get("type") == "test_tier"
-        }
-        
-        # Map backend test_type to frontend format
-        test_type_mapping = {
-            "addition_1digit": "addition-1digit",
-            "addition_2digit": "addition-2digit",
-            "addition_3digit": "addition-3digit",
-            "subtraction_1digit": "subtraction-1digit",
-            "subtraction_2digit": "subtraction-2digit",
-            "subtraction_3digit": "subtraction-3digit",
-            "multiplication_1": "multiplication-by-1",
-            "multiplication_2": "multiplication-by-2",
-            "multiplication_3": "multiplication-by-3",
-            "multiplication_4": "multiplication-by-4",
-            "multiplication_5": "multiplication-by-5",
-            "multiplication_6": "multiplication-by-6",
-            "multiplication_7": "multiplication-by-7",
-            "multiplication_8": "multiplication-by-8",
-            "multiplication_9": "multiplication-by-9",
-            "multiplication_10": "multiplication-by-10",
-            "multiplication_11": "multiplication-by-11",
-            "multiplication_12": "multiplication-by-12",
-            "multiplication_2digit": "multiplication-2digit",
-            "multiplication_3digit": "multiplication-3digit",
-            "division_1digit": "division-by-1",
-            "division_2digit": "division-by-2",
-            "division_3digit": "division-by-3",
-        }
-        
-        frontend_test_type = test_type_mapping.get(session.test_type)
-        if not frontend_test_type:
-            # Try direct match
-            frontend_test_type = session.test_type.replace("_", "-")
-        
-        # Get session metrics
-        total_questions = session.total_questions
-        accuracy = session.accuracy  # Already in percentage (0-100)
-        total_duration_ms = session.total_duration_ms or 0
-        avg_time_per_question = (total_duration_ms / 1000.0 / total_questions) if total_questions > 0 and total_duration_ms else None
-        
-        # Check all tiers from highest to lowest
-        tiers_achieved = []
-        
-        for tier in reversed(ALL_TIERS):
-            achievement_code = f"{frontend_test_type}-{tier}"
-            
-            if achievement_code not in test_achievements:
-                continue
-            
-            if achievement_code in user_achievement_codes:
-                continue
-            
-            config = test_achievements[achievement_code]
-            requirements = config.get("requirements", {})
-            
-            # Check if test_type matches
-            if requirements.get("test_type") != frontend_test_type:
-                continue
-            
-            # Check tier requirements
-            min_accuracy_req = requirements.get("min_accuracy")
-            min_question_count_req = requirements.get("min_question_count", 1)
-            max_question_count_req = requirements.get("max_question_count")
-            max_speed_req = requirements.get("max_speed")
-            
-            meets_requirements = True
-            
-            # Check accuracy (convert percentage to 0-100 range for comparison)
-            if min_accuracy_req:
-                if accuracy < min_accuracy_req:
-                    meets_requirements = False
-            
-            # Check question count
-            if total_questions < min_question_count_req:
-                meets_requirements = False
-            
-            if max_question_count_req and total_questions > max_question_count_req:
-                meets_requirements = False
-            
-            # Check speed
-            if max_speed_req:
-                if avg_time_per_question is None:
-                    meets_requirements = False
-                elif avg_time_per_question >= max_speed_req:
-                    meets_requirements = False
-            
-            if meets_requirements:
-                tiers_achieved.append((tier, achievement_code, config))
-        
-        # Award only the highest tier achieved
-        if tiers_achieved:
-            # Sort by tier value (highest first)
-            tiers_achieved.sort(key=lambda x: get_tier_value(x[0]), reverse=True)
-            highest_tier, achievement_code, config = tiers_achieved[0]
-            
-            # Check for Champion tier eligibility if this is Divine tier
-            if highest_tier == "divine":
-                champion_code = f"{frontend_test_type}-champion"
-                if champion_code in test_achievements:
-                    champion_config = test_achievements[champion_code]
-                    champion_req = champion_config.get("requirements", {})
-                    
-                    # Check if Champion requirements are also met
-                    champion_eligible = True
-                    if champion_req.get("min_accuracy") and accuracy < champion_req.get("min_accuracy"):
-                        champion_eligible = False
-                    if total_questions < champion_req.get("min_question_count", 1):
-                        champion_eligible = False
-                    if champion_req.get("max_question_count") and total_questions > champion_req.get("max_question_count"):
-                        champion_eligible = False
-                    if champion_req.get("max_speed"):
-                        if avg_time_per_question is None or avg_time_per_question >= champion_req.get("max_speed"):
-                            champion_eligible = False
-                    
-                    # If Champion requirements met, check server record
-                    if champion_eligible:
-                        if AchievementService.checkChampionEligibility(champion_code, session, "champion"):
-                            # Award Champion instead
-                            achievement_code = champion_code
-                            config = champion_config
-            
-            # Award the achievement
-            achievement = AchievementService.create_achievement(
-                user_id=session.user_id,
-                code=achievement_code,
-                title=config["title"],
-                description=config["description"],
-                icon=config["icon"],
-                category=config["category"],
-                session_id=session.id,
-            )
-            new_achievements.append(achievement)
-        
-        if new_achievements:
-            db.session.commit()
-        
-        return new_achievements
+    # Test achievement methods removed - test achievements are no longer used
 

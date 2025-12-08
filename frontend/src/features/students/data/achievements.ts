@@ -45,7 +45,8 @@ export type Achievement = {
   category: string
   count?: number
   lastEarnedAt?: Date
-  // Test-specific fields
+  metadata?: Record<string, any> // Level/operation filters for achievements with metadata
+  // Test-specific fields (deprecated - test achievements removed)
   testType?: TestType
   performanceTier?: PerformanceTier
   speedRequirement?: number // seconds per question

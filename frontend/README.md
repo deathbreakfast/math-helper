@@ -14,10 +14,22 @@ The Math Helper frontend pairs Vite + React 19 with Tailwind CSS, Framer Motion,
 ```bash
 cd frontend
 npm install
+
+# Set port via environment variable or use --port flag
+export VITE_PORT=5173  # Optional: Vite defaults to 5173
 npm run dev
 ```
 
-The dev server runs on `http://localhost:5173`. During this local-only phase the UI does not call the backend, so you can iterate on visuals without needing Flask online.
+The dev server runs on `http://localhost:5173` (or configured port). The UI proxies `/api/*` calls to the Flask backend.
+
+**Environment Variables:**
+- `VITE_BACKEND_URL` - Backend API URL (default: `http://localhost:5004`)
+- `VITE_PORT` - Port for Vite dev server (default: `5173`)
+- `VITE_DEV_MODE` - Set to `true` to enable dev mode features like user reset (default: `false`)
+- `VITE_LOG_LEVEL` - Logging level: DEBUG, INFO, WARN, ERROR, NONE (default: DEBUG in dev, INFO in production)
+- `VITE_LOGGING_ENABLED` - Set to `false` to disable logging (default: `true`)
+
+See `.env.example` for all available configuration options.
 
 ## Styling system
 
@@ -55,18 +67,24 @@ Both the backend and frontend servers must be running for E2E tests to work prop
    ```bash
    cd ../backend
    source .venv/bin/activate  # or activate your virtual environment
+   export FLASK_RUN_PORT=5004  # Optional
    flask --app app run --debug --port 5004 --host 0.0.0.0
    ```
 
 2. **Start the frontend dev server** (in another terminal):
    ```bash
    cd frontend
+   export VITE_PORT=5003  # Optional
+   export FRONTEND_PORT=5003  # For Playwright tests
    npm run dev -- --port 5003
    ```
 
 3. **Run the tests** (in a third terminal):
    ```bash
    cd frontend
+   export BACKEND_PORT=5004  # Optional: defaults to 5004
+   export FRONTEND_PORT=5003  # Optional: defaults to 5003
+   export VITE_BACKEND_URL=http://localhost:5004  # Optional
    npm run test:e2e
    ```
 
@@ -80,7 +98,7 @@ Both the backend and frontend servers must be running for E2E tests to work prop
 - Tests are located in the `e2e/` directory
 - See `e2e/TEST_COVERAGE.md` for a comprehensive list of all tests organized by category
 - Tests verify that pages load correctly and interactive elements have proper test IDs
-- The Playwright config (`playwright.config.ts`) is set to use port 5003 and will reuse an existing dev server if one is running
+- The Playwright config (`playwright.config.ts`) uses `FRONTEND_PORT` environment variable (default: 5003) and will reuse an existing dev server if one is running
 
 ### Test Files
 

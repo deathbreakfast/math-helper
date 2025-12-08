@@ -6,8 +6,6 @@ import json
 import random
 from typing import Any
 
-from ..config.levels_config import LEVELS_CONFIG
-from ..config.test_requirements import get_test_requirements
 from ..config.tests.test_definitions import NEW_TEST_DEFINITIONS
 from ..database import log_query, transaction
 from ..models import User, db
@@ -24,47 +22,12 @@ class SessionEngineService:
     # Test type definitions: (test_type, operation, level, question_count, constraints)
     # Legacy test types (kept for backward compatibility)
     TEST_TYPES = {
-        # Multiplication tables (levels 9-21)
-        "multiplication_1": ("multiplication", 9, 20, {"multiplication_table": 1}),
-        "multiplication_2": ("multiplication", 10, 20, {"multiplication_table": 2}),
-        "multiplication_3": ("multiplication", 11, 20, {"multiplication_table": 3}),
-        "multiplication_4": ("multiplication", 12, 20, {"multiplication_table": 4}),
-        "multiplication_5": ("multiplication", 13, 20, {"multiplication_table": 5}),
-        "multiplication_6": ("multiplication", 14, 20, {"multiplication_table": 6}),
-        "multiplication_7": ("multiplication", 15, 20, {"multiplication_table": 7}),
-        "multiplication_8": ("multiplication", 16, 20, {"multiplication_table": 8}),
-        "multiplication_9": ("multiplication", 17, 20, {"multiplication_table": 9}),
-        "multiplication_0": ("multiplication", 18, 20, {"multiplication_table": 0}),
-        "multiplication_10": ("multiplication", 19, 20, {"multiplication_table": 10}),
-        "multiplication_11": ("multiplication", 20, 20, {"multiplication_table": 11}),
-        "multiplication_12": ("multiplication", 21, 20, {"multiplication_table": 12}),
-        # Division tables (levels 26-37)
-        "division_1": ("division", 26, 20, {"division_table": 1}),
-        "division_2": ("division", 27, 20, {"division_table": 2}),
-        "division_3": ("division", 28, 20, {"division_table": 3}),
-        "division_4": ("division", 29, 20, {"division_table": 4}),
-        "division_5": ("division", 30, 20, {"division_table": 5}),
-        "division_6": ("division", 31, 20, {"division_table": 6}),
-        "division_7": ("division", 32, 20, {"division_table": 7}),
-        "division_8": ("division", 33, 20, {"division_table": 8}),
-        "division_9": ("division", 34, 20, {"division_table": 9}),
-        "division_10": ("division", 35, 20, {"division_table": 10}),
-        "division_11": ("division", 36, 20, {"division_table": 11}),
-        "division_12": ("division", 37, 20, {"division_table": 12}),
-        # Legacy division tests (kept for backward compatibility)
-        "division_2digit": ("division", 4, 30, {"division_digits": 2}),
-        "division_3digit": ("division", 4, 40, {"division_digits": 3}),
-        "division_fraction": ("division", 4, 30, {"answer_format": "fraction"}),
-        "division_decimal": ("division", 4, 30, {"answer_format": "decimal"}),
     }
     
     # Add new test types from NEW_TEST_DEFINITIONS
     # Convert format: (operation, level, question_count, constraints, display_name) -> (operation, level, question_count, constraints)
     for test_type, (operation, level, question_count, constraints, _) in NEW_TEST_DEFINITIONS.items():
         TEST_TYPES[test_type] = (operation, level, question_count, constraints)
-    
-    # Level-based test types (levels 1-45) - will be initialized below
-    LEVEL_TEST_TYPES: dict[str, tuple[str, int, int, dict[str, Any]]] = {}
 
     @staticmethod
     def _get_test_achievement_code(test_type: str) -> str:
@@ -80,18 +43,6 @@ class SessionEngineService:
         Returns:
             Tuple of (is_eligible, error_message)
         """
-        # Check if it's a level-based test type
-        if test_type in SessionEngineService.LEVEL_TEST_TYPES:
-            # Extract level from test_type (e.g., "level_1" -> 1)
-            try:
-                level = int(test_type.split("_")[1])
-            except (ValueError, IndexError):
-                return False, f"Invalid level-based test type: {test_type}"
-            
-            # Use new test eligibility service
-            is_eligible, reason, _ = TestEligibilityService.check_test_eligibility(user, level)
-            return is_eligible, reason
-        
         # Check if it's a new test type (descriptive identifier)
         if test_type in SessionEngineService.TEST_TYPES:
             _, required_level, _, _ = SessionEngineService.TEST_TYPES[test_type]
@@ -248,9 +199,7 @@ class SessionEngineService:
                 raise ValueError(f"Test eligibility check failed: {error_msg}")
             
             # Get test configuration
-            if test_type in SessionEngineService.LEVEL_TEST_TYPES:
-                operation, required_level, question_count, constraints = SessionEngineService.LEVEL_TEST_TYPES[test_type]
-            elif test_type in SessionEngineService.TEST_TYPES:
+            if test_type in SessionEngineService.TEST_TYPES:
                 operation, required_level, question_count, constraints = SessionEngineService.TEST_TYPES[test_type]
             else:
                 raise ValueError(f"Unknown test type: {test_type}")
@@ -295,84 +244,43 @@ class SessionEngineService:
             # Default question count for practice
             question_count = 10
             
-            # Check if adaptive distribution should be applied
-            # Check all levels up to user's level for failed retakes
-            use_adaptive = False
-            adaptive_level = None
-            for level in range(1, user.level + 1):
-                if AdaptiveDistributionService.should_apply_adaptive_distribution(user.id, level):
-                    use_adaptive = True
-                    adaptive_level = level
-                    break  # Use the first level that needs adaptive distribution
+            # Always use adaptive distribution (new category-based system)
+            # Category is selected at session level - all questions use same category
+            distribution = AdaptiveDistributionService.generate_adaptive_question_distribution(
+                user, session_level
+            )
             
             # Generate questions
             questions = []
-            if use_adaptive and adaptive_level:
-                # Use adaptive distribution
-                distribution = AdaptiveDistributionService.generate_adaptive_question_distribution(
-                    user, session_level
-                )
+            for i in range(question_count):
+                # Select level from distribution
+                question_level = AdaptiveDistributionService.select_level_from_distribution(distribution)
                 
-                for i in range(question_count):
-                    # Select level from distribution
-                    question_level = AdaptiveDistributionService.select_level_from_distribution(distribution)
-                    
-                    # Get operation for the selected level
-                    operation = AdaptiveDistributionService.get_operation_for_level(question_level)
-                    
-                    # Generate question
-                    question_data = QuestionService.generate_question(
-                        operation=operation,
-                        level=question_level,
-                        test_constraints=None,
-                    )
-                    questions.append(question_data)
-            else:
-                # Standard practice session distribution
-                # Determine operations based on mode and level
-                operations = []
-                if mode == "multiplication":
-                    operations = ["multiplication"]
-                elif mode == "division":
-                    operations = ["division"]
-                else:
-                    # Standard mode - mix operations based on level
-                    if session_level == 1:
-                        operations = ["addition", "subtraction"]
-                    elif session_level == 2:
-                        operations = ["addition", "subtraction"]
-                    elif session_level == 3:
-                        operations = ["multiplication"]
-                    elif session_level == 4:
-                        operations = ["division"]
-                    else:
-                        operations = QuestionService.OPERATIONS
+                # Get operation for the selected level
+                operation = AdaptiveDistributionService.get_operation_for_level(question_level)
                 
-                # Generate questions with mixed levels for practice
-                for i in range(question_count):
-                    # Mix levels: 70% current level, 20% level-1, 10% level-2 (if available)
-                    rand = random.random()
-                    if rand < 0.7:
-                        question_level = session_level
-                    elif rand < 0.9 and session_level > 1:
-                        question_level = session_level - 1
-                    elif session_level > 2:
-                        question_level = session_level - 2
-                    else:
-                        question_level = session_level
-                    
-                    # Ensure level is at least 1
-                    question_level = max(1, question_level)
-                    
-                    # Select operation
-                    operation = random.choice(operations)
-                    
-                    # Generate question
-                    question_data = QuestionService.generate_question(
-                        operation=operation,
-                        level=question_level,
-                        test_constraints=None,
-                    )
+                # Generate question with retry logic for invalid level configurations
+                max_retries = 3
+                question_data = None
+                for retry in range(max_retries):
+                    try:
+                        question_data = QuestionService.generate_question(
+                            operation=operation,
+                            level=question_level,
+                            test_constraints=None,
+                        )
+                        break  # Success, exit retry loop
+                    except ValueError as e:
+                        # Invalid level configuration (e.g., division by zero)
+                        if retry < max_retries - 1:
+                            # Try with user's current level as fallback
+                            question_level = user.level
+                            operation = AdaptiveDistributionService.get_operation_for_level(question_level)
+                        else:
+                            # Last retry failed, raise the error
+                            raise
+                
+                if question_data:
                     questions.append(question_data)
             
             # Create session
@@ -399,22 +307,3 @@ class SessionEngineService:
                 "level": session_level,
                 "questions": questions,
             }
-
-
-def _initialize_level_test_types():
-    """Initialize level-based test types from test requirements config."""
-    level_test_types = {}
-    for level in range(1, 46):  # Levels 1-45
-        test_requirements = get_test_requirements(level)
-        if test_requirements:
-            level_config = LEVELS_CONFIG.get(level, {})
-            operation = level_config.get("operation", "addition")
-            question_count = test_requirements["question_count"]
-            test_type = test_requirements["test_type"]
-            # No special constraints for level-based tests
-            level_test_types[test_type] = (operation, level, question_count, {})
-    return level_test_types
-
-
-# Initialize level test types at module load
-SessionEngineService.LEVEL_TEST_TYPES = _initialize_level_test_types()

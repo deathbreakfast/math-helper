@@ -36,6 +36,12 @@ export const AchievementsSection = ({ achievements, showAchievements }: Achievem
                 <div className="flex-1 min-w-0">
                   <div className="font-semibold text-gray-900">{achievement.title}</div>
                   <div className="text-sm text-gray-600 mt-1">{achievement.description}</div>
+                  {achievement.metadata && (
+                    <div className="text-xs text-gray-500 mt-1">
+                      {achievement.metadata.level && `Level ${achievement.metadata.level}`}
+                      {achievement.metadata.operation && ` • ${achievement.metadata.operation}`}
+                    </div>
+                  )}
                 </div>
                 <Star className="w-5 h-5 text-yellow-500 fill-yellow-500 flex-shrink-0" />
               </motion.div>

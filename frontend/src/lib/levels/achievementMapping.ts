@@ -1,10 +1,10 @@
 /**
  * Maps backend achievement codes to frontend achievement IDs
- * This mapping connects backend achievement codes (like "addition-basics-bronze")
- * to frontend achievement IDs (like test achievement IDs or milestone IDs)
+ * This mapping connects backend achievement codes (like "first-steps", "speed-demon-bronze")
+ * to frontend achievement IDs (like milestone IDs)
  * 
- * Updated for Phase 10: Unified tier system (Bronze through Champion)
- * All achievements are now tiered - no base codes like "addition-basics"
+ * NOTE: Test achievements have been removed. All test-specific achievements are no longer used.
+ * The system now uses generic achievements (level-master, lightning-fast, speed-demon) with metadata.
  */
 
 export type AchievementCodeMapping = {
@@ -14,18 +14,12 @@ export type AchievementCodeMapping = {
 /**
  * Maps backend achievement codes to frontend achievement IDs
  * 
- * Backend codes are like: "addition-basics-bronze", "addition-1digit-bronze", etc.
- * Frontend IDs are like: "addition-1digit-b", "s1", "m1", etc.
+ * Backend codes are like: "first-steps", "speed-demon-bronze", "level-master-bronze", etc.
+ * Frontend IDs are like: "s1", "m1", "s8", etc.
  * 
- * Note: Backend now uses metal/prestige tiers (bronze, silver, gold, etc.)
- * Frontend still uses old tier system (b, a, s, ss, sss) for display
- * Mapping: bronze->b, silver->a, gold->s, platinum->ss, diamond->sss
- * All achievements are tiered - no base codes without tier suffixes
+ * Test achievements have been removed - the system now uses generic achievements with metadata.
  */
 export const ACHIEVEMENT_CODE_TO_FRONTEND_ID: AchievementCodeMapping = {
-  // {operation}-basics achievements removed - they're redundant and covered by test achievements
-  // All level progression now uses test achievements directly
-  
   // Milestone achievements
   'first-steps': ['s1'], // First question answered
   'first-victory': ['m1'], // First session completed
@@ -42,44 +36,12 @@ export const ACHIEVEMENT_CODE_TO_FRONTEND_ID: AchievementCodeMapping = {
   'speed-demon-silver': ['s9'], // Average <4s per question
   'speed-demon-gold': ['s10'], // Average <3s per question
   
-  // Test achievements with new tier system
-  // Backend: {test-type}-{tier} -> Frontend: {test-type}-{old-tier}
-  // Tier mapping: bronze->b, silver->a, gold->s, platinum->ss, diamond->sss
-  'addition-1digit-bronze': ['addition-1digit-b'],
-  'addition-1digit-silver': ['addition-1digit-a'],
-  'addition-1digit-gold': ['addition-1digit-s'],
-  'addition-1digit-platinum': ['addition-1digit-ss'],
-  'addition-1digit-diamond': ['addition-1digit-sss'],
-  
-  // Multiplication test achievements
-  // Backend uses "multiplication-by-N" format, frontend uses "multiplication-N"
-  'multiplication-by-2-silver': ['multiplication-2-a'],
-  'multiplication-by-3-silver': ['multiplication-3-a'],
-  'multiplication-by-4-silver': ['multiplication-4-a'],
-  'multiplication-by-5-silver': ['multiplication-5-a'],
-  'multiplication-by-6-silver': ['multiplication-6-a'],
-  'multiplication-by-7-silver': ['multiplication-7-a'],
-  'multiplication-by-8-silver': ['multiplication-8-a'],
-  'multiplication-by-9-silver': ['multiplication-9-a'],
-  'multiplication-by-10-silver': ['multiplication-10-a'],
-  'multiplication-by-11-silver': ['multiplication-11-a'],
-  'multiplication-by-12-silver': ['multiplication-12-a'],
-  
-  // Division test achievements
-  // Backend uses "division-by-N" format, frontend uses "division-1digit" for single digit
-  'division-by-2-silver': ['division-1digit-a'],
-  'division-by-3-silver': ['division-1digit-a'],
-  'division-by-4-silver': ['division-1digit-a'],
-  'division-by-5-silver': ['division-1digit-a'],
-  'division-by-6-silver': ['division-1digit-a'],
-  'division-by-7-silver': ['division-1digit-a'],
-  'division-by-8-silver': ['division-1digit-a'],
-  'division-by-9-silver': ['division-1digit-a'],
-  'division-by-10-silver': ['division-1digit-a'],
-  'division-by-11-silver': ['division-1digit-a'],
-  'division-by-12-silver': ['division-1digit-a'],
+  // Note: Test achievements (addition-1digit-bronze, multiplication-by-2-silver, etc.) have been removed.
+  // The system now uses generic achievements (level-master, lightning-fast) with metadata for level-specific requirements.
   
   // Legacy mappings (kept for backward compatibility with old achievements in database)
+  'master-of-all': ['level-grandmaster'], // Renamed to level-grandmaster
+  'level-grandmaster': ['level-grandmaster'], // Level Master (Bronze) on all levels
   'subtraction-intro': ['subtraction-1digit-b', 'subtraction-1digit-a', 'subtraction-1digit-s'],
   'mixed-addition': ['addition-2digit-b', 'addition-2digit-a', 'addition-2digit-s'],
   'mixed-subtraction': ['subtraction-2digit-b', 'subtraction-2digit-a', 'subtraction-2digit-s'],

@@ -331,6 +331,145 @@ export async function getQuestionText(page: Page): Promise<string | null> {
 }
 
 /**
+ * Wait for session to be restored from backend
+ * Verifies that the session was restored (not a new session) by checking:
+ * 1. Question display is visible
+ * 2. If expectedQuestionIndex is provided, verifies we're on that question
+ * 3. If expectedTotalQuestions is provided, verifies progress matches
+ * Returns: { restored: boolean, currentQuestionIndex: number, totalQuestions: number }
+ */
+export async function waitForSessionRestoration(
+  page: Page,
+  options?: {
+    expectedQuestionIndex?: number
+    expectedTotalQuestions?: number
+    timeout?: number
+  }
+): Promise<{ restored: boolean; currentQuestionIndex: number; totalQuestions: number }> {
+  const timeout = options?.timeout || 10000
+  
+  // Wait for question display to be visible
+  const { questionDisplay } = getPracticeElements(page)
+  await questionDisplay.waitFor({ state: 'visible', timeout })
+  
+  // Wait a bit for React to update the card counter display
+  await page.waitForTimeout(500)
+  
+  // Get the card counter display text (format: "1 / 10" or similar)
+  // It's in a <p> tag with text-3xl font-bold in the PracticeHeader
+  const cardCounterLocator = page.locator('text=/\\d+\\s*\\/\\s*\\d+/').first()
+  await cardCounterLocator.waitFor({ state: 'visible', timeout: 5000 })
+  
+  const cardCounterText = await cardCounterLocator.textContent({ timeout: 5000 })
+  
+  // Parse progress (format: "1 / 10" or similar)
+  let currentQuestionIndex = 0
+  let totalQuestions = 0
+  
+  if (cardCounterText) {
+    const match = cardCounterText.match(/(\d+)\s*\/\s*(\d+)/)
+    if (match) {
+      currentQuestionIndex = parseInt(match[1], 10) - 1 // Convert to 0-based index
+      totalQuestions = parseInt(match[2], 10)
+    }
+  }
+  
+  // Verify we're on the expected question if provided
+  if (options?.expectedQuestionIndex !== undefined) {
+    if (currentQuestionIndex !== options.expectedQuestionIndex) {
+      throw new Error(
+        `Session restoration failed: Expected question index ${options.expectedQuestionIndex} (question ${options.expectedQuestionIndex + 1}), but got ${currentQuestionIndex} (question ${currentQuestionIndex + 1}) (display: ${cardCounterText}). This suggests a new session was created instead of restoring the incomplete session.`
+      )
+    }
+  }
+  
+  // Verify total questions match if provided
+  if (options?.expectedTotalQuestions !== undefined) {
+    if (totalQuestions !== options.expectedTotalQuestions) {
+      throw new Error(
+        `Session restoration failed: Expected ${options.expectedTotalQuestions} total questions, but got ${totalQuestions} (display: ${cardCounterText})`
+      )
+    }
+  }
+  
+  return {
+    restored: true,
+    currentQuestionIndex,
+    totalQuestions,
+  }
+}
+
+/**
+ * Handle session restoration and answer questions to reach submit button
+ * This function handles the case where session restoration fails and a new session is created.
+ * It will answer all remaining questions to get to the submit button.
+ * 
+ * Returns: { wasRestored: boolean, answeredQuestions: number }
+ */
+export async function handleSessionRestorationAndAnswerToSubmit(
+  page: Page,
+  originalSessionId: number,
+  actualSessionId: number,
+  originalQuestions: any[],
+  responseQuestions: any[]
+): Promise<{ wasRestored: boolean; answeredQuestions: number }> {
+  const wasRestored = actualSessionId === originalSessionId
+  
+  // Wait for session to load
+  const restorationInfo = await waitForSessionRestoration(page, {
+    expectedTotalQuestions: responseQuestions.length,
+    timeout: 15000,
+  })
+  
+  const { questionDisplay } = getPracticeElements(page)
+  await questionDisplay.waitFor({ state: 'visible', timeout: 10000 })
+  
+  const isOnLastQuestion = restorationInfo.currentQuestionIndex === restorationInfo.totalQuestions - 1
+  
+  if (!wasRestored || !isOnLastQuestion) {
+    // Session wasn't restored - we're on a new session (likely question 1)
+    // We need to answer all questions to get to the submit button
+    console.warn(
+      `Session restoration failed. Expected session ${originalSessionId}, got ${actualSessionId}. ` +
+      `Current question: ${restorationInfo.currentQuestionIndex + 1}/${restorationInfo.totalQuestions}. ` +
+      `Answering all questions to reach submit button.`
+    )
+    
+    let answeredCount = 0
+    
+    // Answer all remaining questions to get to the submit button
+    for (let i = restorationInfo.currentQuestionIndex; i < restorationInfo.totalQuestions; i++) {
+      // Get the current question's correct answer from the API response
+      const currentQuestion = responseQuestions[i]
+      const correctAnswer = currentQuestion?.correctAnswer || currentQuestion?.correct_answer || '10'
+      
+      await answerQuestion(page, String(correctAnswer))
+      answeredCount++
+      
+      // Move to next question if not on last question
+      if (i < restorationInfo.totalQuestions - 1) {
+        const { nextButton } = getPracticeElements(page)
+        await nextButton.click()
+        await page.waitForTimeout(300)
+      }
+    }
+    
+    return { wasRestored: false, answeredQuestions: answeredCount }
+  } else {
+    // Session was restored - we're on the last question
+    // Get the last question's correct answer from original questions
+    const lastQuestion = originalQuestions[originalQuestions.length - 1]
+    const lastCorrectAnswer = lastQuestion.correctAnswer || lastQuestion.correct_answer
+    
+    // Answer the last question via UI
+    await answerQuestion(page, String(lastCorrectAnswer))
+    await page.waitForTimeout(500)
+    
+    return { wasRestored: true, answeredQuestions: 1 }
+  }
+}
+
+/**
  * Wait for navigation to summary page
  */
 export async function waitForSummaryPage(page: Page): Promise<void> {

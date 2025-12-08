@@ -3,6 +3,7 @@ import {
   openJourneyModal,
   navigateToTestsTab,
   waitForTestCards,
+  clickTestCardSafely,
   handlePinVerification,
   createTestUserWithState,
   deleteTestUser,
@@ -103,14 +104,19 @@ test.describe('Tests Tab UI', () => {
   test('TST-UI-004: Test card displays correctly', async ({ page, request }) => {
     test.setTimeout(60000) // 60 second timeout for API setup
     
-    // Create user with test attempts
+    // Create user with achievements needed to unlock addition-1digit test
+    // addition-1digit requires: question-master-bronze and level-master-bronze with metadata {"level": 1}
     const testUser = await createTestUserWithState(request, {
       level: 1,
+      achievements: [
+        'question-master-bronze' as any,
+        { code: 'level-master-bronze', metadata: { level: 1 } }
+      ]
     })
 
     // Create a test attempt
     await createCompletedPracticeSessions(request, testUser.id, 1, 3)
-    await createPassedTestAttempt(request, testUser.id, 1, 'level_1')
+    await createPassedTestAttempt(request, testUser.id, 1, 'addition-1digit')
 
     await page.goto('/')
     await openJourneyModal(page, testUser)
@@ -136,31 +142,75 @@ test.describe('Tests Tab UI', () => {
   test('TST-UI-005: Test detail modal opens and displays attempts', async ({ page, request }) => {
     test.setTimeout(60000) // 60 second timeout for API setup
     
-    // Create user with multiple test attempts
+    // Create user with achievements needed to unlock addition-1digit test
+    // addition-1digit requires: question-master-bronze and level-master-bronze with metadata {"level": 1}
     const testUser = await createTestUserWithState(request, {
       level: 1,
+      achievements: [
+        'question-master-bronze' as any,
+        { code: 'level-master-bronze', metadata: { level: 1 } }
+      ]
     })
 
     await createCompletedPracticeSessions(request, testUser.id, 1, 3)
-    await createPassedTestAttempt(request, testUser.id, 1, 'level_1')
+    await createPassedTestAttempt(request, testUser.id, 1, 'addition-1digit')
+
+    // Wait a bit for database to commit the test attempt
+    await new Promise(resolve => setTimeout(resolve, 500))
 
     await page.goto('/')
     await openJourneyModal(page, testUser)
     await navigateToTestsTab(page)
 
-    // Find a test card with attempts and click it
+    // Find a test card with attempts and click it safely (avoids achievement links)
     const testCard = page.locator('[data-testid^="testid-test-card-"]').first()
-    await testCard.click()
+    await clickTestCardSafely(page, testCard)
 
     // Verify modal opens
     const modal = page.getByTestId('testid-test-detail-modal')
     await expect(modal).toBeVisible({ timeout: 5000 })
 
-    // Verify past attempts are listed
+    // Wait for attempts to load (the modal loads them asynchronously)
+    // First wait for "Loading attempts..." to disappear (if it appears)
+    const loadingText = page.locator('text=/Loading attempts/i')
+    await loadingText.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {
+      // Loading text might not appear if it loads quickly, that's okay
+    })
+    
+    // Wait for either attempt cards to appear OR a "no attempts" message
+    // This ensures we wait for the async loading to complete
     const attemptCards = page.locator('[data-testid^="testid-attempt-card-"]')
-    const attemptCount = await attemptCards.count()
+    const noAttemptsMessage = page.locator('text=/no attempts|no test attempts/i')
+    
+    // Wait for one of these to appear (indicating loading is complete)
+    await Promise.race([
+      attemptCards.first().waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
+      noAttemptsMessage.waitFor({ state: 'visible', timeout: 10000 }).catch(() => {}),
+      page.waitForTimeout(3000) // Fallback timeout
+    ])
 
-    // Should have at least one attempt
+    // Give a small additional wait for React to render
+    await page.waitForTimeout(500)
+
+    // Verify past attempts are listed
+    const attemptCount = await attemptCards.count()
+    console.log(`[TST-UI-005] Found ${attemptCount} attempt cards after loading`)
+
+    // Should have at least one attempt (we created one via createPassedTestAttempt)
+    if (attemptCount === 0) {
+      // Debug: Check if there's a "no attempts" message
+      const hasNoAttemptsMessage = await noAttemptsMessage.isVisible().catch(() => false)
+      if (hasNoAttemptsMessage) {
+        const messageText = await noAttemptsMessage.textContent()
+        console.error(`[TST-UI-005] No attempts found. Message: ${messageText}`)
+      }
+      // Check if loading is still showing
+      const stillLoading = await loadingText.isVisible().catch(() => false)
+      if (stillLoading) {
+        console.error('[TST-UI-005] Still loading attempts after timeout')
+      }
+    }
+    
     expect(attemptCount).toBeGreaterThan(0)
 
     // Verify attempt details (date, accuracy, tier, time)
@@ -173,21 +223,26 @@ test.describe('Tests Tab UI', () => {
   test('TST-UI-006: Test detail modal - drill down to questions', async ({ page, request }) => {
     test.setTimeout(60000) // 60 second timeout for API setup
     
-    // Create user with test attempt
+    // Create user with achievements needed to unlock addition-1digit test
+    // addition-1digit requires: question-master-bronze and level-master-bronze with metadata {"level": 1}
     const testUser = await createTestUserWithState(request, {
       level: 1,
+      achievements: [
+        'question-master-bronze' as any,
+        { code: 'level-master-bronze', metadata: { level: 1 } }
+      ]
     })
 
     await createCompletedPracticeSessions(request, testUser.id, 1, 3)
-    await createPassedTestAttempt(request, testUser.id, 1, 'level_1')
+    await createPassedTestAttempt(request, testUser.id, 1, 'addition-1digit')
 
     await page.goto('/')
     await openJourneyModal(page, testUser)
     await navigateToTestsTab(page)
 
-    // Click on test card
+    // Click on test card safely (avoids achievement links)
     const testCard = page.locator('[data-testid^="testid-test-card-"]').first()
-    await testCard.click()
+    await clickTestCardSafely(page, testCard)
 
     // Wait for modal
     await expect(page.getByTestId('testid-test-detail-modal')).toBeVisible({ timeout: 5000 })
@@ -214,9 +269,14 @@ test.describe('Tests Tab UI', () => {
   test('TST-UI-007: Start test from tests tab', async ({ page, request }) => {
     test.setTimeout(60000) // 60 second timeout for API setup
     
-    // Create eligible user
+    // Create user with achievements needed to unlock addition-1digit test
+    // addition-1digit requires: question-master-bronze and level-master-bronze with metadata {"level": 1}
     const testUser = await createTestUserWithState(request, {
       level: 1,
+      achievements: [
+        'question-master-bronze' as any,
+        { code: 'level-master-bronze', metadata: { level: 1 } }
+      ]
     })
 
     await createCompletedPracticeSessions(request, testUser.id, 1, 3)
@@ -280,14 +340,19 @@ test.describe('Tests Tab UI', () => {
   test('TST-UI-008: Test filtering works with new tier system', async ({ page, request }) => {
     test.setTimeout(80000) // 80 second timeout (1 min 20 sec) for API setup
     
-    // Create user with tests at different tiers
+    // Create user with achievements needed to unlock addition-1digit test
+    // addition-1digit requires: question-master-bronze and level-master-bronze with metadata {"level": 1}
     const testUser = await createTestUserWithState(request, {
       level: 10,
+      achievements: [
+        'question-master-bronze' as any,
+        { code: 'level-master-bronze', metadata: { level: 1 } }
+      ]
     })
 
     // Create test attempts with different tiers
     await createCompletedPracticeSessions(request, testUser.id, 1, 3)
-    await createPassedTestAttempt(request, testUser.id, 1, 'level_1')
+    await createPassedTestAttempt(request, testUser.id, 1, 'addition-1digit')
 
     await page.goto('/')
     await openJourneyModal(page, testUser)
@@ -357,8 +422,14 @@ test.describe('Tests Tab UI', () => {
   test('TST-UI-010: Test detail modal - start new test', async ({ page, request }) => {
     test.setTimeout(60000) // 60 second timeout for API setup
     
+    // Create user with achievements needed to unlock addition-1digit test
+    // addition-1digit requires: question-master-bronze and level-master-bronze with metadata {"level": 1}
     const testUser = await createTestUserWithState(request, {
       level: 1,
+      achievements: [
+        'question-master-bronze' as any,
+        { code: 'level-master-bronze', metadata: { level: 1 } }
+      ]
     })
 
     await createCompletedPracticeSessions(request, testUser.id, 1, 3)
@@ -370,9 +441,9 @@ test.describe('Tests Tab UI', () => {
     // Wait for test cards to render
     await waitForTestCards(page, 1)
 
-    // Open test detail modal
+    // Open test detail modal - click safely to avoid achievement links
     const testCard = page.locator('[data-testid^="testid-test-card-"]').first()
-    await testCard.click()
+    await clickTestCardSafely(page, testCard)
 
     await expect(page.getByTestId('testid-test-detail-modal')).toBeVisible({ timeout: 5000 })
 

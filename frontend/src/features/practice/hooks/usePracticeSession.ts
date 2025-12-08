@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import type { PracticeQuestion, User, PracticeAttempt } from '../types'
+import { logError } from '../../../utils/logger'
 
 export type PracticeMode = 'standard' | 'multiplication' | 'division'
 
@@ -257,7 +258,7 @@ export const usePracticeSession = ({
           setShowAnswer(false)
         }
       } catch (error) {
-        console.error('Error fetching problems:', error)
+        logError('Error fetching problems:', error)
         // Set error message for display
         const errorMessage = error instanceof Error ? error.message : 'Failed to start session'
         setSessionError(errorMessage)
@@ -355,7 +356,7 @@ export const usePracticeSession = ({
       setFeedback(feedbackState)
       setShowAnswer(true)
     } catch (error) {
-      console.error('Error checking answer:', error)
+      logError('Error checking answer:', error)
       // Fallback to client-side check
       const numericAnswer = Number(userAnswer)
       const correct = numericAnswer === Number(currentQuestion.correctAnswer)
@@ -497,14 +498,11 @@ export const usePracticeSession = ({
       } else {
         // Fallback: preserve context params manually
         const contextParams = new URLSearchParams()
-        if (searchParams.get('env')) {
-          contextParams.set('env', searchParams.get('env')!)
-        }
         contextParams.set('sessionId', sessionIdForNav)
         window.location.href = `/summary?${contextParams.toString()}`
       }
     } catch (error) {
-      console.error('Failed to complete session:', error)
+      logError('Failed to complete session:', error)
       // Fallback to client-side submission
       const attempts: PracticeAttempt[] = problems.map((problem) => {
         const answer = questionAnswers[problem.id]
@@ -553,9 +551,6 @@ export const usePracticeSession = ({
       } else {
         // Fallback: preserve context params manually
         const contextParams = new URLSearchParams()
-        if (searchParams.get('env')) {
-          contextParams.set('env', searchParams.get('env')!)
-        }
         contextParams.set('sessionId', sessionId)
         window.location.href = `/summary?${contextParams.toString()}`
       }

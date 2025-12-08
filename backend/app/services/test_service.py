@@ -15,7 +15,7 @@ from ..config.tests.test_definitions import (
 from ..database import log_query
 from ..models import PracticeSession, Response, TestAttempt, User, db
 from ..services.achievement_service import AchievementService
-from ..services.session_engine_service import SessionEngineService
+# SessionEngineService imported lazily to avoid circular import
 
 
 class TestService:
@@ -45,20 +45,10 @@ class TestService:
         
         # If not found in new definitions, check legacy test types
         if not test_def:
-            # Check LEVEL_TEST_TYPES (e.g., "level_1", "level_2")
-            if test_type in SessionEngineService.LEVEL_TEST_TYPES:
-                operation, level, question_count, constraints = SessionEngineService.LEVEL_TEST_TYPES[test_type]
-                test_def = {
-                    "test_type": test_type,
-                    "operation": operation,
-                    "level_requirement": level,
-                    "question_count": question_count,
-                    "constraints": constraints,
-                    "display_name": f"Level {level} Test",
-                    "is_legacy": True,
-                }
-            # Check TEST_TYPES (e.g., "multiplication_1", "division_1")
-            elif test_type in SessionEngineService.TEST_TYPES:
+            # Check TEST_TYPES (e.g., "multiplication-by-1", "division-by-1")
+            # Lazy import to avoid circular dependency
+            from ..services.session_engine_service import SessionEngineService
+            if test_type in SessionEngineService.TEST_TYPES:
                 operation, level, question_count, constraints = SessionEngineService.TEST_TYPES[test_type]
                 test_def = {
                     "test_type": test_type,
@@ -105,23 +95,104 @@ class TestService:
         
         # Achievement-based unlock check
         achievement_code = unlock_reqs.get("achievement_code")
-        quantity = unlock_reqs.get("quantity", 0)
+        achievement_codes = unlock_reqs.get("achievement_codes")  # Support multiple codes
+        quantity = unlock_reqs.get("quantity", 1)
         level = unlock_reqs.get("level")
         min_accuracy = unlock_reqs.get("min_accuracy")
         operation = unlock_reqs.get("operation")
         
-        # Count achievements matching requirements
-        count = AchievementService.count_achievements_by_code_with_filters(
-            user_id=user_id,
-            achievement_code=achievement_code,
-            level=level,
-            min_accuracy=min_accuracy,
-            operation=operation,
-        )
+        # Handle multiple achievement codes (new format)
+        if achievement_codes and isinstance(achievement_codes, list):
+            # Support per-achievement quantities (e.g., {"perfect-streak-platinum": 2, "perfect-streak-gold": 6})
+            # If quantities is a dict, use per-code quantities; otherwise use global quantity
+            quantities = unlock_reqs.get("quantities", {})
+            if not quantities and quantity:
+                # If no per-code quantities, use global quantity for all
+                quantities = {code: quantity for code in achievement_codes}
+            
+            # Check that user has at least required quantity of each achievement code
+            requirements_met = 0
+            requirements_total = len(achievement_codes)
+            reason_parts = []
+            all_unlocked = True
+            
+            # Get metadata filters if provided
+            metadata_filters = unlock_reqs.get("metadata_filters", {})
+            
+            for code in achievement_codes:
+                # Get required quantity for this specific code
+                required_qty = quantities.get(code, quantity if quantity else 1)
+                
+                # Get metadata filter for this achievement code if specified
+                metadata_filter = metadata_filters.get(code) if metadata_filters else None
+                
+                count = AchievementService.count_achievements_by_code_with_filters(
+                    user_id=user_id,
+                    achievement_code=code,
+                    level=None,  # Don't apply level filter for milestone achievements
+                    min_accuracy=None,
+                    operation=None,
+                    metadata_filter=metadata_filter,
+                )
+                has_required = count >= required_qty
+                if has_required:
+                    requirements_met += 1
+                else:
+                    all_unlocked = False
+                reason_parts.append(f"{code}: {count}/{required_qty}")
+            
+            is_unlocked = all_unlocked
+            
+            # Include achievement_codes in unlock_requirements for frontend
+            unlock_reqs_with_codes = unlock_reqs.copy()
+            unlock_reqs_with_codes["achievement_codes"] = achievement_codes
+            if quantities:
+                unlock_reqs_with_codes["quantities"] = quantities
+            
+            return {
+                "is_unlocked": is_unlocked,
+                "requirements_met": requirements_met,
+                "requirements_total": requirements_total,
+                "unlock_requirements": unlock_reqs_with_codes,
+                "reason": ", ".join(reason_parts),
+            }
+        
+        # Handle single achievement code (backward compatible)
+        # If achievement_code is missing but we have test_type, derive it from test_type
+        # Default quantity to 10 if not specified (common requirement for test unlocks)
+        if not achievement_code:
+            # Use test type pattern matching (counts all tiers for this test type)
+            if quantity is None:
+                quantity = 10  # Default to 10 achievements
+            count = AchievementService.count_achievements_by_test_type_with_filters(
+                user_id=user_id,
+                test_type=test_type,
+                level=level,
+                min_accuracy=min_accuracy,
+                operation=operation,
+            )
+            achievement_code_display = f"{test_type} achievements"
+        else:
+            # Use specific achievement code
+            if quantity is None:
+                quantity = 1  # Default to 1 if specific code is provided
+            
+            # Get metadata filter if provided
+            metadata_filter = unlock_reqs.get("metadata_filter")
+            
+            count = AchievementService.count_achievements_by_code_with_filters(
+                user_id=user_id,
+                achievement_code=achievement_code,
+                level=level,
+                min_accuracy=min_accuracy,
+                operation=operation,
+                metadata_filter=metadata_filter,
+            )
+            achievement_code_display = achievement_code
         
         is_unlocked = count >= quantity
         
-        reason_parts = [f"{count}/{quantity} {achievement_code} achievements"]
+        reason_parts = [f"{count}/{quantity} {achievement_code_display}"]
         if level is not None:
             reason_parts.append(f"at level {level}")
         if min_accuracy is not None:
@@ -152,20 +223,9 @@ class TestService:
         """
         definitions = []
         
-        # Add legacy level-based tests
-        for test_type, (operation, level, question_count, constraints) in SessionEngineService.LEVEL_TEST_TYPES.items():
-            test_req = get_test_requirements(level)
-            definitions.append({
-                "test_type": test_type,
-                "operation": operation,
-                "level_requirement": level,
-                "question_count": question_count,
-                "constraints": constraints,
-                "display_name": f"Level {level} Test",
-                "is_legacy": True,
-            })
-        
         # Add legacy operation-based tests
+        # Lazy import to avoid circular dependency
+        from ..services.session_engine_service import SessionEngineService
         for test_type, (operation, level, question_count, constraints) in SessionEngineService.TEST_TYPES.items():
             # Skip new test types (they'll be added separately)
             if test_type in NEW_TEST_DEFINITIONS:

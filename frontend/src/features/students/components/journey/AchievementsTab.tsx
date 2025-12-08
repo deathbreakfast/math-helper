@@ -1,8 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
 import { AlertCircle, Search } from 'lucide-react'
 import { AchievementCard } from '../AchievementCard'
+import { AchievementDetailModal } from './AchievementDetailModal'
 import type { Achievement, AchievementType, AchievementStatus } from '../../data/achievements'
+import type { BackendAchievementDefinition } from '../../../lib/levels/api'
 
 type AchievementsTabProps = {
   filteredAchievements: Achievement[]
@@ -12,6 +14,8 @@ type AchievementsTabProps = {
   onAchievementFilterChange: (filter: 'all' | AchievementType | string) => void
   onStatusFilterChange: (filter: 'all' | AchievementStatus) => void
   onTextFilterChange: (filter: string) => void
+  userId: string
+  achievementDefinitions?: Record<string, BackendAchievementDefinition>
 }
 
 export const AchievementsTab = ({
@@ -22,7 +26,43 @@ export const AchievementsTab = ({
   onAchievementFilterChange,
   onStatusFilterChange,
   onTextFilterChange,
+  userId,
+  achievementDefinitions,
 }: AchievementsTabProps) => {
+  const [selectedAchievement, setSelectedAchievement] = useState<Achievement | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  // Handle deep linking - check URL params for achievement code
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const achievementCode = params.get('achievement')
+    if (achievementCode && filteredAchievements.length > 0) {
+      const achievement = filteredAchievements.find(a => a.id === achievementCode)
+      if (achievement) {
+        setSelectedAchievement(achievement)
+        setIsModalOpen(true)
+        // Clean up URL
+        params.delete('achievement')
+        const newUrl = window.location.pathname + (params.toString() ? `?${params.toString()}` : '')
+        window.history.replaceState({}, '', newUrl)
+      }
+    }
+  }, [filteredAchievements])
+
+  const handleAchievementClick = (achievement: Achievement) => {
+    setSelectedAchievement(achievement)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedAchievement(null)
+  }
+
+  const selectedDefinition = selectedAchievement && achievementDefinitions
+    ? achievementDefinitions[selectedAchievement.id]
+    : null
+
   return (
     <motion.div
       key="achievements"
@@ -94,7 +134,13 @@ export const AchievementsTab = ({
       {/* Achievement Grid */}
       <div data-testid="testid-achievements-grid" className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
         {filteredAchievements.map((achievement, index) => (
-          <AchievementCard key={achievement.id} achievement={achievement} index={index} />
+          <div
+            key={achievement.id}
+            onClick={() => handleAchievementClick(achievement)}
+            className="cursor-pointer"
+          >
+            <AchievementCard achievement={achievement} index={index} />
+          </div>
         ))}
       </div>
 
@@ -104,6 +150,15 @@ export const AchievementsTab = ({
           <p className="text-lg text-gray-500">No achievements match your filters</p>
         </div>
       )}
+
+      {/* Achievement Detail Modal */}
+      <AchievementDetailModal
+        achievement={selectedAchievement}
+        achievementDefinition={selectedDefinition}
+        userId={userId}
+        isOpen={isModalOpen}
+        onClose={handleCloseModal}
+      />
     </motion.div>
   )
 }

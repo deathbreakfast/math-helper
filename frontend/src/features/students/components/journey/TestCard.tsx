@@ -1,6 +1,7 @@
 import React from 'react'
 import { motion } from 'framer-motion'
-import { Lock, Play, Eye } from 'lucide-react'
+import { Lock, Play, Eye, Info } from 'lucide-react'
+import { useNavigate, useParams } from 'react-router-dom'
 import type { FrontendTest, NewTier } from '../../utils/testMapping'
 
 type TestCardProps = {
@@ -43,6 +44,33 @@ const getTierColor = (tier: NewTier): string => {
 export const TestCard: React.FC<TestCardProps> = ({ test, index, onClick, onStartTest, matchesFilter = true }) => {
   const isLocked = test.isLocked
   const hasAttempts = test.attemptCount > 0
+  const navigate = useNavigate()
+  const params = useParams<{ userId?: string }>()
+  
+  const handleAchievementClick = (e: React.MouseEvent, achievementCode: string) => {
+    e.stopPropagation()
+    if (params.userId) {
+      navigate(`/journey/${params.userId}/achievements?achievement=${encodeURIComponent(achievementCode)}`)
+    }
+  }
+  
+  // Get list of achievement codes to display
+  const achievementCodes = test.unlockRequirements?.achievementCodes || 
+    (test.unlockRequirements?.achievementCode ? [test.unlockRequirements.achievementCode] : [])
+  
+  // Helper to format achievement code with metadata
+  const formatAchievementCode = (code: string): string => {
+    const metadataFilter = test.unlockRequirements?.metadataFilters?.[code]
+    if (metadataFilter) {
+      const parts: string[] = []
+      if (metadataFilter.level) parts.push(`Level ${metadataFilter.level}`)
+      if (metadataFilter.operation) parts.push(metadataFilter.operation)
+      if (parts.length > 0) {
+        return `${code.replace(/-/g, ' ')} (${parts.join(', ')})`
+      }
+    }
+    return code.replace(/-/g, ' ')
+  }
 
   return (
     <motion.div
@@ -93,21 +121,42 @@ export const TestCard: React.FC<TestCardProps> = ({ test, index, onClick, onStar
       {/* Unlock Requirements or Level Requirement */}
       {test.unlockRequirements ? (
         <div className={`mb-3 space-y-1 text-xs ${isLocked ? 'text-gray-400' : 'text-gray-600'}`}>
-          <div className="font-medium">
+          <div className="font-medium flex items-center gap-2">
             {isLocked ? 'Unlock Requirements:' : 'Unlocked'}
+            <Info 
+              className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" 
+              title="Higher tier achievements can substitute for lower tier requirements (e.g., 4 bronze = 2 silver = 1 gold)"
+            />
           </div>
-          <div className="text-xs">
-            {test.unlockProgress && (
-              <span className="font-semibold">
-                {test.unlockProgress.met}/{test.unlockProgress.total}
-              </span>
-            )}{' '}
-            {test.unlockRequirements.achievementCode 
-              ? `${test.unlockRequirements.achievementCode.replace(/-/g, ' ')} achievements`
-              : 'achievements'}
-            {test.unlockRequirements.level && ` at level ${test.unlockRequirements.level}`}
-            {test.unlockRequirements.minAccuracy && ` (${(test.unlockRequirements.minAccuracy * 100).toFixed(0)}%+ accuracy)`}
-          </div>
+          {test.unlockProgress && (
+            <div className="text-xs font-semibold mb-1">
+              {test.unlockProgress.met}/{test.unlockProgress.total} achievements
+            </div>
+          )}
+          {achievementCodes.length > 0 && (
+            <div className="space-y-1">
+              {achievementCodes.map((code, idx) => (
+                <div
+                  key={idx}
+                  onClick={(e) => handleAchievementClick(e, code)}
+                  className="text-xs cursor-pointer hover:underline hover:text-blue-600 transition-colors"
+                  title={`Click to view ${code.replace(/-/g, ' ')} achievement`}
+                >
+                  • {formatAchievementCode(code)}
+                </div>
+              ))}
+            </div>
+          )}
+          {test.unlockRequirements.level && (
+            <div className="text-xs mt-1">
+              at level {test.unlockRequirements.level}
+            </div>
+          )}
+          {test.unlockRequirements.minAccuracy && (
+            <div className="text-xs mt-1">
+              ({(test.unlockRequirements.minAccuracy * 100).toFixed(0)}%+ accuracy)
+            </div>
+          )}
         </div>
       ) : (
         <div className={`mb-3 text-xs font-medium ${isLocked ? 'text-gray-400' : 'text-gray-600'}`}>

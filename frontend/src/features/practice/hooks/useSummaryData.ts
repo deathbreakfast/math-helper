@@ -26,6 +26,7 @@ export interface AchievementBadge {
   icon: string
   category: 'speed' | 'accuracy' | 'streak' | 'milestone'
   earnedAt?: Date
+  metadata?: Record<string, any> // Level/operation filters
 }
 
 export interface SummaryMetrics {
@@ -175,6 +176,7 @@ export const useSummaryData = (filter: FilterType) => {
                  backendAchievement.category === 'speed' ? 'speed' :
                  backendAchievement.category === 'accuracy' ? 'accuracy' : 'milestone') as AchievementBadge['category'],
       earnedAt: backendAchievement.earnedAt ? new Date(backendAchievement.earnedAt) : new Date(),
+      metadata: backendAchievement.metadata || undefined,
     }))
   }, [sessionSummary, metrics.totalProblems])
 

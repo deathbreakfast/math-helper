@@ -13,6 +13,7 @@ import { TestsTab } from './journey/TestsTab'
 import { useFilteredAchievements } from '../hooks/useFilteredAchievements'
 import { useJourneyFilters } from '../hooks/useJourneyFilters'
 import { useTests } from '../hooks/useTests'
+import { useAchievementDefinitions } from '../../../lib/levels/hooks'
 import type { FrontendTest, NewTier } from '../utils/testMapping'
 import { mapOldTierToNew } from '../utils/testMapping'
 
@@ -58,6 +59,8 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
     setStatusFilter,
     setTextFilter,
   } = useJourneyFilters()
+
+  const { definitions: achievementDefinitions } = useAchievementDefinitions()
 
   const {
     filteredAchievements,
@@ -180,6 +183,8 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
               onAchievementFilterChange={setAchievementFilter}
               onStatusFilterChange={setStatusFilter}
               onTextFilterChange={setTextFilter}
+              userId={userData?.id || params.userId || ''}
+              achievementDefinitions={achievementDefinitions}
             />
           )}
 

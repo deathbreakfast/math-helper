@@ -722,6 +722,9 @@ def complete_session(session_id: int):
     # Check for lightning-fast achievements (level-specific speed)
     lightning_fast_achievements = AchievementService.check_lightning_fast_achievements(user, session.id)
     
+    # Check for accuracy-ace achievements (session-based accuracy)
+    accuracy_ace_achievements = AchievementService.check_accuracy_ace_achievements(session)
+    
     # Check for level-master achievements (per-level consecutive correct)
     level_master_achievements = AchievementService.check_level_master_achievements(user)
     
@@ -732,6 +735,16 @@ def complete_session(session_id: int):
     
     # Simple query: get all achievements for this session using indexed field
     new_achievements = AchievementService.get_achievements_by_session(session_id)
+    
+    # Check for So, Wow! achievements (awarded when first achievement of a tier is earned)
+    # This must be called after all other achievements are awarded
+    so_wow_achievements = AchievementService.check_so_wow_achievements(user, new_achievements, session_id=session_id)
+    
+    # Update new_achievements list to include So, Wow! achievements
+    if so_wow_achievements:
+        new_achievements.extend(so_wow_achievements)
+        db.session.commit()
+        db.session.flush()
 
     # Check leveling
     next_level = user.level + 1

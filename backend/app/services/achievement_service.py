@@ -2168,33 +2168,17 @@ class AchievementService:
                     qualifying_tiers.append((tier, achievement_code, config, min_consecutive))
             
             if qualifying_tiers:
-                # Sort by tier value (highest first) and award the highest tier
+                # Sort by tier value (highest first)
                 qualifying_tiers.sort(key=lambda x: get_tier_value(x[0]), reverse=True)
-                highest_tier, achievement_code, config, min_consecutive_req = qualifying_tiers[0]
                 
-                # Important: Don't award multiple for same streak
-                # If user has bronze for 30, and now has 35, don't award another bronze
-                # Only award if they've reached a NEW tier threshold
-                # Check if there's a lower tier already awarded that would prevent this
-                should_award = True
-                for existing_ach in existing_for_level:
-                    existing_tier = existing_ach.code.split("-")[-1]
-                    existing_tier_value = get_tier_value(existing_tier)
-                    new_tier_value = get_tier_value(highest_tier)
+                # Award all qualifying tiers that haven't been awarded yet
+                for tier, achievement_code, config, min_consecutive_req in qualifying_tiers:
+                    # Check if this tier is already awarded for this level
+                    if achievement_code in existing_tiers:
+                        continue
                     
-                    # If we're trying to award the same tier, don't award
-                    if existing_tier == highest_tier:
-                        should_award = False
-                        break
-                    
-                    # If we're trying to award a lower tier than what's already awarded, don't award
-                    if new_tier_value < existing_tier_value:
-                        should_award = False
-                        break
-                
-                if should_award:
                     # Check for Champion tier if this is Divine
-                    if highest_tier == "divine":
+                    if tier == "divine":
                         champion_code = "level-master-champion"
                         champion_config = achievement_configs.get(champion_code)
                         if champion_config:
@@ -2217,6 +2201,8 @@ class AchievementService:
                         metadata={"level": target_level},
                     )
                     new_achievements.append(achievement)
+                    # Update existing_tiers to avoid awarding duplicates in same call
+                    existing_tiers.add(achievement_code)
         
         # Store levels_with_bronze in a way that can be checked for Level Grandmaster
         # We'll check this in the Level Grandmaster method
@@ -2287,9 +2273,9 @@ class AchievementService:
         
         # Check each level separately
         for target_level in all_levels:
-            # Get responses for this level
+            # Get responses for this level - ONLY CORRECT ANSWERS
             level_responses = (
-                Response.query.filter_by(user_id=user.id)
+                Response.query.filter_by(user_id=user.id, is_correct=True)
                 .join(Question)
                 .filter(Question.required_level == target_level)
                 .all()
@@ -2298,12 +2284,12 @@ class AchievementService:
             if not level_responses:
                 continue
             
-            # Calculate average speed for this level
+            # Calculate lifetime average speed for this level (only correct answers)
             total_duration_ms = sum(r.duration_ms or 0 for r in level_responses)
             total_questions = len(level_responses)
             avg_speed = (total_duration_ms / 1000.0 / total_questions) if total_questions > 0 else None
             
-            if not avg_speed or total_questions < 10:  # Need at least 10 questions
+            if not avg_speed:
                 continue
             
             # Get existing achievements for this level
@@ -2320,13 +2306,13 @@ class AchievementService:
                 
                 requirements = config.get("requirements", {})
                 max_speed = requirements.get("max_speed_seconds", 999)
-                min_questions = requirements.get("min_questions", 10)
+                min_questions = requirements.get("min_questions", 50)
                 
                 # Check if this tier is already awarded for this level
                 if achievement_code in existing_tiers:
                     continue
                 
-                # Check if avg_speed meets the requirement
+                # Check if lifetime avg_speed meets the requirement AND minimum questions threshold
                 if avg_speed <= max_speed and total_questions >= min_questions:
                     qualifying_tiers.append((tier, achievement_code, config, max_speed))
             
@@ -2366,6 +2352,184 @@ class AchievementService:
                         metadata={"level": target_level},
                     )
                     new_achievements.append(achievement)
+        
+        if new_achievements:
+            db.session.commit()
+        
+        return new_achievements
+
+    @staticmethod
+    @log_query
+    def check_accuracy_ace_achievements(session: PracticeSession) -> list[Achievement]:
+        """Check and award Accuracy Ace achievements based on session accuracy.
+        
+        Awards accuracy-ace achievements when a session meets the accuracy threshold
+        and minimum question count. Awards the highest qualifying tier.
+        
+        Args:
+            session: Completed practice session to check
+            
+        Returns:
+            List of newly created achievements
+        """
+        if not session.completed_at or session.is_test:
+            return []
+        
+        from ..config.achievements import ACCURACY_ACHIEVEMENTS
+        from ..utils.tier_utils import ALL_TIERS, get_tier_value
+        
+        new_achievements = []
+        user_achievement_codes = AchievementService.get_achievement_codes(session.user_id)
+        achievement_configs = ACCURACY_ACHIEVEMENTS
+        
+        # Get session metrics
+        total_questions = session.total_questions
+        accuracy = session.accuracy / 100.0 if session.accuracy else 0.0  # Convert to 0-1 range
+        
+        # Check minimum questions requirement (all tiers require at least 10)
+        if total_questions < 10:
+            return []
+        
+        _debug_print(f"\n[ACHIEVEMENT DEBUG] check_accuracy_ace_achievements: Session {session.id}, accuracy={accuracy:.2%}, questions={total_questions}")
+        
+        # Find all qualifying tiers
+        qualifying_tiers = []
+        for tier in ALL_TIERS:
+            achievement_code = f"accuracy-ace-{tier}"
+            config = achievement_configs.get(achievement_code)
+            if not config:
+                continue
+            
+            # Skip if already earned
+            if achievement_code in user_achievement_codes:
+                continue
+            
+            requirements = config.get("requirements", {})
+            min_accuracy = requirements.get("min_accuracy", 0.80)
+            min_questions = requirements.get("min_questions", 10)
+            
+            # Check if session meets requirements
+            if accuracy >= min_accuracy and total_questions >= min_questions:
+                qualifying_tiers.append((tier, achievement_code, config, min_accuracy))
+        
+        # Award only the highest tier achieved
+        if qualifying_tiers:
+            # Sort by tier value (highest first)
+            qualifying_tiers.sort(key=lambda x: get_tier_value(x[0]), reverse=True)
+            highest_tier, achievement_code, config, min_accuracy_req = qualifying_tiers[0]
+            
+            # Check for Champion tier eligibility if this is Divine tier
+            if highest_tier == "divine":
+                champion_code = "accuracy-ace-champion"
+                champion_config = achievement_configs.get(champion_code)
+                if champion_config:
+                    champion_req = champion_config.get("requirements", {})
+                    if accuracy >= champion_req.get("min_accuracy", 1.0) and total_questions >= champion_req.get("min_questions", 10):
+                        # Check server record
+                        if AchievementService.checkChampionEligibility(champion_code, session, "champion"):
+                            # Award Champion instead
+                            achievement_code = champion_code
+                            config = champion_config
+            
+            _debug_print(f"[ACHIEVEMENT DEBUG]   ✓ AWARDING {achievement_code} (accuracy {accuracy:.2%} >= {min_accuracy_req:.2%}, questions={total_questions})")
+            achievement = AchievementService.create_achievement(
+                user_id=session.user_id,
+                code=achievement_code,
+                title=config["title"],
+                description=config["description"],
+                icon=config["icon"],
+                category=config["category"],
+                session_id=session.id,
+            )
+            new_achievements.append(achievement)
+        
+        if new_achievements:
+            db.session.commit()
+        
+        return new_achievements
+
+    @staticmethod
+    @log_query
+    def check_so_wow_achievements(user: User, newly_awarded_achievements: list[Achievement], session_id: int | None = None) -> list[Achievement]:
+        """Check and award So, Wow! achievements when user earns their first achievement of a tier.
+        
+        Awards "So, Wow! (Tier)" when a user earns their first bronze+ achievement of that tier.
+        Supports multiple tiers being awarded in one session.
+        
+        Args:
+            user: The user to check
+            newly_awarded_achievements: List of achievements just awarded in this session
+            session_id: Optional session ID to link achievements
+            
+        Returns:
+            List of newly created So, Wow! achievements
+        """
+        from ..config.achievements import MILESTONE_ACHIEVEMENTS
+        from ..utils.tier_utils import ALL_TIERS, extract_base_code_and_tier
+        
+        new_achievements = []
+        user_achievement_codes = AchievementService.get_achievement_codes(user.id)
+        achievement_configs = MILESTONE_ACHIEVEMENTS
+        
+        # Track which tiers we've already checked (to avoid duplicates)
+        tiers_checked = set()
+        
+        # Get all existing achievements to check tiers (EXCLUDE newly awarded ones)
+        newly_awarded_codes = {ach.code for ach in newly_awarded_achievements}
+        all_user_achievements = Achievement.query.filter_by(user_id=user.id).all()
+        
+        # Build a set of tiers the user already has achievements for (BEFORE new ones)
+        existing_tiers = set()
+        for ach in all_user_achievements:
+            # Skip newly awarded achievements when checking existing tiers
+            if ach.code in newly_awarded_codes:
+                continue
+            _, tier = extract_base_code_and_tier(ach.code)
+            if tier:
+                existing_tiers.add(tier.lower())
+        
+        _debug_print(f"\n[ACHIEVEMENT DEBUG] check_so_wow_achievements: User {user.id}, existing_tiers={existing_tiers}")
+        
+        # Check each newly awarded achievement
+        for new_ach in newly_awarded_achievements:
+            _, tier = extract_base_code_and_tier(new_ach.code)
+            if not tier:
+                continue  # Skip non-tiered achievements
+            
+            tier_lower = tier.lower()
+            
+            # Skip if we've already checked this tier
+            if tier_lower in tiers_checked:
+                continue
+            
+            # Skip if user already has achievements of this tier (before this session)
+            if tier_lower in existing_tiers:
+                continue
+            
+            # This is the first achievement of this tier! Award "So, Wow! (Tier)"
+            so_wow_code = f"so-wow-{tier_lower}"
+            
+            # Skip if already earned
+            if so_wow_code in user_achievement_codes:
+                tiers_checked.add(tier_lower)
+                continue
+            
+            config = achievement_configs.get(so_wow_code)
+            if not config:
+                continue
+            
+            _debug_print(f"[ACHIEVEMENT DEBUG]   ✓ AWARDING {so_wow_code} (first {tier} tier achievement)")
+            achievement = AchievementService.create_achievement(
+                user_id=user.id,
+                code=so_wow_code,
+                title=config["title"],
+                description=config["description"],
+                icon=config["icon"],
+                category=config["category"],
+                session_id=session_id,
+            )
+            new_achievements.append(achievement)
+            tiers_checked.add(tier_lower)
         
         if new_achievements:
             db.session.commit()

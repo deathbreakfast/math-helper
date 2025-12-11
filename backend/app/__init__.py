@@ -22,9 +22,9 @@ def create_app(test_config: dict | None = None) -> Flask:
             "pool_timeout": 30,
             "pool_pre_ping": True,
         },
-        # Default TESTING to false for production readiness
-        # Can be overridden with TESTING=true environment variable
-        TESTING=os.getenv('TESTING', 'false').lower() == 'true',
+        # Default TESTING to true (until v1.0)
+        # Can be overridden with TESTING=false environment variable
+        TESTING=os.getenv('TESTING', 'true').lower() == 'true',
     )
 
     # Configure logging

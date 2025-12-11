@@ -315,3 +315,97 @@ def test_first_victory_achievement_verification(app, test_user):
     # Keeping as placeholder to maintain test numbering
     pass
 
+
+def test_first_steps_only_awarded_once(app, test_user):
+    """Test that first-steps achievement is only awarded once."""
+    with app.app_context():
+        # First session - should award first-steps
+        questions1 = create_test_questions(1, 1, operation="addition")
+        responses_data1 = [{
+            'question_id': questions1[0].id,
+            'answer': questions1[0].correct_answer,
+            'is_correct': True,
+            'duration_ms': 3000
+        }]
+        
+        session1 = create_test_session_with_responses(test_user.id, responses_data1, level=1)
+        user = User.query.get(test_user.id)
+        metrics = AnalyticsService.compute_user_metrics(user.id)
+        AchievementService.ensure_achievements(user, metrics, session_id=session1.id)
+        
+        # Verify first achievement was awarded
+        achievement1 = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="first-steps"
+        ).first()
+        assert achievement1 is not None, "First Steps should be awarded on first question"
+        
+        # Second session - should NOT award first-steps again
+        questions2 = create_test_questions(1, 1, operation="addition")
+        responses_data2 = [{
+            'question_id': questions2[0].id,
+            'answer': questions2[0].correct_answer,
+            'is_correct': True,
+            'duration_ms': 3000
+        }]
+        
+        session2 = create_test_session_with_responses(test_user.id, responses_data2, level=1)
+        user = User.query.get(test_user.id)
+        metrics = AnalyticsService.compute_user_metrics(user.id)
+        AchievementService.ensure_achievements(user, metrics, session_id=session2.id)
+        
+        # Verify only one first-steps achievement exists
+        achievement_count = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="first-steps"
+        ).count()
+        
+        assert achievement_count == 1, "First Steps should only be awarded once"
+
+
+def test_first_victory_only_awarded_once(app, test_user):
+    """Test that first-victory achievement is only awarded once."""
+    with app.app_context():
+        # First session - should award first-victory
+        questions1 = create_test_questions(1, 1)
+        responses_data1 = [{
+            'question_id': questions1[0].id,
+            'answer': questions1[0].correct_answer,
+            'is_correct': True,
+            'duration_ms': 3000
+        }]
+        
+        session1 = create_test_session_with_responses(test_user.id, responses_data1)
+        user = User.query.get(test_user.id)
+        metrics = AnalyticsService.compute_user_metrics(user.id)
+        AchievementService.ensure_achievements(user, metrics, session_id=session1.id)
+        
+        # Verify first achievement was awarded
+        achievement1 = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="first-victory"
+        ).first()
+        assert achievement1 is not None, "First Victory should be awarded on first session"
+        
+        # Second session - should NOT award first-victory again
+        questions2 = create_test_questions(1, 1)
+        responses_data2 = [{
+            'question_id': questions2[0].id,
+            'answer': questions2[0].correct_answer,
+            'is_correct': True,
+            'duration_ms': 3000
+        }]
+        
+        session2 = create_test_session_with_responses(test_user.id, responses_data2)
+        user = User.query.get(test_user.id)
+        metrics = AnalyticsService.compute_user_metrics(user.id)
+        AchievementService.ensure_achievements(user, metrics, session_id=session2.id)
+        
+        # Verify only one first-victory achievement exists
+        achievement_count = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="first-victory"
+        ).count()
+        
+        assert achievement_count == 1, "First Victory should only be awarded once"
+

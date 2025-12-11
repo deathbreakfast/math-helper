@@ -85,3 +85,4 @@ def test_human_calculator_requires_lightning_fast_all_levels(app, test_user):
         if achievement:
             assert achievement.code == "human-calculator", "Human Calculator should be awarded when Lightning Fast (Bronze) achieved at all levels"
 
+

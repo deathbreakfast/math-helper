@@ -167,3 +167,4 @@ def test_question_master_only_highest_tier_awarded(app, test_user):
         # The implementation may award only the highest tier, or all qualifying tiers
         # This test documents that gold should be awarded for 1000+ questions
 
+

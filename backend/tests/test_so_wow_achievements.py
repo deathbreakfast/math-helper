@@ -207,3 +207,4 @@ def test_so_wow_integration_with_session(app, test_user):
             ).first()
             assert so_wow is not None, "So, Wow! (Bronze) should be awarded when bronze achievement is earned in session"
 
+

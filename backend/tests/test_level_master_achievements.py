@@ -68,7 +68,7 @@ def test_level_master_bronze_exactly_30(app, test_user):
 
 
 def test_level_master_silver_exactly_60(app, test_user):
-    """Test that exactly 60 correct in a row awards Level Master (Bronze) and (Silver)."""
+    """Test that exactly 60 correct in a row awards Level Master (Silver) only (highest tier)."""
     with app.app_context():
         # Create 60 questions at level 1, all answered correctly
         questions = create_test_questions(60, 1)
@@ -88,7 +88,7 @@ def test_level_master_silver_exactly_60(app, test_user):
         # Check achievements
         level_master_achievements = AchievementService.check_level_master_achievements(test_user)
         
-        # Verify both bronze and silver were awarded
+        # Verify only silver was awarded (highest qualifying tier)
         bronze = Achievement.query.filter_by(
             user_id=test_user.id,
             code="level-master-bronze"
@@ -98,8 +98,9 @@ def test_level_master_silver_exactly_60(app, test_user):
             code="level-master-silver"
         ).first()
         
-        assert bronze is not None, "Level Master (Bronze) should be awarded for 60 consecutive correct"
+        # Only highest tier should be awarded
         assert silver is not None, "Level Master (Silver) should be awarded for 60 consecutive correct"
+        assert bronze is None, "Level Master (Bronze) should NOT be awarded when Silver is awarded (only highest tier)"
 
 
 def test_level_master_negative_29_correct_1_incorrect(app, test_user):
@@ -229,9 +230,9 @@ def test_level_master_multiple_awards_30_wrong_30(app, test_user):
 
 
 def test_level_master_only_bronze_silver_tested(app, test_user):
-    """Test that we only test bronze and silver tiers as requested."""
+    """Test that only the highest qualifying tier is awarded (gold for 120 consecutive)."""
     with app.app_context():
-        # Create 120 questions (qualifies for gold) but we only test bronze/silver
+        # Create 120 questions (qualifies for gold tier: 120+ consecutive)
         questions = create_test_questions(120, 1)
         base_time = datetime.utcnow()
         responses_data = []
@@ -249,7 +250,7 @@ def test_level_master_only_bronze_silver_tested(app, test_user):
         # Check achievements
         level_master_achievements = AchievementService.check_level_master_achievements(test_user)
         
-        # Verify bronze and silver are awarded
+        # Verify only gold is awarded (highest qualifying tier)
         bronze = Achievement.query.filter_by(
             user_id=test_user.id,
             code="level-master-bronze"
@@ -258,10 +259,13 @@ def test_level_master_only_bronze_silver_tested(app, test_user):
             user_id=test_user.id,
             code="level-master-silver"
         ).first()
+        gold = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="level-master-gold"
+        ).first()
         
-        assert bronze is not None, "Level Master (Bronze) should be awarded"
-        assert silver is not None, "Level Master (Silver) should be awarded"
-        
-        # Note: Gold may also be awarded by the implementation, but we're only testing bronze/silver
-        # as per the requirements
+        # Only highest tier should be awarded
+        assert gold is not None, "Level Master (Gold) should be awarded for 120 consecutive correct"
+        assert bronze is None, "Level Master (Bronze) should NOT be awarded when Gold is awarded (only highest tier)"
+        assert silver is None, "Level Master (Silver) should NOT be awarded when Gold is awarded (only highest tier)"
 

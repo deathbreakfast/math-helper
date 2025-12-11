@@ -184,3 +184,4 @@ def test_week_warrior_streak_broken(app, test_user):
         
         assert achievement is None, "Week Warrior should NOT be awarded when streak is broken"
 
+

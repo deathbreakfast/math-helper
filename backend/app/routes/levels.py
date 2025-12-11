@@ -59,3 +59,5 @@ def get_batch_level_requirements():
     
     return jsonify({"requirements": requirements_by_level})
 
+
+

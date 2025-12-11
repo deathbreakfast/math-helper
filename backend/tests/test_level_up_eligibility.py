@@ -99,8 +99,8 @@ def test_level_up_requires_achievements(app, test_user, target_level, required_a
         def create_achievements_for_quantity(base_code, target_tier, quantity, metadata=None):
             """Create achievements to satisfy quantity requirement using tier substitution.
             
-            Note: UNIQUE constraint is on (user_id, code) only, not including metadata.
-            So we CAN create multiple achievements with same code but different metadata.
+            Note: UNIQUE constraint is on (user_id, code, achievement_metadata).
+            This allows multiple achievements with same code but different metadata.
             """
             if quantity <= 1:
                 # Single achievement needed
@@ -126,37 +126,28 @@ def test_level_up_requires_achievements(app, test_user, target_level, required_a
                         # Already exists with this exact metadata, skip
                         created_achievements.add(achievement_key)
                     else:
-                        # Check if achievement with same code but different metadata exists
-                        # UNIQUE constraint prevents multiple achievements with same code
-                        code_exists = Achievement.query.filter_by(user_id=test_user.id, code=code).first()
-                        if code_exists and metadata:
-                            # Can't create - UNIQUE constraint prevents it
-                            # This is a known limitation: UNIQUE constraint is on (user_id, code) only
-                            # but requirements need multiple achievements with same code, different metadata
-                            # Skip creating - the test will fail, but that's expected given the constraint
-                            pass
-                        else:
-                            # Safe to create
-                            try:
-                                if metadata:
-                                    AchievementService.create_achievement(
-                                        user_id=test_user.id,
-                                        code=code,
-                                        title=f"Test {code}",
-                                        description="Test",
-                                        icon="🏆",
-                                        category="test",
-                                        metadata=metadata,
-                                    )
-                                else:
-                                    if code not in existing_codes:
-                                        award_achievement_directly(test_user.id, code)
-                                        existing_codes.add(code)
-                                created_achievements.add(achievement_key)
-                            except Exception as e:
-                                # Catch any other errors
-                                if "UNIQUE constraint" not in str(e) and "IntegrityError" not in str(type(e).__name__):
-                                    raise
+                        # Safe to create - UNIQUE constraint includes metadata, so we can have
+                        # multiple achievements with same code but different metadata
+                        try:
+                            if metadata:
+                                AchievementService.create_achievement(
+                                    user_id=test_user.id,
+                                    code=code,
+                                    title=f"Test {code}",
+                                    description="Test",
+                                    icon="🏆",
+                                    category="test",
+                                    metadata=metadata,
+                                )
+                            else:
+                                if code not in existing_codes:
+                                    award_achievement_directly(test_user.id, code)
+                                    existing_codes.add(code)
+                            created_achievements.add(achievement_key)
+                        except Exception as e:
+                            # Catch any other errors
+                            if "UNIQUE constraint" not in str(e) and "IntegrityError" not in str(type(e).__name__):
+                                raise
                 return
             
             # Need multiple achievements - use tier substitution
@@ -180,15 +171,24 @@ def test_level_up_requires_achievements(app, test_user, target_level, required_a
                     achievement_key = (code, metadata_json)
                     
                     if achievement_key not in created_achievements:
-                        # Check if achievement with this code already exists (UNIQUE constraint issue)
+                        # Check if achievement with this exact (code, metadata) already exists
                         from app.models import Achievement
                         import json as json_lib
-                        code_exists = Achievement.query.filter_by(user_id=test_user.id, code=code).first()
-                        if code_exists and metadata:
-                            # Can't create multiple achievements with same code due to UNIQUE constraint
-                            # Skip - this is a known limitation
-                            pass
+                        metadata_json_str = json_lib.dumps(metadata, sort_keys=True) if metadata else None
+                        existing_ach = Achievement.query.filter_by(
+                            user_id=test_user.id,
+                            code=code
+                        ).filter(
+                            (Achievement.achievement_metadata == metadata_json_str) if metadata_json_str
+                            else ((Achievement.achievement_metadata.is_(None)) | (Achievement.achievement_metadata == ""))
+                        ).first()
+                        
+                        if existing_ach:
+                            # Already exists with this exact metadata, skip
+                            created_achievements.add(achievement_key)
                         else:
+                            # Safe to create - UNIQUE constraint includes metadata, so we can have
+                            # multiple achievements with same code but different metadata
                             try:
                                 if metadata:
                                     AchievementService.create_achievement(
@@ -231,16 +231,6 @@ def test_level_up_requires_achievements(app, test_user, target_level, required_a
         if not can_level:
             # Debug: show what's missing
             missing_str = "; ".join(missing)
-            # Known limitation: Levels requiring multiple achievements with same code but different metadata
-            # (e.g., level 42 requires 13 speed-demon-gold with different test_type metadata)
-            # cannot be satisfied due to UNIQUE constraint on (user_id, code) in database schema.
-            # The constraint should include metadata: (user_id, code, achievement_metadata)
-            if target_level in [27, 42] and "speed-demon-gold" in missing_str:
-                pytest.skip(
-                    f"Level {target_level} requires multiple achievements with same code but different metadata. "
-                    f"This is prevented by UNIQUE constraint on (user_id, code). "
-                    f"Schema should be updated to include metadata in constraint."
-                )
             assert can_level is True, f"Level {target_level} should be unlockable after awarding achievements. Missing: {missing_str}"
         assert len(missing) == 0, f"No missing achievements should be reported for level {target_level}. Missing: {missing}"
 

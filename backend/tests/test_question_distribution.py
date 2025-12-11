@@ -96,6 +96,87 @@ def analyze_question_distribution(questions: list[dict]) -> dict:
 
 
 # ============================================================================
+# Diagnostic Tests for Debugging Distribution Issues
+# ============================================================================
+
+def test_generate_level_category_distribution_direct(app, test_user):
+    """Diagnostic: Verify generate_level_category_distribution returns correct distribution."""
+    with app.app_context():
+        distribution = AdaptiveDistributionService.generate_level_category_distribution(5)
+        
+        # Should have 3 levels: 3, 4, 5
+        assert len(distribution) == 3, f"Expected 3 levels, got {len(distribution)}: {distribution}"
+        
+        levels = [item["level"] for item in distribution]
+        assert set(levels) == {3, 4, 5}, f"Expected levels 3, 4, 5, got {levels}"
+        
+        # Verify weights are normalized (sum to ~1.0)
+        total_weight = sum(item["weight"] for item in distribution)
+        assert abs(total_weight - 1.0) < 0.01, f"Weights should sum to 1.0, got {total_weight}"
+        
+        # Verify weights are approximately equal
+        expected_weight = 1.0 / 3.0
+        for item in distribution:
+            assert abs(item["weight"] - expected_weight) < 0.01, \
+                f"Level {item['level']} weight should be ~0.333, got {item['weight']}"
+
+
+def test_select_level_from_distribution_all_levels(app, test_user):
+    """Diagnostic: Verify select_level_from_distribution selects all levels in distribution."""
+    with app.app_context():
+        from collections import Counter
+        
+        # Create the expected distribution for level 5
+        distribution = AdaptiveDistributionService.generate_level_category_distribution(5)
+        
+        # Select levels 1000 times and count
+        level_counts = Counter()
+        for _ in range(1000):
+            level = AdaptiveDistributionService.select_level_from_distribution(distribution)
+            level_counts[level] += 1
+        
+        # All three levels should appear
+        assert len(level_counts) == 3, f"Expected 3 levels, got {len(level_counts)}: {level_counts}"
+        assert set(level_counts.keys()) == {3, 4, 5}, \
+            f"Expected levels 3, 4, 5, got {set(level_counts.keys())}"
+        
+        # Each level should have roughly 30-40% (allowing for variance)
+        total = sum(level_counts.values())
+        for level in [3, 4, 5]:
+            pct = (level_counts[level] / total) * 100
+            assert 25 <= pct <= 45, \
+                f"Level {level} should have 25-45% (got {pct:.1f}%). Counts: {level_counts}"
+
+
+def test_question_generation_all_levels(app, test_user):
+    """Diagnostic: Verify question generation works for levels 3, 4, and 5."""
+    with app.app_context():
+        from app.services.question_service import QuestionService
+        
+        for level in [3, 4, 5]:
+            try:
+                question_data = QuestionService.generate_question(
+                    operation=None,  # Will use config
+                    level=level,
+                    test_constraints=None,
+                )
+                
+                assert question_data is not None, f"Level {level} returned None"
+                assert "question_id" in question_data, f"Level {level} missing question_id"
+                assert question_data.get("question_id") is not None, f"Level {level} question_id is None"
+                
+                # Verify question was saved to database with correct level
+                from app.models import Question
+                question = Question.query.get(question_data["question_id"])
+                assert question is not None, f"Level {level} question not found in database"
+                assert question.required_level == level, \
+                    f"Level {level} question saved with required_level={question.required_level}"
+                    
+            except Exception as e:
+                assert False, f"Level {level} question generation failed: {e}"
+
+
+# ============================================================================
 # Deterministic Category Tests (using mocks)
 # ============================================================================
 
@@ -105,6 +186,9 @@ def test_level_category_distribution(app, test_user):
     Verifies that when the "level" category is selected, questions are generated
     from exactly three levels: current level - 2, current level - 1, and current level.
     Each level should have approximately 33% weight.
+    
+    Uses a large sample size (200 sessions = 2000 questions) to ensure statistical
+    reliability and reduce flakiness from random variance.
     """
     with app.app_context():
         # Set user to level 5
@@ -113,8 +197,11 @@ def test_level_category_distribution(app, test_user):
         # Mock select_category to always return "level"
         with patch.object(AdaptiveDistributionService, 'select_category', return_value='level'):
             # Generate multiple sessions (all will use "level" category)
+            # Using 200 sessions (~2000 questions) for better statistical sampling
+            # This reduces flakiness by providing a large enough sample to reliably
+            # detect the expected 33.3% distribution per level
             all_questions = []
-            for _ in range(10):
+            for _ in range(200):
                 session_data = SessionEngineService.generate_session(
                     user_id=test_user.id,
                     mode="standard",
@@ -144,13 +231,46 @@ def test_level_category_distribution(app, test_user):
             assert len(actual_levels) >= 2, \
                 f"Level category should generate questions from multiple levels. Got: {actual_levels}"
             
-            # Verify distribution is roughly even (each level should have at least 20% of questions)
+            # Verify distribution - each level should have approximately 33.3% (1/3) of questions
+            # With 2000 questions, we expect ~667 questions per level
+            # Use individual proportion checks with wider tolerance to account for random variance
+            # The chi-square test can be too strict with large sample sizes where small deviations
+            # from perfect 33.3% are statistically significant but not practically meaningful
             total = len(all_questions)
-            for level in expected_levels:
+            expected_proportion = 1.0 / 3.0  # 33.3% per level
+            
+            # For large samples (2000+), we allow a wider range: 28-38% per level
+            # This accounts for random variance while still detecting significant biases
+            min_proportion = 0.28  # 28% minimum
+            max_proportion = 0.38  # 38% maximum
+            
+            observed_percentages = {}
+            for level in sorted(expected_levels):
                 if level in level_counts:
-                    pct = (level_counts[level] / total) * 100
-                    assert pct >= 15, \
-                        f"Level {level} should have at least 15% of questions. Got {pct:.1f}%"
+                    count = level_counts[level]
+                    pct = (count / total)
+                    observed_percentages[level] = pct * 100
+                    
+                    assert min_proportion <= pct <= max_proportion, (
+                        f"Level {level} proportion is outside acceptable range.\n"
+                        f"Expected: ~33.3% (acceptable range: {min_proportion*100:.0f}%-{max_proportion*100:.0f}%)\n"
+                        f"Observed: {pct*100:.1f}% ({count}/{total})\n"
+                        f"All levels: {observed_percentages}"
+                    )
+                else:
+                    # Level didn't appear - this shouldn't happen with 2000 questions
+                    assert False, f"Level {level} did not appear in distribution. Got: {level_counts}"
+            
+            # Additional check: verify distribution is roughly balanced
+            # The difference between highest and lowest percentage should be reasonable
+            if len(observed_percentages) == 3:
+                percentages = list(observed_percentages.values())
+                max_diff = max(percentages) - min(percentages)
+                # With equal weights, max difference should be less than 15 percentage points
+                assert max_diff < 15.0, (
+                    f"Distribution is too imbalanced. Max difference: {max_diff:.1f}%\n"
+                    f"Observed percentages: {observed_percentages}"
+                )
 
 
 def test_bottom_performers_category_distribution(app, test_user):

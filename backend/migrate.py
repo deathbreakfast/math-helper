@@ -460,6 +460,42 @@ def migrate_database(app=None):
                     if cursor.fetchone() is None:
                         print("Adding index on achievements.category...")
                         cursor.execute("CREATE INDEX ix_achievements_category ON achievements(category)")
+                
+                # Migrate unique constraint to include achievement_metadata
+                # Check if old constraint exists (SQLite stores unique constraints as indexes)
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='index' AND name='uq_user_achievement_code'"
+                )
+                old_constraint_exists = cursor.fetchone() is not None
+                
+                # Check if new constraint exists
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='index' AND name='uq_user_achievement_code_metadata'"
+                )
+                new_constraint_exists = cursor.fetchone() is not None
+                
+                if old_constraint_exists and not new_constraint_exists:
+                    print("Migrating achievements unique constraint to include achievement_metadata...")
+                    # Drop old unique index
+                    cursor.execute("DROP INDEX IF EXISTS uq_user_achievement_code")
+                    # Create new unique index including achievement_metadata
+                    # Note: SQLite allows multiple NULLs in unique constraints, which is what we want
+                    cursor.execute(
+                        """
+                        CREATE UNIQUE INDEX uq_user_achievement_code_metadata 
+                        ON achievements(user_id, code, achievement_metadata)
+                        """
+                    )
+                    print("Achievements unique constraint migrated successfully!")
+                elif not new_constraint_exists:
+                    # No old constraint exists, just create the new one
+                    print("Creating achievements unique constraint with achievement_metadata...")
+                    cursor.execute(
+                        """
+                        CREATE UNIQUE INDEX uq_user_achievement_code_metadata 
+                        ON achievements(user_id, code, achievement_metadata)
+                        """
+                    )
 
             # Add composite indexes for performance optimization
             print("Adding composite indexes for performance optimization...")

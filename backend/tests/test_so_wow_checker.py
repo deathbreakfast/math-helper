@@ -181,3 +181,5 @@ def test_check_does_not_duplicate_so_wow_achievements(app, test_user, so_wow_che
         assert len(result) == 0
         assert Achievement.query.filter_by(user_id=test_user.id, code="so-wow-bronze").count() == 1
 
+
+

@@ -195,7 +195,7 @@ export const usePracticeSession = ({
         sessionId,
         questionId: currentQuestion.question_id || currentQuestion.id,
         submittedAnswer: userAnswer,
-        durationMs,
+        durationMs: elapsedMs,
       })
       
       const feedbackState: FeedbackState = data.is_correct ? 'correct' : 'incorrect'

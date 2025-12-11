@@ -97,3 +97,5 @@ def get_achievement_requirements(code: str):
         return jsonify({"error": f"Achievement {code} not found"}), 404
     return jsonify({"achievement_code": code, "requirements": config.get("requirements", {})})
 
+
+

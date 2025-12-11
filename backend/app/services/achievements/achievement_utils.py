@@ -79,8 +79,8 @@ def create_achievement(
     if earned_at is None:
         earned_at = datetime.utcnow()
 
-    # Serialize metadata to JSON string if provided
-    metadata_json = json.dumps(metadata) if metadata else None
+    # Serialize metadata to JSON string if provided (sort keys for consistency)
+    metadata_json = json.dumps(metadata, sort_keys=True) if metadata else None
 
     # Check if already exists - need to check both code and metadata
     # For achievements without metadata, check by code only

@@ -2,8 +2,10 @@
 
 Tests verify that Level Master achievements are correctly awarded for consecutive
 correct answers at a specific level, with proper negative testing.
+Tests verify per-level achievements with metadata.
 """
 
+import json
 import pytest
 from datetime import datetime, timedelta
 
@@ -38,7 +40,7 @@ def test_user(app):
 
 
 def test_level_master_bronze_exactly_30(app, test_user):
-    """Test that exactly 30 correct in a row awards Level Master (Bronze)."""
+    """Test that exactly 30 correct in a row awards Level Master (Bronze) with metadata."""
     with app.app_context():
         # Create 30 questions at level 1, all answered correctly
         questions = create_test_questions(30, 1)
@@ -58,17 +60,20 @@ def test_level_master_bronze_exactly_30(app, test_user):
         # Check achievements
         level_master_achievements = AchievementService.check_level_master_achievements(test_user)
         
-        # Verify achievement was awarded
+        # Verify achievement was awarded with metadata
         achievement = Achievement.query.filter_by(
             user_id=test_user.id,
             code="level-master-bronze"
         ).first()
         
         assert achievement is not None, "Level Master (Bronze) should be awarded for exactly 30 consecutive correct"
+        assert achievement.achievement_metadata is not None, "Achievement should have metadata"
+        metadata = json.loads(achievement.achievement_metadata)
+        assert metadata.get("level") == 1, "Achievement metadata should indicate level 1"
 
 
 def test_level_master_silver_exactly_60(app, test_user):
-    """Test that exactly 60 correct in a row awards Level Master (Silver) only (highest tier)."""
+    """Test that exactly 60 correct in a row awards Level Master (Silver) only (highest tier) with metadata."""
     with app.app_context():
         # Create 60 questions at level 1, all answered correctly
         questions = create_test_questions(60, 1)
@@ -88,18 +93,32 @@ def test_level_master_silver_exactly_60(app, test_user):
         # Check achievements
         level_master_achievements = AchievementService.check_level_master_achievements(test_user)
         
-        # Verify only silver was awarded (highest qualifying tier)
-        bronze = Achievement.query.filter_by(
-            user_id=test_user.id,
-            code="level-master-bronze"
-        ).first()
-        silver = Achievement.query.filter_by(
-            user_id=test_user.id,
-            code="level-master-silver"
-        ).first()
+        # Verify only silver was awarded (highest qualifying tier) with metadata
+        # Query all level-master achievements and filter by metadata
+        all_achievements = Achievement.query.filter(
+            Achievement.user_id == test_user.id,
+            Achievement.code.like("level-master-%")
+        ).all()
+        
+        bronze = None
+        silver = None
+        for ach in all_achievements:
+            if ach.achievement_metadata:
+                try:
+                    metadata = json.loads(ach.achievement_metadata)
+                    if metadata.get("level") == 1:
+                        if ach.code == "level-master-bronze":
+                            bronze = ach
+                        elif ach.code == "level-master-silver":
+                            silver = ach
+                except (json.JSONDecodeError, KeyError):
+                    pass
         
         # Only highest tier should be awarded
         assert silver is not None, "Level Master (Silver) should be awarded for 60 consecutive correct"
+        assert silver.achievement_metadata is not None, "Achievement should have metadata"
+        metadata = json.loads(silver.achievement_metadata)
+        assert metadata.get("level") == 1, "Achievement metadata should indicate level 1"
         assert bronze is None, "Level Master (Bronze) should NOT be awarded when Silver is awarded (only highest tier)"
 
 
@@ -134,7 +153,7 @@ def test_level_master_negative_29_correct_1_incorrect(app, test_user):
 
 
 def test_level_master_negative_30_correct_1_incorrect(app, test_user):
-    """Test that 30 correct + 1 incorrect DOES award Level Master (max consecutive is 30)."""
+    """Test that 30 correct + 1 incorrect DOES award Level Master (max consecutive is 30) with metadata."""
     with app.app_context():
         # Create 31 questions: 30 correct, then 1 incorrect
         # Max consecutive is 30, which qualifies for bronze
@@ -155,7 +174,7 @@ def test_level_master_negative_30_correct_1_incorrect(app, test_user):
         # Check achievements
         level_master_achievements = AchievementService.check_level_master_achievements(test_user)
         
-        # Verify achievement WAS awarded (max consecutive of 30 qualifies for bronze)
+        # Verify achievement WAS awarded (max consecutive of 30 qualifies for bronze) with metadata
         achievement = Achievement.query.filter(
             Achievement.user_id == test_user.id,
             Achievement.code.like("level-master-%")
@@ -163,6 +182,9 @@ def test_level_master_negative_30_correct_1_incorrect(app, test_user):
         
         assert achievement is not None, "Level Master (Bronze) should be awarded when max consecutive is 30, even if followed by incorrect"
         assert achievement.code == "level-master-bronze", "Should award bronze for 30 consecutive correct"
+        assert achievement.achievement_metadata is not None, "Achievement should have metadata"
+        metadata = json.loads(achievement.achievement_metadata)
+        assert metadata.get("level") == 1, "Achievement metadata should indicate level 1"
 
 
 def test_level_master_multiple_awards_30_wrong_30(app, test_user):
@@ -230,7 +252,7 @@ def test_level_master_multiple_awards_30_wrong_30(app, test_user):
 
 
 def test_level_master_only_bronze_silver_tested(app, test_user):
-    """Test that only the highest qualifying tier is awarded (gold for 120 consecutive)."""
+    """Test that only the highest qualifying tier is awarded (gold for 120 consecutive) with metadata."""
     with app.app_context():
         # Create 120 questions (qualifies for gold tier: 120+ consecutive)
         questions = create_test_questions(120, 1)
@@ -250,22 +272,98 @@ def test_level_master_only_bronze_silver_tested(app, test_user):
         # Check achievements
         level_master_achievements = AchievementService.check_level_master_achievements(test_user)
         
-        # Verify only gold is awarded (highest qualifying tier)
-        bronze = Achievement.query.filter_by(
-            user_id=test_user.id,
-            code="level-master-bronze"
-        ).first()
-        silver = Achievement.query.filter_by(
-            user_id=test_user.id,
-            code="level-master-silver"
-        ).first()
-        gold = Achievement.query.filter_by(
-            user_id=test_user.id,
-            code="level-master-gold"
-        ).first()
+        # Verify only gold is awarded (highest qualifying tier) with metadata
+        # Query all level-master achievements and filter by metadata
+        all_achievements = Achievement.query.filter(
+            Achievement.user_id == test_user.id,
+            Achievement.code.like("level-master-%")
+        ).all()
+        
+        bronze = None
+        silver = None
+        gold = None
+        for ach in all_achievements:
+            if ach.achievement_metadata:
+                try:
+                    metadata = json.loads(ach.achievement_metadata)
+                    if metadata.get("level") == 1:
+                        if ach.code == "level-master-bronze":
+                            bronze = ach
+                        elif ach.code == "level-master-silver":
+                            silver = ach
+                        elif ach.code == "level-master-gold":
+                            gold = ach
+                except (json.JSONDecodeError, KeyError):
+                    pass
         
         # Only highest tier should be awarded
         assert gold is not None, "Level Master (Gold) should be awarded for 120 consecutive correct"
+        assert gold.achievement_metadata is not None, "Achievement should have metadata"
+        metadata = json.loads(gold.achievement_metadata)
+        assert metadata.get("level") == 1, "Achievement metadata should indicate level 1"
         assert bronze is None, "Level Master (Bronze) should NOT be awarded when Gold is awarded (only highest tier)"
         assert silver is None, "Level Master (Silver) should NOT be awarded when Gold is awarded (only highest tier)"
+
+
+def test_level_master_multiple_levels(app, test_user):
+    """Test that achievements are awarded per level, and multiple levels can have achievements."""
+    with app.app_context():
+        # Create 30 correct at level 1
+        questions1 = create_test_questions(30, 1)
+        base_time = datetime.utcnow()
+        responses_data1 = []
+        for i, q in enumerate(questions1):
+            responses_data1.append({
+                'question_id': q.id,
+                'answer': q.correct_answer,
+                'is_correct': True,
+                'duration_ms': 3000,
+                'answered_at': base_time + timedelta(seconds=i)
+            })
+        session1 = create_test_session_with_responses(test_user.id, responses_data1, level=1)
+        
+        # Create 30 correct at level 2
+        questions2 = create_test_questions(30, 2)
+        responses_data2 = []
+        for i, q in enumerate(questions2):
+            responses_data2.append({
+                'question_id': q.id,
+                'answer': q.correct_answer,
+                'is_correct': True,
+                'duration_ms': 3000,
+                'answered_at': base_time + timedelta(seconds=100+i)
+            })
+        session2 = create_test_session_with_responses(test_user.id, responses_data2, level=2)
+        
+        # Check achievements
+        AchievementService.check_level_master_achievements(test_user)
+        
+        # Verify both levels have achievements
+        # Query all level-master achievements and filter by metadata
+        all_achievements = Achievement.query.filter(
+            Achievement.user_id == test_user.id,
+            Achievement.code == "level-master-bronze"
+        ).all()
+        
+        level1_achievement = None
+        level2_achievement = None
+        for ach in all_achievements:
+            if ach.achievement_metadata:
+                try:
+                    metadata = json.loads(ach.achievement_metadata)
+                    if metadata.get("level") == 1:
+                        level1_achievement = ach
+                    elif metadata.get("level") == 2:
+                        level2_achievement = ach
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        
+        assert level1_achievement is not None, "Level 1 should have Level Master (Bronze) achievement"
+        assert level2_achievement is not None, "Level 2 should have Level Master (Bronze) achievement"
+        assert level1_achievement.id != level2_achievement.id, "Should be different achievements"
+        
+        metadata1 = json.loads(level1_achievement.achievement_metadata)
+        metadata2 = json.loads(level2_achievement.achievement_metadata)
+        assert metadata1.get("level") == 1, "First achievement should be for level 1"
+        assert metadata2.get("level") == 2, "Second achievement should be for level 2"
 

@@ -112,7 +112,9 @@ class Achievement(db.Model):
     session_id = db.Column(db.Integer, db.ForeignKey("practice_sessions.id", ondelete="SET NULL"), nullable=True, index=True)
     achievement_metadata = db.Column(db.Text, nullable=True)  # JSON string for level/operation filters
 
-    __table_args__ = (db.UniqueConstraint("user_id", "code", name="uq_user_achievement_code"),)
+    __table_args__ = (
+        db.UniqueConstraint("user_id", "code", "achievement_metadata", name="uq_user_achievement_code_metadata"),
+    )
 
     user = db.relationship("User", back_populates="achievements")
     session = db.relationship("PracticeSession", backref="achievements")

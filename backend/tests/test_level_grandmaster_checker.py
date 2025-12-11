@@ -1,5 +1,6 @@
 """Tests for LevelGrandmasterChecker."""
 
+import json
 import pytest
 from app.models import Achievement, Question, Response, User
 from app.services.achievements.achievement_checkers.level_grandmaster_checker import LevelGrandmasterChecker
@@ -19,11 +20,13 @@ def level_grandmaster_checker(achievement_configs):
 
 
 def test_check_requires_level_master_bronze_first(app, test_user, level_grandmaster_checker):
-    """Test that Level Master (Bronze) is required before Level Grandmaster."""
+    """Test that Level Master (Bronze) with metadata is required before Level Grandmaster."""
     with app.app_context():
         from app import db
+        from app.config.levels_config import LEVELS_CONFIG
         
-        # User does not have level-master-bronze
+        # User does not have level-master-bronze achievements with metadata
+        # (may have old global achievement, but that doesn't count)
         result = level_grandmaster_checker.check(test_user)
         
         # Should not award Level Grandmaster
@@ -31,40 +34,46 @@ def test_check_requires_level_master_bronze_first(app, test_user, level_grandmas
 
 
 def test_check_awards_when_all_levels_qualified(app, test_user, level_grandmaster_checker):
-    """Test that Level Grandmaster is awarded when user has 30 consecutive at all levels.
+    """Test that Level Grandmaster is awarded when user has Level Master (Bronze) at all levels.
     
-    TODO: This test is skipped pending implementation of correct logic.
-    See ACHIEVEMENT_LOGIC_FIXES.md for details.
-    
-    Expected behavior:
-    - Level Master should award per-level achievements with metadata {level: N}
-    - Level Grandmaster should check for existing Level Master (Bronze) achievements with metadata
-    - Should NOT recalculate consecutive counts independently
-    
-    Current implementation incorrectly recalculates consecutive counts instead of checking
-    for existing Level Master achievements. This test will be updated once the logic is fixed.
+    This test verifies that Level Grandmaster checks for existing Level Master achievements
+    with metadata, not recalculating consecutive counts.
     """
-    pytest.skip("TODO: Pending implementation of correct Level Master/Level Grandmaster logic. See ACHIEVEMENT_LOGIC_FIXES.md")
-
-
-def test_check_does_not_award_if_level_missing_consecutive(app, test_user, level_grandmaster_checker):
-    """Test that Level Grandmaster is not awarded if any level lacks 30 consecutive."""
     with app.app_context():
         from app import db
         from app.config.levels_config import LEVELS_CONFIG
-        from datetime import datetime, timedelta
+        from app.services.achievements.achievement_utils import create_achievement
         
-        # First, award level-master-bronze
-        level_master_bronze = Achievement(
-            user_id=test_user.id,
-            code="level-master-bronze",
-            title="Level Master (Bronze)",
-            description="30 consecutive correct at any level",
-            icon="🏆",
-            category="mastery",
-        )
-        db.session.add(level_master_bronze)
+        # Create Level Master (Bronze) achievements with metadata for ALL levels
+        all_levels = sorted(LEVELS_CONFIG.keys())
+        for level in all_levels:
+            metadata = {"level": level}
+            create_achievement(
+                user_id=test_user.id,
+                code="level-master-bronze",
+                title="Level Master (Bronze)",
+                description="30 consecutive correct at level",
+                icon="🏆",
+                category="accuracy",
+                metadata=metadata,
+            )
+        
         db.session.commit()
+        
+        # Check Level Grandmaster
+        result = level_grandmaster_checker.check(test_user)
+        
+        # Should award level-grandmaster (all levels have Level Master Bronze)
+        assert len(result) == 1, "Should award level-grandmaster when all levels have Level Master (Bronze)"
+        assert result[0].code == "level-grandmaster", "Should award level-grandmaster achievement"
+
+
+def test_check_does_not_award_if_level_missing_consecutive(app, test_user, level_grandmaster_checker):
+    """Test that Level Grandmaster is not awarded if any level lacks Level Master (Bronze) achievement."""
+    with app.app_context():
+        from app import db
+        from app.config.levels_config import LEVELS_CONFIG
+        from app.services.achievements.achievement_utils import create_achievement
         
         # Use a small subset of levels for testing (levels 1-3)
         test_levels = sorted(LEVELS_CONFIG.keys())[:3]
@@ -72,61 +81,30 @@ def test_check_does_not_award_if_level_missing_consecutive(app, test_user, level
         if len(test_levels) < 2:
             pytest.skip("Need at least 2 levels for this test")
         
-        # Create 30 consecutive correct for all but one level
-        for level in test_levels[:-1]:
-            for i in range(30):
-                question = Question(
-                    operation="addition",
-                    required_level=level,
-                    operand1=1,
-                    operand2=1,
-                    correct_answer="2",
-                    prompt="1 + 1",
-                )
-                db.session.add(question)
-                db.session.flush()
-                
-                response = Response(
-                    user_id=test_user.id,
-                    question_id=question.id,
-                    submitted_answer="2",
-                    correct_answer="2",
-                    is_correct=True,
-                    answered_at=datetime.utcnow() - timedelta(seconds=30-i),
-                )
-                db.session.add(response)
+        # Create Level Master (Bronze) achievements with metadata for all but one level
+        all_levels = sorted(LEVELS_CONFIG.keys())
+        missing_level = all_levels[-1]  # Use the last level as the missing one
         
-        # For the last level, only create 20 consecutive (not enough)
-        last_level = test_levels[-1]
-        for i in range(20):
-            question = Question(
-                operation="addition",
-                required_level=last_level,
-                operand1=1,
-                operand2=1,
-                correct_answer="2",
-                prompt="1 + 1",
-            )
-            db.session.add(question)
-            db.session.flush()
-            
-            response = Response(
-                user_id=test_user.id,
-                question_id=question.id,
-                submitted_answer="2",
-                correct_answer="2",
-                is_correct=True,
-                answered_at=datetime.utcnow() - timedelta(seconds=20-i),
-            )
-            db.session.add(response)
+        for level in all_levels:
+            if level != missing_level:
+                metadata = {"level": level}
+                create_achievement(
+                    user_id=test_user.id,
+                    code="level-master-bronze",
+                    title="Level Master (Bronze)",
+                    description="30 consecutive correct at level",
+                    icon="🏆",
+                    category="accuracy",
+                    metadata=metadata,
+                )
         
         db.session.commit()
         
         # Check Level Grandmaster
         result = level_grandmaster_checker.check(test_user)
         
-        # Should not award level-grandmaster (one level doesn't qualify)
-        assert len(result) == 0, "Should not award level-grandmaster when one level lacks 30 consecutive"
+        # Should not award level-grandmaster (one level is missing Level Master achievement)
+        assert len(result) == 0, "Should not award level-grandmaster when one level lacks Level Master (Bronze) achievement"
 
 
 def test_check_does_not_duplicate_achievement(app, test_user, level_grandmaster_checker):
@@ -151,4 +129,63 @@ def test_check_does_not_duplicate_achievement(app, test_user, level_grandmaster_
         # Should not award duplicate
         assert len(result) == 0
         assert Achievement.query.filter_by(user_id=test_user.id, code="level-grandmaster").count() == 1
+
+
+def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
+    """Test that Level Grandmaster accepts higher tier Level Master achievements (Silver/Gold qualify for Bronze requirement)."""
+    with app.app_context():
+        from app import db
+        from app.config.levels_config import LEVELS_CONFIG
+        from app.services.achievements.achievement_utils import create_achievement
+        
+        all_levels = sorted(LEVELS_CONFIG.keys())
+        
+        # Create Level Master achievements for all levels
+        # Mix: Bronze for most levels, Silver for level 1, Gold for level 2
+        for level in all_levels:
+            if level == 1:
+                # Level 1: Silver (higher tier qualifies)
+                metadata = {"level": level}
+                create_achievement(
+                    user_id=test_user.id,
+                    code="level-master-silver",
+                    title="Level Master (Silver)",
+                    description="60 consecutive correct at level",
+                    icon="🏆",
+                    category="accuracy",
+                    metadata=metadata,
+                )
+            elif level == 2:
+                # Level 2: Gold (higher tier qualifies)
+                metadata = {"level": level}
+                create_achievement(
+                    user_id=test_user.id,
+                    code="level-master-gold",
+                    title="Level Master (Gold)",
+                    description="120 consecutive correct at level",
+                    icon="🏆",
+                    category="accuracy",
+                    metadata=metadata,
+                )
+            else:
+                # Other levels: Bronze
+                metadata = {"level": level}
+                create_achievement(
+                    user_id=test_user.id,
+                    code="level-master-bronze",
+                    title="Level Master (Bronze)",
+                    description="30 consecutive correct at level",
+                    icon="🏆",
+                    category="accuracy",
+                    metadata=metadata,
+                )
+        
+        db.session.commit()
+        
+        # Check Level Grandmaster
+        result = level_grandmaster_checker.check(test_user)
+        
+        # Should award level-grandmaster (all levels have Level Master Bronze or higher)
+        assert len(result) == 1, "Should award level-grandmaster when all levels have Level Master (Bronze or higher)"
+        assert result[0].code == "level-grandmaster", "Should award level-grandmaster achievement"
 

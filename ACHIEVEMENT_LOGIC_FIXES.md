@@ -374,3 +374,5 @@ for target_level in all_levels:
 - Lightning Fast Config: `backend/app/config/achievements/speed.py`
 - Level Progression Config: `backend/app/config/level_progression_config.py` (shows expected metadata usage)
 
+
+

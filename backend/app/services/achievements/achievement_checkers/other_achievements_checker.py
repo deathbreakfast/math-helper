@@ -50,19 +50,14 @@ class OtherAchievementsChecker(AchievementChecker):
         for achievement_code, config in achievement_configs.items():
             req_type = config.get("requirements", {}).get("type")
             # Skip achievements handled by LevelAchievementChecker
-            if req_type in ["fast_session", "fast_questions"] or achievement_code.startswith("perfect-streak-"):
+            if achievement_code.startswith("perfect-streak-"):
                 continue
             other_achievements.append((achievement_code, config))
         
         # Process other achievements (non-tiered)
         for achievement_code, config in other_achievements:
-            # Skip if already earned (unless it's a session-specific achievement that can be earned multiple times)
-            requirements = config.get("requirements", {})
-            req_type = requirements.get("type")
-            is_session_specific = req_type in ["fast_session", "fast_questions"]
-            
-            # For session-specific achievements, we'll check them even if already earned
-            if achievement_code in user_achievement_codes and not is_session_specific:
+            # Skip if already earned
+            if achievement_code in user_achievement_codes:
                 continue
             
             debug_print(f"[ACHIEVEMENT DEBUG] Checking achievement: {achievement_code} - {config.get('title')}")

@@ -1,6 +1,6 @@
 """Level-specific achievement checker orchestrator.
 
-Coordinates fast_session, fast_questions, and perfect_streak checkers.
+Coordinates perfect_streak checker.
 """
 
 from __future__ import annotations
@@ -9,8 +9,6 @@ from typing import Any
 
 from ....models import Achievement, User
 from .base_checker import AchievementChecker
-from .fast_session_checker import FastSessionChecker
-from .fast_questions_checker import FastQuestionsChecker
 from .perfect_streak_checker import PerfectStreakChecker
 
 
@@ -24,8 +22,6 @@ class LevelAchievementChecker(AchievementChecker):
             achievement_configs: Dictionary of achievement configurations
         """
         self.achievement_configs = achievement_configs
-        self.fast_session_checker = FastSessionChecker(achievement_configs)
-        self.fast_questions_checker = FastQuestionsChecker(achievement_configs)
         self.perfect_streak_checker = PerfectStreakChecker(achievement_configs)
     
     def check(
@@ -46,16 +42,9 @@ class LevelAchievementChecker(AchievementChecker):
         """
         new_achievements = []
         
-        # Run all level-specific checkers
-        checkers = [
-            self.fast_session_checker,
-            self.fast_questions_checker,
-            self.perfect_streak_checker,
-        ]
-        
-        for checker in checkers:
-            achievements = checker.check(user, metrics, session_id)
-            new_achievements.extend(achievements)
+        # Run level-specific checkers
+        achievements = self.perfect_streak_checker.check(user, metrics, session_id)
+        new_achievements.extend(achievements)
         
         return new_achievements
 

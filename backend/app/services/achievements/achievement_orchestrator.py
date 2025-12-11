@@ -17,6 +17,7 @@ from .achievement_checkers import (
     LevelAchievementChecker,
     LevelMasterChecker,
     LevelGrandmasterChecker,
+    HumanCalculatorChecker,
 )
 
 
@@ -34,6 +35,7 @@ class AchievementOrchestrator:
         self.level_checker = LevelAchievementChecker(achievement_configs)
         self.level_master_checker = LevelMasterChecker(achievement_configs)
         self.level_grandmaster_checker = LevelGrandmasterChecker(achievement_configs)
+        self.human_calculator_checker = HumanCalculatorChecker(achievement_configs)
     
     def ensure_achievements(
         self,
@@ -155,6 +157,18 @@ class AchievementOrchestrator:
             level_grandmaster_titles = [a.title for a in level_grandmaster_achievements]
             debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(level_grandmaster_achievements)} Level Grandmaster achievement(s): {level_grandmaster_codes}")
             print(f"[ACHIEVEMENT INFO] Awarded {len(level_grandmaster_achievements)} Level Grandmaster achievement(s): {level_grandmaster_titles}")
+            db.session.commit()
+        
+        # Check Human Calculator milestone achievement (Lightning Fast Bronze/Silver on all levels)
+        debug_print(f"[ACHIEVEMENT DEBUG] Checking Human Calculator achievement...")
+        human_calculator_bronze = self.human_calculator_checker.check(user, tier="bronze")
+        human_calculator_silver = self.human_calculator_checker.check(user, tier="silver")
+        human_calculator_achievements = human_calculator_bronze + human_calculator_silver
+        if human_calculator_achievements:
+            human_calculator_codes = [a.code for a in human_calculator_achievements]
+            human_calculator_titles = [a.title for a in human_calculator_achievements]
+            debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(human_calculator_achievements)} Human Calculator achievement(s): {human_calculator_codes}")
+            print(f"[ACHIEVEMENT INFO] Awarded {len(human_calculator_achievements)} Human Calculator achievement(s): {human_calculator_titles}")
             db.session.commit()
 
         achievements = (

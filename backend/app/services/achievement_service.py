@@ -2,23 +2,15 @@
 
 from __future__ import annotations
 
-import json
-import os
 from datetime import datetime
 from typing import Any
 
-from sqlalchemy import func
-
-from ..database import log_query, transaction
-from ..models import Achievement, PracticeSession, Question, Response, User, db
-from ..services.level_config_service import LevelConfigService
-from .analytics_service import AnalyticsService
+from ..database import log_query
+from ..models import Achievement, PracticeSession, User
 
 # Import utility functions
 from .achievements.achievement_utils import (
     get_achievement_configs as _get_achievement_configs,
-    clear_achievement_configs_cache as _clear_achievement_configs_cache,
-    debug_print as _debug_print,
 )
 
 
@@ -52,7 +44,7 @@ class AchievementService:
         user: User,
         metrics: dict[str, Any],
         existing_achievements: list[Achievement],
-        user_responses: list[Response],
+        user_responses: list,
         user_sessions: list[PracticeSession]
     ) -> list[Achievement]:
         """Internal helper to ensure achievements using pre-loaded data.
@@ -195,51 +187,19 @@ class AchievementService:
             session_id: Optional session ID to link achievement
             metadata: Optional metadata dict (will be stored as JSON string)
         """
-        if earned_at is None:
-            earned_at = datetime.utcnow()
-
-        # Serialize metadata to JSON string if provided
-        metadata_json = json.dumps(metadata) if metadata else None
-
-        # Check if already exists - need to check both code and metadata
-        # For achievements without metadata, check by code only
-        # For achievements with metadata, check by code and metadata
-        if metadata_json:
-            existing = Achievement.query.filter_by(
-                user_id=user_id, code=code, achievement_metadata=metadata_json
-            ).first()
-        else:
-            existing = Achievement.query.filter_by(
-                user_id=user_id, code=code
-            ).filter(
-                (Achievement.achievement_metadata.is_(None)) | (Achievement.achievement_metadata == "")
-            ).first()
+        from .achievements.achievement_utils import create_achievement as _create_achievement
         
-        if existing:
-            # If we have a session_id and the existing achievement doesn't have one (or has a different one),
-            # update it to link to this session. This ensures achievements earned in this session are properly linked.
-            if session_id and existing.session_id != session_id:
-                existing.session_id = session_id
-                db.session.add(existing)
-                db.session.commit()
-            return existing
-
-        with transaction():
-            achievement = Achievement(
-                user_id=user_id,
-                code=code,
-                title=title,
-                description=description,
-                icon=icon,
-                category=category,
-                earned_at=earned_at,
-                session_id=session_id,
-                achievement_metadata=metadata_json,
-            )
-            db.session.add(achievement)
-            db.session.flush()
-
-        return achievement
+        return _create_achievement(
+            user_id=user_id,
+            code=code,
+            title=title,
+            description=description,
+            icon=icon,
+            category=category,
+            earned_at=earned_at,
+            session_id=session_id,
+            metadata=metadata,
+        )
 
     @staticmethod
     @log_query
@@ -297,74 +257,20 @@ class AchievementService:
             List of newly created achievements
         """
         from .achievements.achievement_checkers.milestone_checker import MilestoneChecker
+        from .achievements.achievement_checkers.basic_milestone_checker import BasicMilestoneChecker
         
         achievement_configs = _get_achievement_configs()
         milestone_checker = MilestoneChecker(achievement_configs)
+        basic_milestone_checker = BasicMilestoneChecker(achievement_configs)
         
-        # Use MilestoneChecker to handle milestone achievements
+        # Use MilestoneChecker to handle tier-based milestone achievements
         milestone_achievements = milestone_checker.check(user, metrics, session_id)
         
-        # Process other achievements (non-tier-based milestones like first-steps, first-victory)
-        new_achievements = []
-        user_achievement_codes = AchievementService.get_achievement_codes(user.id)
+        # Use BasicMilestoneChecker to handle non-tier-based milestones
+        basic_milestone_achievements = basic_milestone_checker.check(user, metrics, session_id)
         
-        total_answers = metrics.get("questions_answered", 0)
-        stats = metrics.get("operation_stats", {})
-        accuracy_candidates = [
-            stats.get("additionAccuracy", 0),
-            stats.get("subtractionAccuracy", 0),
-            stats.get("multiplicationAccuracy", 0),
-            stats.get("divisionAccuracy", 0),
-        ]
-        max_accuracy = max(accuracy_candidates) if accuracy_candidates else 0
-        
-        # Process other achievements (non-tier-based milestones)
-        for achievement_code, config in achievement_configs.items():
-            if achievement_code in user_achievement_codes:
-                continue
-            
-            # Skip milestone achievements (handled by MilestoneChecker)
-            if (achievement_code.startswith("question-master-") or
-                achievement_code.startswith("speed-demon-") or
-                achievement_code.startswith("week-warrior-")):
-                continue
-            
-            requirements = config.get("requirements", {})
-            req_type = requirements.get("type")
-            meets_requirements = False
-            
-            # Check question_count achievements (basic milestones like first-steps, first-victory)
-            if req_type == "question_count":
-                min_questions = requirements.get("min_questions", 0)
-                meets_requirements = total_answers >= min_questions
-            
-            # Check operation_accuracy achievements
-            elif req_type == "operation_accuracy":
-                min_accuracy = requirements.get("min_accuracy", 0.0)
-                meets_requirements = max_accuracy >= (min_accuracy * 100)  # Convert to percentage
-            
-            # Skip other types (handled by check_level_specific_achievements)
-            else:
-                continue
-            
-            if meets_requirements:
-                _debug_print(f"[ACHIEVEMENT DEBUG]   ✓ AWARDING {achievement_code} ({req_type})")
-                print(f"[ACHIEVEMENT INFO] Awarding '{config['title']}' ({achievement_code}) to user {user.id} - {config['description']}")
-                achievement = AchievementService.create_achievement(
-                    user_id=user.id,
-                    code=achievement_code,
-                    title=config["title"],
-                    description=config["description"],
-                    icon=config["icon"],
-                    category=config["category"],
-                    session_id=session_id,
-                )
-                new_achievements.append(achievement)
-            else:
-                _debug_print(f"[ACHIEVEMENT DEBUG]   ✗ Not awarding {achievement_code} ({req_type})")
-        
-        # Combine milestone achievements with other achievements
-        all_new_achievements = milestone_achievements + new_achievements
+        # Combine all achievements
+        all_new_achievements = milestone_achievements + basic_milestone_achievements
         return all_new_achievements
 
     @staticmethod
@@ -384,7 +290,7 @@ class AchievementService:
         achievement_configs = _get_achievement_configs()
         level_checker = LevelAchievementChecker(achievement_configs)
         
-        # Use LevelAchievementChecker to handle fast_session, fast_questions, and perfect_streak
+        # Use LevelAchievementChecker to handle perfect_streak
         level_achievements = level_checker.check(user, session_id=session_id)
         
         # Process other achievements using OtherAchievementsChecker
@@ -392,12 +298,12 @@ class AchievementService:
         
         other_checker = OtherAchievementsChecker(achievement_configs)
         new_achievements = other_checker.check(user, session_id=session_id)
-            
-            # Check operation_count achievements
+        
         # Combine level achievements with other achievements
         all_new_achievements = level_achievements + new_achievements
         
         if all_new_achievements:
+            from ..models import db
             db.session.commit()
         
         return all_new_achievements

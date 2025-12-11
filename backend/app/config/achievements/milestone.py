@@ -302,10 +302,11 @@ def _generate_so_wow_achievements() -> dict[str, dict[str, Any]]:
 def _generate_human_calculator_achievements() -> dict[str, dict[str, Any]]:
     """Generate Human Calculator achievement definitions.
     
-    Like Level Grandmaster, but for Lightning Fast. Requires Lightning Fast (Bronze) at all levels.
+    Like Level Grandmaster, but for Lightning Fast. Requires Lightning Fast (Bronze or Silver) at all levels.
     """
     achievements = {}
     
+    # Bronze tier
     code = "human-calculator"
     title = "Human Calculator"
     description = "Lightning Fast (Bronze) on all levels"
@@ -322,6 +323,25 @@ def _generate_human_calculator_achievements() -> dict[str, dict[str, Any]]:
         "category": "milestone",
         "tier": "bronze",
         "requirements": requirements,
+    }
+    
+    # Silver tier
+    code_silver = "human-calculator-silver"
+    title_silver = "Human Calculator (Silver)"
+    description_silver = "Lightning Fast (Silver) on all levels"
+    
+    requirements_silver = {
+        "type": "human_calculator",
+        "required_achievement": "lightning-fast-silver",
+    }
+    
+    achievements[code_silver] = {
+        "title": title_silver,
+        "description": description_silver,
+        "icon": "🧮",
+        "category": "milestone",
+        "tier": "silver",
+        "requirements": requirements_silver,
     }
     
     return achievements

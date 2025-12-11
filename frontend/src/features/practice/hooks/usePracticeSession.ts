@@ -1,19 +1,12 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
-import type { PracticeQuestion, User, PracticeAttempt } from '../types'
+import type { PracticeQuestion, User } from '../types'
 import { logError } from '../../../utils/logger'
-
-export type PracticeMode = 'standard' | 'multiplication' | 'division'
-
-type FeedbackState = 'correct' | 'incorrect' | null
-
-type QuestionAnswer = {
-  answer: string
-  isChecked: boolean
-  feedback: FeedbackState
-  elapsedMs?: number
-}
+import type { FeedbackState, QuestionAnswer } from '../utils/sessionReconstruction'
+import { usePracticeState } from './usePracticeState'
+import { startSession, checkAnswer, completeSession, createSessionSummary } from './usePracticeAPI'
+import type { PracticeMode } from './usePracticeAPI'
 
 type UsePracticeSessionArgs = {
   selectedUser: User | null
@@ -46,103 +39,6 @@ type UsePracticeSessionResult = {
   handleSubmit: () => void
 }
 
-function transformBackendQuestionsToPracticeQuestions(
-  backendQuestions: any[],
-  sessionMode: string
-): PracticeQuestion[] {
-  return backendQuestions.map((q) => {
-    // Handle layout config - may be JSON string or object
-    let layout: PracticeQuestion['layout'] = undefined
-    if (q.layout) {
-      if (typeof q.layout === 'string') {
-        try {
-          layout = JSON.parse(q.layout)
-        } catch {
-          layout = { type: q.layout_type || 'vertical' }
-        }
-      } else {
-        layout = q.layout
-      }
-    } else if (q.layout_type) {
-      layout = { type: q.layout_type }
-    }
-
-    return {
-      id: q.id || `q-${q.question_id}`,
-      prompt: q.prompt || '',
-      operation: q.operation || 'addition',
-      operand1: q.operand1 || 0,
-      operand2: q.operand2 || 0,
-      correctAnswer: q.correctAnswer || q.correct_answer || '',
-      difficulty: q.difficulty || 'Level 1',
-      targetMs: q.targetMs || q.target_ms || 4000,
-      hint: q.hint || '',
-      layout,
-      answerFormat: q.answerFormat || q.answer_format,
-      acceptedAnswers: q.acceptedAnswers || q.accepted_answers,
-      decimalPlaces: q.decimalPlaces || q.decimal_places,
-      mathTypeLabel: q.mathTypeLabel || q.math_type_label,
-      question_id: q.question_id || q.id,
-    }
-  })
-}
-
-function reconstructSessionStateFromResponse(
-  responseData: any
-): {
-  problems: PracticeQuestion[]
-  questionAnswers: Record<string, QuestionAnswer>
-  currentQuestionIndex: number
-  questionStartTimes: Record<string, number>
-  flaggedQuestions: Record<string, boolean>
-} {
-  const questions = responseData.questions || []
-  const sessionMode = responseData.mode || 'standard'
-
-  // Transform questions to PracticeQuestion[]
-  const problems = transformBackendQuestionsToPracticeQuestions(questions, sessionMode)
-
-  // Build questionAnswers from response data (questions with responses)
-  const questionAnswers: Record<string, QuestionAnswer> = {}
-  let firstUnansweredIndex = -1
-
-  problems.forEach((problem, index) => {
-    const questionData = questions.find(
-      (q: any) => (q.question_id || q.id) === (problem.question_id || problem.id)
-    )
-
-    if (questionData?.response) {
-      // Question has been answered
-      questionAnswers[problem.id] = {
-        answer: questionData.response.submitted_answer || '',
-        isChecked: true,
-        feedback: questionData.response.is_correct ? 'correct' : 'incorrect',
-        elapsedMs: questionData.response.duration_ms,
-      }
-    } else {
-      // Question is unanswered
-      if (firstUnansweredIndex === -1) {
-        firstUnansweredIndex = index
-      }
-    }
-  })
-
-  // Find latest unanswered question index (or last answered if all are answered)
-  const currentQuestionIndex =
-    firstUnansweredIndex !== -1 ? firstUnansweredIndex : problems.length > 0 ? problems.length - 1 : 0
-
-  // Initialize empty questionStartTimes and flaggedQuestions
-  const questionStartTimes: Record<string, number> = {}
-  const flaggedQuestions: Record<string, boolean> = {}
-
-  return {
-    problems,
-    questionAnswers,
-    currentQuestionIndex,
-    questionStartTimes,
-    flaggedQuestions,
-  }
-}
 
 export const usePracticeSession = ({
   selectedUser,
@@ -150,31 +46,43 @@ export const usePracticeSession = ({
   navigate,
 }: UsePracticeSessionArgs): UsePracticeSessionResult => {
   const [searchParams] = useSearchParams()
-  const [problems, setProblems] = useState<PracticeQuestion[]>([])
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
-  const [userAnswer, setUserAnswer] = useState('')
-  const [feedback, setFeedback] = useState<FeedbackState>(null)
-  const [showAnswer, setShowAnswer] = useState(false)
-  const [flaggedQuestions, setFlaggedQuestions] = useState<Record<string, boolean>>({})
-  const [questionAnswers, setQuestionAnswers] = useState<Record<string, QuestionAnswer>>({})
-  const [questionStartTimes, setQuestionStartTimes] = useState<Record<string, number>>({})
-  const [isLoadingProblems, setIsLoadingProblems] = useState(false)
-  const [sessionId, setSessionId] = useState<number | null>(null)
-  const [sessionMode, setSessionMode] = useState<string>('standard')
-  const [sessionError, setSessionError] = useState<string | null>(null)
+  const { state, actions } = usePracticeState()
+  
+  const {
+    problems,
+    currentQuestionIndex,
+    userAnswer,
+    feedback,
+    showAnswer,
+    flaggedQuestions,
+    questionAnswers,
+    questionStartTimes,
+    sessionId,
+    sessionMode,
+    sessionError,
+    isLoadingProblems,
+  } = state
+
+  const {
+    setProblems,
+    setCurrentQuestionIndex,
+    setUserAnswer,
+    setFeedback,
+    setShowAnswer,
+    setFlaggedQuestions,
+    setQuestionAnswers,
+    setQuestionStartTimes,
+    setSessionId,
+    setSessionMode,
+    setSessionError,
+    setIsLoadingProblems,
+    resetState,
+  } = actions
 
   // Fetch problems from backend API when learner or mode changes
   useEffect(() => {
     if (!selectedUser) {
-      setProblems([])
-      setCurrentQuestionIndex(0)
-      setUserAnswer('')
-      setFeedback(null)
-      setShowAnswer(false)
-      setQuestionAnswers({})
-      setQuestionStartTimes({})
-      setSessionId(null)
-      setSessionError(null)
+      resetState()
       return
     }
 
@@ -182,67 +90,25 @@ export const usePracticeSession = ({
       setIsLoadingProblems(true)
       setSessionError(null)
       try {
-        // Check URL parameters for test type
-        const testType = searchParams.get('testType')
-        const isTestParam = searchParams.get('isTest')
-        const isTest = isTestParam === 'true' && testType !== null
-
-        // Determine mode and test type
-        const mode = practiceMode === 'multiplication' ? 'multiplication' : practiceMode === 'division' ? 'division' : 'standard'
-        const level = selectedUser.level ?? 1
-
-        // Call start endpoint - it handles both new and existing incomplete sessions
-        const requestBody: any = {
-          user_id: parseInt(selectedUser.id),
-          mode,
-          is_test: isTest,
-          level,
-        }
-
-        if (isTest && testType) {
-          requestBody.test_type = testType
-        }
-
-        const response = await fetch('/api/practice/sessions/start', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestBody),
+        const result = await startSession({
+          selectedUser,
+          practiceMode,
+          searchParams,
         })
 
-        if (!response.ok) {
-          // Try to parse error message from response
-          let errorMessage = `Failed to start session: ${response.statusText}`
-          try {
-            const errorData = await response.json()
-            if (errorData.error) {
-              errorMessage = errorData.error
-            }
-          } catch {
-            // If JSON parsing fails, use the status text
-          }
-          throw new Error(errorMessage)
-        }
-
-        const data = await response.json()
-
-        // Reconstruct session state from response
-        const sessionState = reconstructSessionStateFromResponse(data)
-
         // Set session state
-        setProblems(sessionState.problems)
-        setSessionId(data.session_id)
-        setSessionMode(data.mode || 'standard')
-        setCurrentQuestionIndex(sessionState.currentQuestionIndex)
-        setQuestionAnswers(sessionState.questionAnswers)
-        setQuestionStartTimes(sessionState.questionStartTimes)
-        setFlaggedQuestions(sessionState.flaggedQuestions)
+        setProblems(result.sessionState.problems)
+        setSessionId(result.sessionId)
+        setSessionMode(result.sessionMode)
+        setCurrentQuestionIndex(result.sessionState.currentQuestionIndex)
+        setQuestionAnswers(result.sessionState.questionAnswers)
+        setQuestionStartTimes(result.sessionState.questionStartTimes)
+        setFlaggedQuestions(result.sessionState.flaggedQuestions)
 
         // Set current question state
-        const currentQuestion = sessionState.problems[sessionState.currentQuestionIndex]
+        const currentQuestion = result.sessionState.problems[result.sessionState.currentQuestionIndex]
         if (currentQuestion) {
-          const answer = sessionState.questionAnswers[currentQuestion.id]
+          const answer = result.sessionState.questionAnswers[currentQuestion.id]
           if (answer) {
             setUserAnswer(answer.answer)
             setFeedback(answer.feedback)
@@ -270,6 +136,7 @@ export const usePracticeSession = ({
     }
 
     fetchProblems()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUser, practiceMode])
 
   const currentQuestion = problems[currentQuestionIndex]
@@ -282,7 +149,8 @@ export const usePracticeSession = ({
         [currentQuestion.id]: Date.now(),
       }))
     }
-  }, [currentQuestion?.id, questionStartTimes])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentQuestion?.id])
 
   // Load saved answer when switching questions
   useEffect(() => {
@@ -298,6 +166,7 @@ export const usePracticeSession = ({
         setShowAnswer(false)
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentQuestion?.id, questionAnswers])
 
   const isPartialProducts = currentQuestion?.layout?.type === 'partialProducts'
@@ -322,24 +191,13 @@ export const usePracticeSession = ({
 
     try {
       // Check answer with backend
-      const response = await fetch('/api/practice/questions/check', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          session_id: sessionId,
-          question_id: parseInt(currentQuestion.question_id || currentQuestion.id),
-          submitted_answer: userAnswer,
-          duration_ms: elapsedMs,
-        }),
+      const data = await checkAnswer({
+        sessionId,
+        questionId: currentQuestion.question_id || currentQuestion.id,
+        submittedAnswer: userAnswer,
+        durationMs,
       })
-
-      if (!response.ok) {
-        throw new Error(`Failed to check answer: ${response.statusText}`)
-      }
-
-      const data = await response.json()
+      
       const feedbackState: FeedbackState = data.is_correct ? 'correct' : 'incorrect'
 
       // Save the answer
@@ -429,63 +287,18 @@ export const usePracticeSession = ({
 
     try {
       // Complete session with backend
-      const response = await fetch(`/api/practice/sessions/${sessionId}/complete`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          total_duration_ms: Object.values(questionAnswers).reduce(
-            (sum, qa) => sum + (qa.elapsedMs || 0),
-            0
-          ),
-        }),
+      const totalDurationMs = Object.values(questionAnswers).reduce(
+        (sum, qa) => sum + (qa.elapsedMs || 0),
+        0
+      )
+
+      const data = await completeSession({
+        sessionId,
+        totalDurationMs,
       })
-
-      if (!response.ok) {
-        throw new Error(`Failed to complete session: ${response.statusText}`)
-      }
-
-      const data = await response.json()
 
       // Create session summary from backend response
-      const attempts: PracticeAttempt[] = problems.map((problem) => {
-        const answer = questionAnswers[problem.id]
-        const isCorrect = answer?.feedback === 'correct'
-        
-        return {
-          questionId: problem.question_id?.toString() || problem.id,
-          prompt: problem.prompt,
-          submittedAnswer: answer?.answer || '',
-          correctAnswer: problem.correctAnswer,
-          isCorrect: isCorrect,
-          awardedPoints: isCorrect ? 10 : 0,
-          elapsedMs: answer?.elapsedMs,
-        }
-      })
-
-      const sessionSummary = {
-        id: data.session?.id?.toString() || `session-${Date.now()}`,
-        submittedAt: data.session?.completed_at || new Date().toISOString(),
-        status: 'completed',
-        message: 'Great job completing the practice session!',
-        totals: {
-          questions: data.session?.total_questions || attempts.length,
-          correct: data.session?.correct_count || attempts.filter((a) => a.isCorrect).length,
-          accuracy: data.session?.accuracy || Math.round(
-            ((data.session?.correct_count || 0) / (data.session?.total_questions || 1)) * 100
-          ),
-        },
-        user: {
-          id: selectedUser.id,
-          name: selectedUser.name,
-          avatar: selectedUser.avatar,
-          level: data.level_up?.new_level || selectedUser.level,
-        },
-        attempts,
-        achievements: data.achievements || [],
-        level_up: data.level_up || {},
-      }
+      const sessionSummary = createSessionSummary(data, problems, questionAnswers, selectedUser)
 
       // Save to localStorage (for summary page display - this is different from session state)
       localStorage.setItem('lastPracticeSession', JSON.stringify(sessionSummary))
@@ -504,7 +317,7 @@ export const usePracticeSession = ({
     } catch (error) {
       logError('Failed to complete session:', error)
       // Fallback to client-side submission
-      const attempts: PracticeAttempt[] = problems.map((problem) => {
+      const attempts = problems.map((problem) => {
         const answer = questionAnswers[problem.id]
         const isCorrect = answer?.feedback === 'correct'
         
@@ -544,14 +357,14 @@ export const usePracticeSession = ({
       localStorage.setItem('lastPracticeSession', JSON.stringify(sessionSummary))
       
       // Navigate to summary page - only pass sessionId, not entire session object
-      const sessionId = sessionSummary.id
+      const sessionIdForNav = sessionSummary.id
       if (navigate) {
         // Use navigate function which should preserve context params
-        navigate(`/summary?sessionId=${sessionId}`)
+        navigate(`/summary?sessionId=${sessionIdForNav}`)
       } else {
         // Fallback: preserve context params manually
         const contextParams = new URLSearchParams()
-        contextParams.set('sessionId', sessionId)
+        contextParams.set('sessionId', sessionIdForNav)
         window.location.href = `/summary?${contextParams.toString()}`
       }
     }

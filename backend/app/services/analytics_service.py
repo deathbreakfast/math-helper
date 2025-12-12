@@ -9,6 +9,7 @@ from sqlalchemy import case, func
 
 from ..database import log_query, transaction
 from ..models import DailyStat, Question, Response, db
+from .analytics import OperationStatsBuilder, StreakCalculator, WeeklyGainCalculator
 
 
 class AnalyticsService:
@@ -49,12 +50,12 @@ class AnalyticsService:
             .all()
         )
 
-        operation_stats = AnalyticsService._build_operation_stats(operation_rows)
-        streaks = AnalyticsService._calculate_streaks(user_id)
+        operation_stats = OperationStatsBuilder.build(operation_rows)
+        streaks = StreakCalculator.calculate_streaks(user_id)
 
         return {
             "questions_answered": total_answers,
-            "average_speed_seconds": AnalyticsService._format_speed(avg_duration_ms),
+            "average_speed_seconds": OperationStatsBuilder._format_speed(avg_duration_ms),
             "last_activity_at": last_activity_at,
             "operation_stats": {
                 **operation_stats,
@@ -62,122 +63,6 @@ class AnalyticsService:
                 "bestStreak": streaks["best"],
             },
         }
-
-    @staticmethod
-    def _build_operation_stats(rows: list[Any]) -> dict[str, Any]:
-        """Build operation-specific statistics."""
-        stats = {
-            "additionAccuracy": 0,
-            "subtractionAccuracy": 0,
-            "multiplicationAccuracy": 0,
-            "divisionAccuracy": 0,
-            "additionSpeed": 0.0,
-            "subtractionSpeed": 0.0,
-            "multiplicationSpeed": 0.0,
-            "divisionSpeed": 0.0,
-        }
-
-        key_map = {
-            "addition": ("additionAccuracy", "additionSpeed"),
-            "subtraction": ("subtractionAccuracy", "subtractionSpeed"),
-            "multiplication": ("multiplicationAccuracy", "multiplicationSpeed"),
-            "division": ("divisionAccuracy", "divisionSpeed"),
-        }
-
-        for row in rows:
-            operation = (row.operation or "").lower()
-            mapping = key_map.get(operation)
-            if not mapping or row.attempts == 0:
-                continue
-
-            accuracy_key, speed_key = mapping
-            correct = row.correct or 0
-            stats[accuracy_key] = round((correct / row.attempts) * 100)
-            stats[speed_key] = AnalyticsService._format_speed(row.avg_duration_ms)
-
-        return stats
-
-    @staticmethod
-    def _format_speed(duration_ms: float | None) -> float:
-        """Format duration in milliseconds to seconds."""
-        if duration_ms is None:
-            return 0.0
-        return round(duration_ms / 1000, 1)
-
-    @staticmethod
-    @log_query
-    def _calculate_streaks(user_id: int) -> dict[str, int]:
-        """Calculate current and best streaks for a user."""
-        # Use daily_stats if available, otherwise fall back to responses
-        daily_dates = [
-            row[0]
-            for row in db.session.query(DailyStat.date)
-            .filter_by(user_id=user_id)
-            .distinct()
-            .order_by(DailyStat.date.asc())
-            .all()
-        ]
-
-        if not daily_dates:
-            # Fall back to response dates
-            response_dates = [
-                row[0].date()
-                for row in db.session.query(Response.answered_at)
-                .filter_by(user_id=user_id)
-                .order_by(Response.answered_at.asc())
-                .all()
-            ]
-            unique_dates = sorted(set(response_dates))
-        else:
-            unique_dates = sorted(set(daily_dates))
-
-        if not unique_dates:
-            return {"current": 0, "best": 0}
-
-        best = AnalyticsService._longest_consecutive_run(unique_dates)
-        current = AnalyticsService._current_run(unique_dates)
-
-        return {"current": current, "best": best}
-
-    @staticmethod
-    def _longest_consecutive_run(sorted_dates: list[date]) -> int:
-        """Find the longest consecutive run of dates."""
-        if not sorted_dates:
-            return 0
-
-        best = 1
-        streak = 1
-        for prev, curr in zip(sorted_dates, sorted_dates[1:]):
-            if (curr - prev).days == 1:
-                streak += 1
-                best = max(best, streak)
-            else:
-                streak = 1
-        return best
-
-    @staticmethod
-    def _current_run(sorted_dates: list[date]) -> int:
-        """Find the current consecutive run ending today or yesterday."""
-        if not sorted_dates:
-            return 0
-
-        streak = 1
-        last = sorted_dates[-1]
-        today = date.today()
-
-        # If last activity was more than 1 day ago, streak is broken
-        if (today - last).days > 1:
-            return 0
-
-        # Count backwards from the last date
-        for curr in reversed(sorted_dates[:-1]):
-            if (last - curr).days == 1:
-                streak += 1
-                last = curr
-            else:
-                break
-
-        return streak
 
     @staticmethod
     @log_query
@@ -241,7 +126,7 @@ class AnalyticsService:
                         stats["total_duration_ms"] / count if count > 0 else None
                     )
                     avg_speed_seconds = (
-                        AnalyticsService._format_speed(avg_duration_ms) if avg_duration_ms else None
+                        OperationStatsBuilder._format_speed(avg_duration_ms) if avg_duration_ms else None
                     )
 
                     existing = DailyStat.query.filter_by(
@@ -316,39 +201,7 @@ class AnalyticsService:
     @log_query
     def get_weekly_gain(user_id: int) -> int:
         """Calculate weekly gain (questions answered this week vs last week)."""
-        today = date.today()
-        week_start = today - timedelta(days=today.weekday())
-        last_week_start = week_start - timedelta(weeks=1)
-        last_week_end = week_start - timedelta(days=1)
-
-        # This week
-        this_week = (
-            db.session.query(func.count())
-            .select_from(Response)
-            .join(Question)
-            .filter(
-                Response.user_id == user_id,
-                Response.answered_at >= datetime.combine(week_start, datetime.min.time()),
-            )
-            .scalar()
-            or 0
-        )
-
-        # Last week
-        last_week = (
-            db.session.query(func.count())
-            .select_from(Response)
-            .join(Question)
-            .filter(
-                Response.user_id == user_id,
-                Response.answered_at >= datetime.combine(last_week_start, datetime.min.time()),
-                Response.answered_at < datetime.combine(week_start, datetime.min.time()),
-            )
-            .scalar()
-            or 0
-        )
-
-        return max(0, this_week - last_week)
+        return WeeklyGainCalculator.calculate(user_id)
 
     @staticmethod
     @log_query
@@ -420,18 +273,18 @@ class AnalyticsService:
             operation_stats_by_user[row.user_id].append(row)
         
         # Batch calculate streaks for all users
-        streaks_map = AnalyticsService._calculate_streaks_batch(user_ids)
+        streaks_map = StreakCalculator.calculate_streaks_batch(user_ids)
         
         # Build metrics for each user
         metrics_map = {}
         for user_id in user_ids:
             operation_rows = operation_stats_by_user.get(user_id, [])
-            operation_stats = AnalyticsService._build_operation_stats(operation_rows)
+            operation_stats = OperationStatsBuilder.build(operation_rows)
             streaks = streaks_map.get(user_id, {"current": 0, "best": 0})
             
             metrics_map[user_id] = {
                 "questions_answered": total_answers_map.get(user_id, 0),
-                "average_speed_seconds": AnalyticsService._format_speed(avg_duration_map.get(user_id)),
+                "average_speed_seconds": OperationStatsBuilder._format_speed(avg_duration_map.get(user_id)),
                 "last_activity_at": last_activity_map.get(user_id),
                 "operation_stats": {
                     **operation_stats,
@@ -442,74 +295,6 @@ class AnalyticsService:
         
         return metrics_map
 
-    @staticmethod
-    @log_query
-    def _calculate_streaks_batch(user_ids: list[int]) -> dict[int, dict[str, int]]:
-        """Calculate current and best streaks for multiple users in batch.
-        
-        Returns:
-            Dictionary mapping user_id to streaks dict
-        """
-        if not user_ids:
-            return {}
-        
-        # Batch query: daily stats dates per user
-        daily_dates_query = (
-            db.session.query(
-                DailyStat.user_id,
-                DailyStat.date
-            )
-            .filter(DailyStat.user_id.in_(user_ids))
-            .distinct()
-            .order_by(DailyStat.user_id, DailyStat.date.asc())
-            .all()
-        )
-        
-        # Group daily dates by user_id
-        daily_dates_by_user: dict[int, list[date]] = {}
-        for row in daily_dates_query:
-            if row.user_id not in daily_dates_by_user:
-                daily_dates_by_user[row.user_id] = []
-            daily_dates_by_user[row.user_id].append(row.date)
-        
-        # Batch query: response dates for users without daily stats
-        users_without_daily_stats = [uid for uid in user_ids if uid not in daily_dates_by_user]
-        response_dates_query = (
-            db.session.query(
-                Response.user_id,
-                Response.answered_at
-            )
-            .filter(Response.user_id.in_(users_without_daily_stats))
-            .order_by(Response.user_id, Response.answered_at.asc())
-            .all()
-        )
-        
-        # Group response dates by user_id and convert to date objects
-        response_dates_by_user: dict[int, list[date]] = {}
-        for row in response_dates_query:
-            if row.user_id not in response_dates_by_user:
-                response_dates_by_user[row.user_id] = []
-            if row.answered_at:
-                response_dates_by_user[row.user_id].append(row.answered_at.date())
-        
-        # Calculate streaks for each user
-        streaks_map = {}
-        for user_id in user_ids:
-            if user_id in daily_dates_by_user:
-                unique_dates = sorted(set(daily_dates_by_user[user_id]))
-            elif user_id in response_dates_by_user:
-                unique_dates = sorted(set(response_dates_by_user[user_id]))
-            else:
-                unique_dates = []
-            
-            if not unique_dates:
-                streaks_map[user_id] = {"current": 0, "best": 0}
-            else:
-                best = AnalyticsService._longest_consecutive_run(unique_dates)
-                current = AnalyticsService._current_run(unique_dates)
-                streaks_map[user_id] = {"current": current, "best": best}
-        
-        return streaks_map
 
     @staticmethod
     @log_query
@@ -519,50 +304,5 @@ class AnalyticsService:
         Returns:
             Dictionary mapping user_id to weekly gain
         """
-        if not user_ids:
-            return {}
-        
-        today = date.today()
-        week_start = today - timedelta(days=today.weekday())
-        last_week_start = week_start - timedelta(weeks=1)
-        
-        # Batch query: this week counts
-        this_week_query = (
-            db.session.query(
-                Response.user_id,
-                func.count().label("count")
-            )
-            .join(Question)
-            .filter(
-                Response.user_id.in_(user_ids),
-                Response.answered_at >= datetime.combine(week_start, datetime.min.time()),
-            )
-            .group_by(Response.user_id)
-        )
-        this_week_map = {row.user_id: row.count for row in this_week_query.all()}
-        
-        # Batch query: last week counts
-        last_week_query = (
-            db.session.query(
-                Response.user_id,
-                func.count().label("count")
-            )
-            .join(Question)
-            .filter(
-                Response.user_id.in_(user_ids),
-                Response.answered_at >= datetime.combine(last_week_start, datetime.min.time()),
-                Response.answered_at < datetime.combine(week_start, datetime.min.time()),
-            )
-            .group_by(Response.user_id)
-        )
-        last_week_map = {row.user_id: row.count for row in last_week_query.all()}
-        
-        # Calculate weekly gain for each user
-        weekly_gain_map = {}
-        for user_id in user_ids:
-            this_week = this_week_map.get(user_id, 0)
-            last_week = last_week_map.get(user_id, 0)
-            weekly_gain_map[user_id] = max(0, this_week - last_week)
-        
-        return weekly_gain_map
+        return WeeklyGainCalculator.calculate_batch(user_ids)
 

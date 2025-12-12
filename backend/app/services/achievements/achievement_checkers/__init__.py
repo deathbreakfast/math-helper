@@ -13,6 +13,12 @@ from .so_wow_checker import SoWowChecker
 from .generic_accuracy_checker import GenericAccuracyChecker
 from .level_grandmaster_checker import LevelGrandmasterChecker
 from .human_calculator_checker import HumanCalculatorChecker
+from .operation_count_checker import OperationCountChecker
+from .level_accuracy_checker import LevelAccuracyChecker
+from .level_correct_count_checker import LevelCorrectCountChecker
+from .test_completion_checker import TestCompletionChecker
+from .session_achievements_checker import SessionAchievementsChecker
+from .achievement_count_checker import AchievementCountChecker
 
 __all__ = [
     'AchievementChecker',
@@ -28,5 +34,11 @@ __all__ = [
     'GenericAccuracyChecker',
     'LevelGrandmasterChecker',
     'HumanCalculatorChecker',
+    'OperationCountChecker',
+    'LevelAccuracyChecker',
+    'LevelCorrectCountChecker',
+    'TestCompletionChecker',
+    'SessionAchievementsChecker',
+    'AchievementCountChecker',
 ]
 

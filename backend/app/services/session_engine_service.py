@@ -254,30 +254,29 @@ class SessionEngineService:
             questions = []
             for i in range(question_count):
                 # Select level from distribution
-                question_level = AdaptiveDistributionService.select_level_from_distribution(distribution)
+                selected_level = AdaptiveDistributionService.select_level_from_distribution(distribution)
                 
                 # Get operation for the selected level
-                operation = AdaptiveDistributionService.get_operation_for_level(question_level)
+                operation = AdaptiveDistributionService.get_operation_for_level(selected_level)
                 
                 # Generate question with retry logic for invalid level configurations
+                # CRITICAL: Always preserve the originally selected level to maintain distribution
+                # Changing the level breaks the distribution statistics
                 max_retries = 3
                 question_data = None
                 for retry in range(max_retries):
                     try:
                         question_data = QuestionService.generate_question(
                             operation=operation,
-                            level=question_level,
+                            level=selected_level,  # Always use originally selected level
                             test_constraints=None,
                         )
                         break  # Success, exit retry loop
-                    except ValueError as e:
+                    except ValueError:
                         # Invalid level configuration (e.g., division by zero)
-                        if retry < max_retries - 1:
-                            # Try with user's current level as fallback
-                            question_level = user.level
-                            operation = AdaptiveDistributionService.get_operation_for_level(question_level)
-                        else:
-                            # Last retry failed, raise the error
+                        # Retry without changing level to preserve distribution integrity.
+                        if retry >= max_retries - 1:
+                            # Exhausted retries: raise so callers/tests can detect failure.
                             raise
                 
                 if question_data:

@@ -9,6 +9,7 @@ from datetime import date, datetime, timedelta
 from app import create_app, db
 from app.models import DailyStat, Question, Response, User
 from app.services.analytics_service import AnalyticsService
+from app.services.analytics import OperationStatsBuilder, StreakCalculator
 from app.services.practice_service import PracticeService
 
 
@@ -58,17 +59,17 @@ class TestAnalyticsService:
 
     def test_format_speed_none(self):
         """Test _format_speed with None."""
-        assert AnalyticsService._format_speed(None) == 0.0
+        assert OperationStatsBuilder._format_speed(None) == 0.0
 
     def test_format_speed_with_value(self):
         """Test _format_speed with a value."""
-        assert AnalyticsService._format_speed(5000) == 5.0
-        assert AnalyticsService._format_speed(1234) == 1.2  # Rounded to 1 decimal
-        assert AnalyticsService._format_speed(999) == 1.0
+        assert OperationStatsBuilder._format_speed(5000) == 5.0
+        assert OperationStatsBuilder._format_speed(1234) == 1.2  # Rounded to 1 decimal
+        assert OperationStatsBuilder._format_speed(999) == 1.0
 
     def test_build_operation_stats_empty(self):
         """Test _build_operation_stats with empty rows."""
-        stats = AnalyticsService._build_operation_stats([])
+        stats = OperationStatsBuilder.build([])
         
         assert stats["additionAccuracy"] == 0
         assert stats["subtractionAccuracy"] == 0
@@ -90,7 +91,7 @@ class TestAnalyticsService:
             SimpleNamespace(operation="division", attempts=8, correct=6, avg_duration_ms=5000.0),
         ]
         
-        stats = AnalyticsService._build_operation_stats(rows)
+        stats = OperationStatsBuilder.build(rows)
         
         assert stats["additionAccuracy"] == 80  # 8/10 * 100
         assert stats["subtractionAccuracy"] == 80  # 4/5 * 100
@@ -109,7 +110,7 @@ class TestAnalyticsService:
             SimpleNamespace(operation="addition", attempts=0, correct=0, avg_duration_ms=None),
         ]
         
-        stats = AnalyticsService._build_operation_stats(rows)
+        stats = OperationStatsBuilder.build(rows)
         
         # Should skip rows with zero attempts
         assert stats["additionAccuracy"] == 0
@@ -122,19 +123,19 @@ class TestAnalyticsService:
             SimpleNamespace(operation="unknown", attempts=10, correct=8, avg_duration_ms=2000.0),
         ]
         
-        stats = AnalyticsService._build_operation_stats(rows)
+        stats = OperationStatsBuilder.build(rows)
         
         # Unknown operations should be skipped
         assert stats["additionAccuracy"] == 0
 
     def test_longest_consecutive_run_empty(self):
         """Test _longest_consecutive_run with empty list."""
-        assert AnalyticsService._longest_consecutive_run([]) == 0
+        assert StreakCalculator._longest_consecutive_run([]) == 0
 
     def test_longest_consecutive_run_single_date(self):
         """Test _longest_consecutive_run with single date."""
         dates = [date(2024, 1, 1)]
-        assert AnalyticsService._longest_consecutive_run(dates) == 1
+        assert StreakCalculator._longest_consecutive_run(dates) == 1
 
     def test_longest_consecutive_run_consecutive(self):
         """Test _longest_consecutive_run with consecutive dates."""
@@ -143,7 +144,7 @@ class TestAnalyticsService:
             date(2024, 1, 2),
             date(2024, 1, 3),
         ]
-        assert AnalyticsService._longest_consecutive_run(dates) == 3
+        assert StreakCalculator._longest_consecutive_run(dates) == 3
 
     def test_longest_consecutive_run_with_gaps(self):
         """Test _longest_consecutive_run with gaps."""
@@ -154,7 +155,7 @@ class TestAnalyticsService:
             date(2024, 1, 6),
             date(2024, 1, 7),
         ]
-        assert AnalyticsService._longest_consecutive_run(dates) == 3  # Longest is 3
+        assert StreakCalculator._longest_consecutive_run(dates) == 3  # Longest is 3
 
     def test_longest_consecutive_run_multiple_streaks(self):
         """Test _longest_consecutive_run with multiple streaks."""
@@ -167,29 +168,29 @@ class TestAnalyticsService:
             date(2024, 1, 7),
             date(2024, 1, 8),
         ]
-        assert AnalyticsService._longest_consecutive_run(dates) == 4  # Longest is 4
+        assert StreakCalculator._longest_consecutive_run(dates) == 4  # Longest is 4
 
     def test_current_run_empty(self):
         """Test _current_run with empty list."""
-        assert AnalyticsService._current_run([]) == 0
+        assert StreakCalculator._current_run([]) == 0
 
     def test_current_run_today(self):
         """Test _current_run with today's date."""
         today = date.today()
         dates = [today]
-        assert AnalyticsService._current_run(dates) == 1
+        assert StreakCalculator._current_run(dates) == 1
 
     def test_current_run_yesterday(self):
         """Test _current_run with yesterday's date."""
         yesterday = date.today() - timedelta(days=1)
         dates = [yesterday]
-        assert AnalyticsService._current_run(dates) == 1
+        assert StreakCalculator._current_run(dates) == 1
 
     def test_current_run_two_days_ago(self):
         """Test _current_run with date two days ago (broken streak)."""
         two_days_ago = date.today() - timedelta(days=2)
         dates = [two_days_ago]
-        assert AnalyticsService._current_run(dates) == 0
+        assert StreakCalculator._current_run(dates) == 0
 
     def test_current_run_consecutive_ending_today(self):
         """Test _current_run with consecutive dates ending today."""
@@ -199,7 +200,7 @@ class TestAnalyticsService:
             today - timedelta(days=1),
             today,
         ]
-        assert AnalyticsService._current_run(dates) == 3
+        assert StreakCalculator._current_run(dates) == 3
 
     def test_current_run_consecutive_ending_yesterday(self):
         """Test _current_run with consecutive dates ending yesterday."""
@@ -209,7 +210,7 @@ class TestAnalyticsService:
             yesterday - timedelta(days=1),
             yesterday,
         ]
-        assert AnalyticsService._current_run(dates) == 3
+        assert StreakCalculator._current_run(dates) == 3
 
     def test_current_run_with_gap(self):
         """Test _current_run with gap before last date."""
@@ -223,7 +224,7 @@ class TestAnalyticsService:
         ]
         # The streak counts backwards: today, today-1, today-2 (3 consecutive)
         # Then breaks at today-4 (gap of 2 days)
-        assert AnalyticsService._current_run(dates) == 3
+        assert StreakCalculator._current_run(dates) == 3
 
     def test_compute_user_metrics_no_responses(self, app, test_user):
         """Test compute_user_metrics with no responses."""
@@ -686,7 +687,7 @@ class TestAnalyticsService:
     def test_calculate_streaks_batch_empty(self, app):
         """Test _calculate_streaks_batch with empty list."""
         with app.app_context():
-            result = AnalyticsService._calculate_streaks_batch([])
+            result = StreakCalculator.calculate_streaks_batch([])
             assert result == {}
 
     def test_calculate_streaks_batch_with_daily_stats(self, app, test_user):
@@ -709,7 +710,7 @@ class TestAnalyticsService:
             
             db.session.commit()
             
-            result = AnalyticsService._calculate_streaks_batch([test_user.id])
+            result = StreakCalculator.calculate_streaks_batch([test_user.id])
             
             assert test_user.id in result
             assert result[test_user.id]["best"] == 3
@@ -737,7 +738,7 @@ class TestAnalyticsService:
             
             db.session.commit()
             
-            result = AnalyticsService._calculate_streaks_batch([test_user.id])
+            result = StreakCalculator.calculate_streaks_batch([test_user.id])
             
             assert test_user.id in result
             assert result[test_user.id]["best"] == 2
@@ -746,7 +747,7 @@ class TestAnalyticsService:
     def test_calculate_streaks_batch_no_data(self, app, test_user):
         """Test _calculate_streaks_batch with user having no daily stats or responses."""
         with app.app_context():
-            result = AnalyticsService._calculate_streaks_batch([test_user.id])
+            result = StreakCalculator.calculate_streaks_batch([test_user.id])
             
             assert test_user.id in result
             assert result[test_user.id]["current"] == 0
@@ -772,7 +773,7 @@ class TestAnalyticsService:
             
             db.session.commit()
             
-            streaks = AnalyticsService._calculate_streaks(test_user.id)
+            streaks = StreakCalculator.calculate_streaks(test_user.id)
             
             assert streaks["best"] == 2
             assert streaks["current"] >= 1
@@ -799,7 +800,7 @@ class TestAnalyticsService:
             
             db.session.commit()
             
-            streaks = AnalyticsService._calculate_streaks(test_user.id)
+            streaks = StreakCalculator.calculate_streaks(test_user.id)
             
             assert streaks["best"] == 2
             assert streaks["current"] >= 1

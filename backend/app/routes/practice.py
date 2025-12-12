@@ -14,6 +14,14 @@ from ..services.session_engine_service import SessionEngineService
 from ..services.test_eligibility_service import TestEligibilityService
 from ..services.user_service import UserService
 from ..config.test_requirements import get_all_test_requirements, get_test_requirements
+from .route_helpers import (
+    create_error_response,
+    create_success_response,
+    get_json_payload,
+    get_user_from_payload,
+    get_user_id_from_payload,
+    validate_required_fields,
+)
 
 practice_bp = Blueprint("practice", __name__)
 
@@ -21,30 +29,13 @@ practice_bp = Blueprint("practice", __name__)
 @practice_bp.post("/practice/submissions")
 def submit_practice_attempts():
     """Submit practice attempts while verifying the learner PIN."""
-    payload = request.get_json(silent=True) or {}
-    pin = (payload.get("pin") or "").strip()
-    user_id = payload.get("userId") or payload.get("user_id")
-    user_name = (payload.get("userName") or payload.get("user_name") or "").strip()
-
-    if not pin.isdigit() or len(pin) != 4:
-        return jsonify({"error": "A 4-digit PIN is required to submit practice."}), 400
-
-    # Find user
-    user = None
-    if user_id is not None:
-        try:
-            user = UserService.get_user(int(user_id))
-        except (TypeError, ValueError):
-            user = None
-
-    if user is None and user_name:
-        user = UserService.get_user_by_name(user_name)
-
-    if user is None:
-        return jsonify({"error": "Learner not found. Create the profile before practicing."}), 404
-
-    if not UserService.verify_pin(user, pin):
-        return jsonify({"error": "PIN verification failed for this learner."}), 403
+    payload = get_json_payload()
+    
+    # Get user with PIN verification
+    user, error = get_user_from_payload(payload, require_pin=True)
+    if error:
+        status_code = 404 if "not found" in error["error"].lower() else 403
+        return create_error_response(error["error"], status_code)
 
     attempts_payload = payload.get("attempts") or []
     normalized_attempts: list[dict[str, Any]] = []
@@ -134,7 +125,7 @@ def submit_practice_attempts():
         "message": payload.get("notes") or "Practice submissions captured for the session.",
     }
 
-    return jsonify({"session": session_payload})
+    return create_success_response({"session": session_payload})
 
 
 @practice_bp.get("/practice/sessions/incomplete")
@@ -147,17 +138,17 @@ def get_incomplete_session():
     mode = request.args.get("mode")
 
     if not user_id:
-        return jsonify({"error": "user_id is required"}), 400
+        return create_error_response("user_id is required", 400)
 
     incomplete_session, response_count, _ = PracticeService.get_incomplete_session(user_id, mode)
     
     if not incomplete_session:
-        return jsonify({"session": None, "response_count": 0}), 200
+        return create_success_response({"session": None, "response_count": 0})
 
     # Get session details with questions and responses
     session_data = PracticeService.get_session_with_details(incomplete_session.id)
     
-    return jsonify({
+    return create_success_response({
         "session": {
             "id": incomplete_session.id,
             "user_id": incomplete_session.user_id,
@@ -169,7 +160,7 @@ def get_incomplete_session():
         },
         "response_count": response_count,
         "questions": session_data["questions"] if session_data else [],
-    }), 200
+    })
 
 
 @practice_bp.get("/practice/sessions/<int:session_id>")
@@ -178,9 +169,9 @@ def get_session_details(session_id: int):
     session_data = PracticeService.get_session_with_details(session_id)
     
     if not session_data:
-        return jsonify({"error": "Session not found"}), 404
+        return create_error_response("Session not found", 404)
     
-    return jsonify(session_data), 200
+    return create_success_response(session_data)
 
 
 @practice_bp.get("/practice/sessions/<int:session_id>/answers")
@@ -193,7 +184,7 @@ def get_session_answers(session_id: int):
     session_data = PracticeService.get_session_with_details(session_id)
     
     if not session_data:
-        return jsonify({"error": "Session not found"}), 404
+        return create_error_response("Session not found", 404)
     
     # Extract questions with their correct answers
     questions_with_answers = []
@@ -210,24 +201,24 @@ def get_session_answers(session_id: int):
             "answer_format": question.get("answer_format"),
         })
     
-    return jsonify({
+    return create_success_response({
         "session_id": session_id,
         "questions": questions_with_answers,
-    }), 200
+    })
 
 
 @practice_bp.post("/practice/sessions/start")
 def start_practice_session():
     """Start a new practice or test session with generated questions."""
-    payload = request.get_json(silent=True) or {}
-    user_id = payload.get("user_id") or payload.get("userId")
+    payload = get_json_payload()
+    user_id = get_user_id_from_payload(payload)
     mode = payload.get("mode", "standard")
     is_test = payload.get("is_test", False) or payload.get("isTest", False)
     test_type = payload.get("test_type") or payload.get("testType")
     level = payload.get("level")
 
     if not user_id:
-        return jsonify({"error": "user_id is required"}), 400
+        return create_error_response("user_id is required", 400)
 
     try:
         session_data = SessionEngineService.generate_session(
@@ -237,11 +228,11 @@ def start_practice_session():
             test_type=test_type,
             level=level,
         )
-        return jsonify(session_data), 201
+        return create_success_response(session_data, 201)
     except ValueError as e:
-        return jsonify({"error": str(e)}), 400
+        return create_error_response(str(e), 400)
     except Exception as e:
-        return jsonify({"error": f"Failed to create session: {str(e)}"}), 500
+        return create_error_response(f"Failed to create session: {str(e)}", 500)
 
 
 @practice_bp.get("/practice/sessions/eligible-tests")
@@ -250,14 +241,14 @@ def get_eligible_tests():
     user_id = request.args.get("user_id", type=int) or request.args.get("userId", type=int)
 
     if not user_id:
-        return jsonify({"error": "user_id is required"}), 400
+        return create_error_response("user_id is required", 400)
 
     user = UserService.get_user(user_id)
     if not user:
-        return jsonify({"error": "User not found"}), 404
+        return create_error_response("User not found", 404)
 
     eligible_tests = SessionEngineService.get_eligible_tests(user)
-    return jsonify({"eligible_tests": eligible_tests})
+    return create_success_response({"eligible_tests": eligible_tests})
 
 
 @practice_bp.get("/practice/test-requirements")
@@ -268,11 +259,11 @@ def get_test_requirements_endpoint():
     if level:
         requirements = get_test_requirements(level)
         if not requirements:
-            return jsonify({"error": f"No test requirements found for level {level}"}), 404
-        return jsonify({"level": level, "requirements": requirements})
+            return create_error_response(f"No test requirements found for level {level}", 404)
+        return create_success_response({"level": level, "requirements": requirements})
     else:
         all_requirements = get_all_test_requirements()
-        return jsonify({"requirements": all_requirements})
+        return create_success_response({"requirements": all_requirements})
 
 
 @practice_bp.get("/practice/test-eligibility")
@@ -282,16 +273,16 @@ def get_test_eligibility():
     level = request.args.get("level", type=int)
 
     if not user_id:
-        return jsonify({"error": "user_id is required"}), 400
+        return create_error_response("user_id is required", 400)
 
     user = UserService.get_user(user_id)
     if not user:
-        return jsonify({"error": "User not found"}), 404
+        return create_error_response("User not found", 404)
 
     if level:
         # Check eligibility for specific level
         is_eligible, reason, details = TestEligibilityService.check_test_eligibility(user, level)
-        return jsonify({
+        return create_success_response({
             "level": level,
             "is_eligible": is_eligible,
             "reason": reason,
@@ -300,32 +291,42 @@ def get_test_eligibility():
     else:
         # Get all available tests
         available_tests = TestEligibilityService.get_available_tests(user)
-        return jsonify({"available_tests": available_tests})
+        return create_success_response({"available_tests": available_tests})
 
 
 @practice_bp.post("/practice/questions/check")
 def check_answer():
     """Check if an answer is correct and store the response."""
-    payload = request.get_json(silent=True) or {}
+    payload = get_json_payload()
     session_id = payload.get("session_id") or payload.get("sessionId")
     question_id = payload.get("question_id") or payload.get("questionId")
     submitted_answer = payload.get("submitted_answer") or payload.get("submittedAnswer")
     duration_ms = payload.get("duration_ms") or payload.get("durationMs")
 
-    if not session_id or not question_id or submitted_answer is None:
-        return jsonify({"error": "session_id, question_id, and submitted_answer are required"}), 400
+    # Validate required fields
+    is_valid, error_msg = validate_required_fields(
+        payload,
+        ["session_id", "question_id", "submitted_answer"],
+        {
+            "session_id": ["sessionId"],
+            "question_id": ["questionId"],
+            "submitted_answer": ["submittedAnswer"],
+        }
+    )
+    if not is_valid:
+        return create_error_response(error_msg or "Missing required fields", 400)
 
     # Get question
     question = PracticeService.get_question(question_id)
     if not question:
-        return jsonify({"error": "Question not found"}), 404
+        return create_error_response("Question not found", 404)
 
     # Get session to get user_id
     from ..models import PracticeSession
 
     session = PracticeSession.query.get(session_id)
     if not session:
-        return jsonify({"error": "Session not found"}), 404
+        return create_error_response("Session not found", 404)
 
     # Validate answer
     is_correct = PracticeService.validate_answer(question, submitted_answer)
@@ -341,7 +342,7 @@ def check_answer():
         duration_ms=duration_ms,
     )
 
-    return jsonify({
+    return create_success_response({
         "is_correct": is_correct,
         "correct_answer": question.correct_answer,
     })
@@ -358,7 +359,7 @@ def complete_session(session_id: int):
     # Get session
     session = PracticeSession.query.get(session_id)
     if not session:
-        return jsonify({"error": "Session not found"}), 404
+        return create_error_response("Session not found", 404)
 
     # Get all responses for this session
     responses = Response.query.filter_by(session_id=session_id).all()
@@ -379,7 +380,7 @@ def complete_session(session_id: int):
     # Get user
     user = UserService.get_user(session.user_id)
     if not user:
-        return jsonify({"error": "User not found"}), 404
+        return create_error_response("User not found", 404)
 
     # Record test attempt if this is a test session
     if session.is_test and session.test_type and session.level:
@@ -421,7 +422,7 @@ def complete_session(session_id: int):
     except Exception as e:
         import traceback
         traceback.print_exc()
-        return jsonify({"error": f"Failed to award achievements: {str(e)}"}), 500
+        return create_error_response(f"Failed to award achievements: {str(e)}", 500)
     
     # Check for consecutive correct achievements (30 in a row)
     consecutive_achievements = AchievementService.check_consecutive_correct_achievements(
@@ -477,7 +478,7 @@ def complete_session(session_id: int):
         else:
             level_up_result["errors"] = errors
 
-    return jsonify({
+    return create_success_response({
         "session": {
             "id": session.id,
             "is_test": session.is_test,

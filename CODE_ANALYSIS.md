@@ -806,17 +806,35 @@ frontend/src/features/
    - **Tests Added:** 320+ backend tests + 210 frontend tests = 530+ comprehensive tests across 25 test files
    - **Note:** Overall backend coverage at 77.41% (2.59% away from 80% target). Remaining gaps are primarily in routes, database utilities, and some service methods. All critical and medium priority services exceed 80% coverage. Frontend coverage exceeds 80% target for all priority modules.
 
-### Phase 4: Low Priority (Weeks 7+)
+### Phase 4: Low Priority (Weeks 7+) ✅ COMPLETE
 
-7. **Apply composition patterns** (Priority: Low)
-   - Strategy pattern for achievements
-   - Factory pattern for routes
-   - **Impact:** Better extensibility
+7. **Apply composition patterns** (Priority: Low) ✅ COMPLETE
+   - ✅ **Strategy/composition for achievements**
+     - Split monolithic `OtherAchievementsChecker` into focused checkers:
+       - `backend/app/services/achievements/achievement_checkers/operation_count_checker.py`
+       - `backend/app/services/achievements/achievement_checkers/level_accuracy_checker.py`
+       - `backend/app/services/achievements/achievement_checkers/level_correct_count_checker.py`
+       - `backend/app/services/achievements/achievement_checkers/session_achievements_checker.py`
+       - `backend/app/services/achievements/achievement_checkers/test_completion_checker.py`
+       - `backend/app/services/achievements/achievement_checkers/achievement_count_checker.py`
+     - Wired via composition in `backend/app/services/achievement_service.py` (each checker owns a single concern)
+     - Added optional registry scaffolding: `backend/app/services/achievements/achievement_checker_registry.py`
+   - ✅ **Factory/helper composition for routes**
+     - Introduced shared route helpers to reduce repeated request parsing/validation patterns:
+       - `backend/app/routes/route_helpers.py`
+     - Refactored `backend/app/routes/practice.py` to use helpers consistently
+   - **Impact:** Better extensibility and clearer separation of concerns
 
-8. **Optimize remaining large files** (Priority: Low)
-   - Review files >400 lines
-   - Apply lessons learned
-   - **Impact:** Consistent codebase quality
+8. **Optimize remaining large files** (Priority: Low) ✅ COMPLETE
+   - ✅ Reviewed files >400 lines and applied the same extraction/composition approach
+   - ✅ Decomposed `backend/app/services/analytics_service.py` into a small facade that composes focused modules:
+     - `backend/app/services/analytics/streak_calculator.py`
+     - `backend/app/services/analytics/operation_stats_builder.py`
+     - `backend/app/services/analytics/weekly_gain_calculator.py`
+     - `backend/app/services/analytics/__init__.py`
+   - ✅ Began test composition cleanup by introducing a scenario/builder helper:
+     - `backend/tests/helpers/distribution_test_helpers.py`
+   - **Impact:** Consistent composition patterns across the codebase; lower cognitive load in large modules
 
 ### Phase 5: Warning Cleanup (Weeks 8+) - High Priority
 
@@ -1005,6 +1023,7 @@ frontend/src/features/
 - [x] Split large utility files (✅ COMPLETE: progressMapping.ts and testMapping.ts split into modules)
 - [x] Test coverage >80% for services (✅ COMPLETE: Backend baseline 77.41%, critical services 99.36%, additional services 80.33%, medium priority 91.69%)
 - [x] Frontend test coverage >80% for hooks and utilities (✅ COMPLETE: 85.02% overall, 100% utilities, 91.26% hooks average)
+- [x] Phase 4 composition patterns applied (✅ COMPLETE: route helpers, achievement checker composition, analytics service decomposition)
 - [ ] All files <500 lines (achievement_service.py: 571 lines - acceptable as facade with 24 public methods)
 - [ ] Warning cleanup (⚠️ PENDING: ~9,000 warnings, primarily SQLAlchemy 2.0 deprecations - Phase 5)
   - [ ] SQLAlchemy `Query.get()` migration (CRITICAL: 56 occurrences, ~8,000 warnings, 89%)

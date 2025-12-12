@@ -293,11 +293,30 @@ class AchievementService:
         # Use LevelAchievementChecker to handle perfect_streak
         level_achievements = level_checker.check(user, session_id=session_id)
         
-        # Process other achievements using OtherAchievementsChecker
-        from .achievements.achievement_checkers.other_achievements_checker import OtherAchievementsChecker
+        # Process other achievements using specialized checkers (composition pattern)
+        from .achievements.achievement_checkers import (
+            OperationCountChecker,
+            LevelAccuracyChecker,
+            LevelCorrectCountChecker,
+            TestCompletionChecker,
+            SessionAchievementsChecker,
+            AchievementCountChecker,
+        )
         
-        other_checker = OtherAchievementsChecker(achievement_configs)
-        new_achievements = other_checker.check(user, session_id=session_id)
+        # Use composition: each checker handles specific achievement types
+        other_checkers = [
+            OperationCountChecker(achievement_configs),
+            LevelAccuracyChecker(achievement_configs),
+            LevelCorrectCountChecker(achievement_configs),
+            TestCompletionChecker(achievement_configs),
+            SessionAchievementsChecker(achievement_configs),
+            AchievementCountChecker(achievement_configs),
+        ]
+        
+        new_achievements = []
+        for checker in other_checkers:
+            achievements = checker.check(user, session_id=session_id)
+            new_achievements.extend(achievements)
         
         # Combine level achievements with other achievements
         all_new_achievements = level_achievements + new_achievements

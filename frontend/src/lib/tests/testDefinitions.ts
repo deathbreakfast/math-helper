@@ -14,7 +14,6 @@ export interface TestDefinition {
   level_requirement: number
   question_count: number
   constraints?: Record<string, unknown>
-  is_legacy?: boolean
 }
 
 export interface TestTier {

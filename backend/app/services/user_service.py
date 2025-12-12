@@ -50,7 +50,7 @@ class UserService:
     @log_query
     def get_user(user_id: int) -> User | None:
         """Get a user by ID."""
-        return User.query.get(user_id)
+        return db.session.get(User, user_id)
 
     @staticmethod
     @log_query

@@ -6,6 +6,8 @@ import json
 from datetime import datetime
 from typing import Any
 
+from sqlalchemy import select
+
 from ..database import log_query, transaction
 from ..models import FlaggedQuestion, LevelProblemConfig, PracticeSession, Question, Response, db
 
@@ -46,7 +48,7 @@ class PracticeService:
         total_duration_ms: int | None = None,
     ) -> PracticeSession:
         """Mark a practice session as completed with statistics."""
-        session = PracticeSession.query.get(session_id)
+        session = db.session.get(PracticeSession, session_id)
         if not session:
             raise ValueError(f"Session {session_id} not found")
 
@@ -112,7 +114,7 @@ class PracticeService:
     @log_query
     def get_question(question_id: int) -> Question | None:
         """Get a question by ID."""
-        return Question.query.get(question_id)
+        return db.session.get(Question, question_id)
 
     @staticmethod
     @log_query
@@ -169,9 +171,13 @@ class PracticeService:
     ) -> FlaggedQuestion:
         """Flag a question for review."""
         # Check if already flagged
-        existing = FlaggedQuestion.query.filter_by(
-            user_id=user_id, question_id=question_id, session_id=session_id
-        ).first()
+        existing = db.session.scalar(
+            select(FlaggedQuestion).where(
+                FlaggedQuestion.user_id == user_id,
+                FlaggedQuestion.question_id == question_id,
+                FlaggedQuestion.session_id == session_id
+            )
+        )
 
         if existing:
             return existing
@@ -193,9 +199,13 @@ class PracticeService:
     @log_query
     def unflag_question(user_id: int, question_id: int, session_id: int | None = None) -> bool:
         """Remove a flag from a question."""
-        flagged = FlaggedQuestion.query.filter_by(
-            user_id=user_id, question_id=question_id, session_id=session_id
-        ).first()
+        flagged = db.session.scalar(
+            select(FlaggedQuestion).where(
+                FlaggedQuestion.user_id == user_id,
+                FlaggedQuestion.question_id == question_id,
+                FlaggedQuestion.session_id == session_id
+            )
+        )
 
         if not flagged:
             return False
@@ -298,7 +308,9 @@ class PracticeService:
             return None, 0, 0
         
         # Get response count for this session
-        responses = Response.query.filter_by(session_id=session.id).all()
+        responses = list(db.session.scalars(
+            select(Response).where(Response.session_id == session.id)
+        ))
         response_count = len(responses)
         
         # Check if all questions are answered
@@ -328,7 +340,7 @@ class PracticeService:
         Orders questions: answered first (by answered_at time), then unanswered.
         Falls back to inferring from responses if question_ids is NULL (backward compatibility).
         """
-        session = PracticeSession.query.get(session_id)
+        session = db.session.get(PracticeSession, session_id)
         if not session:
             return None
         

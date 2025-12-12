@@ -2,6 +2,16 @@
 
 Validates tiered test achievements and removes ones that don't meet requirements.
 This is primarily for legacy test achievements (b, a, s, ss, sss tiers).
+
+LEGACY CODE AUDIT NOTE:
+- This validator handles legacy test achievements that were awarded before test achievements
+  were removed from the system.
+- Legacy test achievements follow the pattern: {test_type}-{tier} where tier is b, a, s, ss, or sss.
+- These achievements are no longer awarded, but may still exist in the database from before
+  the migration.
+- RECOMMENDATION: Audit production database to check if any legacy tier achievements exist.
+  If none exist, this validator can be simplified or removed.
+  If they exist, keep this code for cleanup purposes only.
 """
 
 from __future__ import annotations

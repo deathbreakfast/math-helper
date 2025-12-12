@@ -55,7 +55,7 @@ def test_question_master_bronze_100_questions(app, test_user):
             } for q in session_questions]
             
             session = create_test_session_with_responses(test_user.id, responses_data)
-            user = User.query.get(test_user.id)
+            user = db.session.get(User, test_user.id)
             metrics = AnalyticsService.compute_user_metrics(user.id)
             AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -85,7 +85,7 @@ def test_question_master_silver_500_questions(app, test_user):
             } for q in session_questions]
             
             session = create_test_session_with_responses(test_user.id, responses_data)
-            user = User.query.get(test_user.id)
+            user = db.session.get(User, test_user.id)
             metrics = AnalyticsService.compute_user_metrics(user.id)
             AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -115,7 +115,7 @@ def test_question_master_gold_1000_questions(app, test_user):
             } for q in session_questions]
             
             session = create_test_session_with_responses(test_user.id, responses_data)
-            user = User.query.get(test_user.id)
+            user = db.session.get(User, test_user.id)
             metrics = AnalyticsService.compute_user_metrics(user.id)
             AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -145,7 +145,7 @@ def test_question_master_only_highest_tier_awarded(app, test_user):
             } for q in session_questions]
             
             session = create_test_session_with_responses(test_user.id, responses_data)
-            user = User.query.get(test_user.id)
+            user = db.session.get(User, test_user.id)
             metrics = AnalyticsService.compute_user_metrics(user.id)
             AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         

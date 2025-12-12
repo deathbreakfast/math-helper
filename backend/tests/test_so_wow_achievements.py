@@ -186,7 +186,7 @@ def test_so_wow_integration_with_session(app, test_user):
         session = create_test_session_with_responses(test_user.id, responses_data)
         
         # Get user and compute metrics, then check and award achievements
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         

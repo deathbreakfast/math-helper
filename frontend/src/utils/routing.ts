@@ -152,11 +152,7 @@ export function useRouter() {
 
 // Re-export useLocation for convenience
 import { useLocation } from 'react-router-dom'
-
-// Legacy exports for backward compatibility
-export const useRouterNavigate = () => useNavigate()
-export const useRouterSearchParams = () => useSearchParams()
-export const useRouterLocation = () => useLocation()
+export { useLocation }
 
 // Helper function to build journey route (preserves context params if used with useRouter)
 export const buildJourneyRoute = (

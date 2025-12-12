@@ -40,25 +40,8 @@ class TestService:
                 "reason": str
             }
         """
-        # Get test definition (checks both new and legacy tests)
+        # Get test definition from NEW_TEST_DEFINITIONS
         test_def = get_test_definition(test_type)
-        
-        # If not found in new definitions, check legacy test types
-        if not test_def:
-            # Check TEST_TYPES (e.g., "multiplication-by-1", "division-by-1")
-            # Lazy import to avoid circular dependency
-            from ..services.session_engine_service import SessionEngineService
-            if test_type in SessionEngineService.TEST_TYPES:
-                operation, level, question_count, constraints = SessionEngineService.TEST_TYPES[test_type]
-                test_def = {
-                    "test_type": test_type,
-                    "operation": operation,
-                    "level_requirement": level,
-                    "question_count": question_count,
-                    "constraints": constraints,
-                    "display_name": test_type.replace("_", " ").title(),
-                    "is_legacy": True,
-                }
         
         if not test_def:
             return {
@@ -73,7 +56,7 @@ class TestService:
         unlock_reqs = test_def.get("unlock_requirements")
         if not unlock_reqs:
             # Fall back to level-based check
-            user = User.query.get(user_id)
+            user = db.session.get(User, user_id)
             if not user:
                 return {
                     "is_unlocked": False,
@@ -211,7 +194,7 @@ class TestService:
     @staticmethod
     @log_query
     def get_all_test_definitions(user_level: int | None = None, user_id: int | None = None, include_unlock_status: bool = False) -> list[dict[str, Any]]:
-        """Get all test definitions (legacy + new).
+        """Get all test definitions.
         
         Args:
             user_level: Optional user level to filter available tests (deprecated, use unlock_status instead)
@@ -223,28 +206,9 @@ class TestService:
         """
         definitions = []
         
-        # Add legacy operation-based tests
-        # Lazy import to avoid circular dependency
-        from ..services.session_engine_service import SessionEngineService
-        for test_type, (operation, level, question_count, constraints) in SessionEngineService.TEST_TYPES.items():
-            # Skip new test types (they'll be added separately)
-            if test_type in NEW_TEST_DEFINITIONS:
-                continue
-                
-            definitions.append({
-                "test_type": test_type,
-                "operation": operation,
-                "level_requirement": level,
-                "question_count": question_count,
-                "constraints": constraints,
-                "display_name": test_type.replace("_", " ").title(),
-                "is_legacy": True,
-            })
-        
-        # Add new test definitions
+        # Add all test definitions from NEW_TEST_DEFINITIONS
         for test_def in get_all_test_definitions():
             if test_def:
-                test_def["is_legacy"] = False
                 definitions.append(test_def)
         
         # Add unlock status if requested
@@ -310,7 +274,7 @@ class TestService:
         Returns:
             Dictionary with attempt details and questions/responses, or None if not found
         """
-        attempt = TestAttempt.query.get(attempt_id)
+        attempt = db.session.get(TestAttempt, attempt_id)
         if not attempt:
             return None
         

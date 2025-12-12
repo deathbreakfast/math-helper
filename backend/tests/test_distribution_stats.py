@@ -125,8 +125,8 @@ def test_level_category_distribution_weights(app, test_user):
     with app.app_context():
         set_user_level_directly(test_user.id, 10)
         
-        # Get level category distribution
-        distribution = AdaptiveDistributionService.generate_level_category_distribution(10)
+        # Get level category distribution (Type B mode for 3-level distribution)
+        distribution = AdaptiveDistributionService.generate_level_category_distribution(10, mode='type_b')
         
         # Should have 3 levels: 8, 9, 10
         assert len(distribution) == 3, f"Expected 3 levels, got {len(distribution)}"
@@ -144,7 +144,7 @@ def test_level_category_distribution_weights(app, test_user):
                 f"Weights should be approximately 0.333. Got: {weights}"
         
         # Test with lower level (level 2 - can't have level-2)
-        distribution_low = AdaptiveDistributionService.generate_level_category_distribution(2)
+        distribution_low = AdaptiveDistributionService.generate_level_category_distribution(2, mode='type_b')
         levels_low = [item["level"] for item in distribution_low]
         
         # Should only have levels 1 and 2 (can't have level-2)

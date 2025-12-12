@@ -6,6 +6,7 @@ import time
 from typing import Any
 
 from flask import Blueprint, jsonify
+from sqlalchemy import delete
 
 from ..services.achievement_service import AchievementService
 from ..services.analytics_service import AnalyticsService
@@ -146,20 +147,20 @@ def reset_all_data():
     # Delete all data in proper order to respect foreign key constraints
     with transaction():
         # Delete child records first (order matters for foreign keys)
-        TestAttempt.query.delete()
-        DailyStat.query.delete()
-        FlaggedQuestion.query.delete()
-        Response.query.delete()
-        Achievement.query.delete()
-        PracticeSession.query.delete()
+        db.session.execute(delete(TestAttempt))
+        db.session.execute(delete(DailyStat))
+        db.session.execute(delete(FlaggedQuestion))
+        db.session.execute(delete(Response))
+        db.session.execute(delete(Achievement))
+        db.session.execute(delete(PracticeSession))
         
         # Delete parent records
-        User.query.delete()
-        Question.query.delete()
+        db.session.execute(delete(User))
+        db.session.execute(delete(Question))
         
         # Delete config tables (optional - these can be re-seeded)
-        LevelProblemConfig.query.delete()
-        LevelProgression.query.delete()
+        db.session.execute(delete(LevelProblemConfig))
+        db.session.execute(delete(LevelProgression))
     
     return jsonify({
         "success": True,

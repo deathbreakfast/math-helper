@@ -40,6 +40,14 @@ export const ACHIEVEMENT_CODE_TO_FRONTEND_ID: AchievementCodeMapping = {
   // The system now uses generic achievements (level-master, lightning-fast) with metadata for level-specific requirements.
   
   // Legacy mappings (kept for backward compatibility with old achievements in database)
+  // LEGACY CODE AUDIT NOTE:
+  // - These mappings are for legacy test achievements that were awarded before test achievements
+  //   were removed from the system.
+  // - Legacy test achievements follow patterns like: {test_type}-{tier} (e.g., "addition-1digit-b")
+  // - These achievements are no longer awarded, but may still exist in the database.
+  // - RECOMMENDATION: Audit production database to check if any legacy achievements exist.
+  //   If none exist, these mappings can be removed.
+  //   If they exist, keep these mappings for display purposes only.
   'master-of-all': ['level-grandmaster'], // Renamed to level-grandmaster
   'level-grandmaster': ['level-grandmaster'], // Level Master (Bronze) on all levels
   'subtraction-intro': ['subtraction-1digit-b', 'subtraction-1digit-a', 'subtraction-1digit-s'],

@@ -186,6 +186,7 @@ class LevelProblemConfig(db.Model):
 
 
 class TestAttempt(db.Model):
+    __test__ = False  # Prevent pytest from collecting this as a test class
     __tablename__ = "test_attempts"
 
     id = db.Column(db.Integer, primary_key=True)

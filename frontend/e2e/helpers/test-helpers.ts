@@ -152,29 +152,6 @@ export async function waitForVisible(
 }
 
 /**
- * Wait for API response
- * Note: This is a legacy function. Use waitForAPIResponse from loading-helpers for better functionality.
- * @deprecated Use waitForAPIResponse from './ui/loading-helpers' instead
- */
-export async function waitForAPIResponseLegacy(
-  page: any,
-  urlPattern: string | RegExp,
-  timeout: number = 10000
-): Promise<any> {
-  const response = await page.waitForResponse(
-    (response: any) => {
-      const url = response.url()
-      if (typeof urlPattern === 'string') {
-        return url.includes(urlPattern)
-      }
-      return urlPattern.test(url)
-    },
-    { timeout }
-  )
-  return response.json()
-}
-
-/**
  * Reset all data in the database - drops all tables
  * This is useful for E2E test cleanup to ensure a clean state
  */

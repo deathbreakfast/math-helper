@@ -421,6 +421,6 @@ class TestUserService:
             assert success is True
             
             # Verify achievement is also deleted (cascade)
-            deleted_achievement = Achievement.query.get(achievement_id)
+            deleted_achievement = db.session.get(Achievement, achievement_id)
             assert deleted_achievement is None
 

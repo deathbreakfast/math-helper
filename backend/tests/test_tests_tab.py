@@ -67,12 +67,9 @@ def test_tst_be_001_get_all_test_definitions(app, test_user_id):
         definitions = TestService.get_all_test_definitions(user_level=test_user.level)
         
         # Should return test definitions
-        assert len(definitions) > 0
+        assert len(definitions) > 0, "Should have at least some test definitions"
         
-        # All tests should be marked as new (not legacy)
-        # Legacy tests no longer exist - all tests are from NEW_TEST_DEFINITIONS
-        new_tests = [d for d in definitions if not d.get("is_legacy", False)]
-        assert len(new_tests) > 0, "Should have at least some test definitions"
+        # All tests are from NEW_TEST_DEFINITIONS (legacy tests removed)
         
         # Verify test metadata is correct
         for test_def in definitions:
@@ -369,9 +366,8 @@ def test_tst_be_010_backward_compatibility_with_old_test_types(app, test_user_id
         
         # Verify test types can be retrieved in definitions
         definitions = TestService.get_all_test_definitions()
-        # All tests should be new (not legacy) since legacy tests were removed
-        new_test_types = [d for d in definitions if not d.get("is_legacy", False)]
-        assert len(new_test_types) > 0, "Should have test definitions from NEW_TEST_DEFINITIONS"
+        # All tests are from NEW_TEST_DEFINITIONS (legacy tests removed)
+        assert len(definitions) > 0, "Should have test definitions from NEW_TEST_DEFINITIONS"
         
         # Verify new test types can be used for test attempts
         test_attempt = TestAttempt(

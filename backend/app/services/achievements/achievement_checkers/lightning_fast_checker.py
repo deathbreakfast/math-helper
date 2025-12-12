@@ -49,7 +49,7 @@ class LightningFastChecker(AchievementChecker):
             return new_achievements
         
         # Get session
-        session = PracticeSession.query.get(session_id)
+        session = db.session.get(PracticeSession, session_id)
         if not session or not session.completed_at or not session.level:
             return new_achievements
         

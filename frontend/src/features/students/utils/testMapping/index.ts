@@ -90,7 +90,6 @@ export function mapTestDefinitionToFrontend(
     level_requirement: backendTest.level_requirement,
     question_count: backendTest.question_count,
     constraints: backendTest.constraints,
-    is_legacy: backendTest.is_legacy || false,
     isLocked,
     bestResult,
     attemptCount: testAttempts.length,

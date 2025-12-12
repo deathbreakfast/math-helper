@@ -20,20 +20,14 @@ class SessionEngineService:
     """Service for session generation orchestration."""
 
     # Test type definitions: (test_type, operation, level, question_count, constraints)
-    # Legacy test types (kept for backward compatibility)
-    TEST_TYPES = {
-    }
+    # Populated from NEW_TEST_DEFINITIONS
+    TEST_TYPES = {}
     
-    # Add new test types from NEW_TEST_DEFINITIONS
+    # Add test types from NEW_TEST_DEFINITIONS
     # Convert format: (operation, level, question_count, constraints, display_name) -> (operation, level, question_count, constraints)
     for test_type, (operation, level, question_count, constraints, _) in NEW_TEST_DEFINITIONS.items():
         TEST_TYPES[test_type] = (operation, level, question_count, constraints)
 
-    @staticmethod
-    def _get_test_achievement_code(test_type: str) -> str:
-        """Get the achievement code required for a test type."""
-        # Format: {test_type}_mastery
-        return f"{test_type}_mastery"
 
     @staticmethod
     @log_query
@@ -43,7 +37,7 @@ class SessionEngineService:
         Returns:
             Tuple of (is_eligible, error_message)
         """
-        # Check if it's a new test type (descriptive identifier)
+        # Check if it's a valid test type
         if test_type in SessionEngineService.TEST_TYPES:
             _, required_level, _, _ = SessionEngineService.TEST_TYPES[test_type]
             
@@ -51,38 +45,33 @@ class SessionEngineService:
             if user.level < required_level:
                 return False, f"User level {user.level} is below required level {required_level}"
             
-            # For new test types, only level requirement is needed (no achievement requirement)
-            # Legacy test types still require achievement
-            if test_type.startswith(("addition-", "subtraction-", "multiplication-", "division-", "basic-math-")):
-                # New test types: only level requirement
-                return True, ""
-            else:
-                # Legacy test types: check achievement requirement (30 correct in a row)
-                achievement_code = SessionEngineService._get_test_achievement_code(test_type)
-                user_achievements = AchievementService.get_achievement_codes(user.id)
-                
-                if achievement_code not in user_achievements:
-                    return False, f"User has not earned the '{achievement_code}' achievement (30 correct in a row)"
-                
-                return True, ""
+            # All test types only require level (no achievement requirement)
+            return True, ""
         
         return False, f"Unknown test type: {test_type}"
 
     @staticmethod
+    def _get_test_achievement_code(test_type: str) -> str:
+        """Get the achievement code format for a test type (for backward compatibility).
+        
+        Note: This method is kept for backward compatibility but is no longer used
+        in the eligibility checking logic.
+        """
+        return f"{test_type}_mastery"
+
+    @staticmethod
     @log_query
     def get_eligible_tests(user: User) -> list[dict[str, Any]]:
-        """Get list of eligible test types for a user."""
+        """Get list of eligible test types for a user.
+        
+        Tests are eligible if the user's level meets the test's level requirement.
+        No achievement requirement is needed.
+        """
         eligible_tests = []
-        user_achievements = AchievementService.get_achievement_codes(user.id)
         
         for test_type, (operation, required_level, question_count, constraints) in SessionEngineService.TEST_TYPES.items():
             # Check level restriction
             if user.level < required_level:
-                continue
-            
-            # Check achievement requirement
-            achievement_code = SessionEngineService._get_test_achievement_code(test_type)
-            if achievement_code not in user_achievements:
                 continue
             
             eligible_tests.append({
@@ -145,7 +134,7 @@ class SessionEngineService:
         Returns:
             Dictionary with session_id, is_test, test_type, and questions list
         """
-        user = User.query.get(user_id)
+        user = db.session.get(User, user_id)
         if not user:
             raise ValueError(f"User {user_id} not found")
         
@@ -250,37 +239,70 @@ class SessionEngineService:
                 user, session_level
             )
             
+            # Detect if this is a Type A distribution (single level with weight 1.0)
+            # Type A: All questions use same level (e.g., Level Category Type A, Random category)
+            # Type B: Each question selects from distribution (e.g., Level Category Type B)
+            is_type_a = len(distribution) == 1 and distribution[0].get("weight", 0) >= 0.99
+            
             # Generate questions
             questions = []
-            for i in range(question_count):
-                # Select level from distribution
-                selected_level = AdaptiveDistributionService.select_level_from_distribution(distribution)
-                
-                # Get operation for the selected level
+            
+            if is_type_a:
+                # Type A: Use the single level for all questions (more efficient)
+                selected_level = distribution[0]["level"]
                 operation = AdaptiveDistributionService.get_operation_for_level(selected_level)
                 
-                # Generate question with retry logic for invalid level configurations
-                # CRITICAL: Always preserve the originally selected level to maintain distribution
-                # Changing the level breaks the distribution statistics
-                max_retries = 3
-                question_data = None
-                for retry in range(max_retries):
-                    try:
-                        question_data = QuestionService.generate_question(
-                            operation=operation,
-                            level=selected_level,  # Always use originally selected level
-                            test_constraints=None,
-                        )
-                        break  # Success, exit retry loop
-                    except ValueError:
-                        # Invalid level configuration (e.g., division by zero)
-                        # Retry without changing level to preserve distribution integrity.
-                        if retry >= max_retries - 1:
-                            # Exhausted retries: raise so callers/tests can detect failure.
-                            raise
-                
-                if question_data:
-                    questions.append(question_data)
+                for i in range(question_count):
+                    max_retries = 3
+                    question_data = None
+                    for retry in range(max_retries):
+                        try:
+                            question_data = QuestionService.generate_question(
+                                operation=operation,
+                                level=selected_level,
+                                test_constraints=None,
+                            )
+                            break  # Success, exit retry loop
+                        except ValueError:
+                            # Invalid level configuration (e.g., division by zero)
+                            # Retry without changing level to preserve distribution integrity.
+                            if retry >= max_retries - 1:
+                                # Exhausted retries: raise so callers/tests can detect failure.
+                                raise
+                    
+                    if question_data:
+                        questions.append(question_data)
+            else:
+                # Type B: Select level from distribution for each question
+                for i in range(question_count):
+                    # Select level from distribution
+                    selected_level = AdaptiveDistributionService.select_level_from_distribution(distribution)
+                    
+                    # Get operation for the selected level
+                    operation = AdaptiveDistributionService.get_operation_for_level(selected_level)
+                    
+                    # Generate question with retry logic for invalid level configurations
+                    # CRITICAL: Always preserve the originally selected level to maintain distribution
+                    # Changing the level breaks the distribution statistics
+                    max_retries = 3
+                    question_data = None
+                    for retry in range(max_retries):
+                        try:
+                            question_data = QuestionService.generate_question(
+                                operation=operation,
+                                level=selected_level,  # Always use originally selected level
+                                test_constraints=None,
+                            )
+                            break  # Success, exit retry loop
+                        except ValueError:
+                            # Invalid level configuration (e.g., division by zero)
+                            # Retry without changing level to preserve distribution integrity.
+                            if retry >= max_retries - 1:
+                                # Exhausted retries: raise so callers/tests can detect failure.
+                                raise
+                    
+                    if question_data:
+                        questions.append(question_data)
             
             # Create session
             session = PracticeService.create_session(

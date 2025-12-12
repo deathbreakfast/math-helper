@@ -228,7 +228,7 @@ class AchievementQueryService:
                 if not ach.session_id:
                     continue
                 
-                session = PracticeSession.query.get(ach.session_id)
+                session = db.session.get(PracticeSession, ach.session_id)
                 if not session:
                     continue
                 

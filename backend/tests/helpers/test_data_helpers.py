@@ -7,6 +7,8 @@ and questions without going through the full service layer validation.
 from datetime import datetime
 from typing import Optional
 
+from sqlalchemy import select
+
 from app.config.achievements import ACHIEVEMENTS_CONFIG
 from app.models import Achievement, PracticeSession, Question, Response, User, db
 
@@ -36,10 +38,12 @@ def award_achievement_directly(
     if not config:
         raise ValueError(f"Achievement code '{achievement_code}' not found in ACHIEVEMENTS_CONFIG")
     
-    existing = Achievement.query.filter_by(
-        user_id=user_id,
-        code=achievement_code
-    ).first()
+    existing = db.session.scalar(
+        select(Achievement).where(
+            Achievement.user_id == user_id,
+            Achievement.code == achievement_code
+        )
+    )
     
     if existing:
         # Update session_id if provided and different
@@ -74,7 +78,7 @@ def set_user_level_directly(user_id: int, level: int) -> Optional[User]:
     Returns:
         The updated User object, or None if user not found
     """
-    user = User.query.get(user_id)
+    user = db.session.get(User, user_id)
     if user:
         user.level = level
         user.updated_at = datetime.utcnow()
@@ -126,7 +130,7 @@ def create_test_session_with_responses(
     total_duration_ms = 0
     
     for resp_data in responses_data:
-        question = Question.query.get(resp_data['question_id'])
+        question = db.session.get(Question, resp_data['question_id'])
         if not question:
             continue
         
@@ -155,7 +159,7 @@ def create_test_session_with_responses(
         total_duration_ms += duration_ms
     
     # Calculate session stats
-    total_questions = len([r for r in responses_data if Question.query.get(r['question_id'])])
+    total_questions = len([r for r in responses_data if db.session.get(Question, r['question_id'])])
     accuracy = (correct_count / total_questions * 100) if total_questions > 0 else 0.0
     
     session.completed_at = completed_at or datetime.utcnow()

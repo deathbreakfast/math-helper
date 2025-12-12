@@ -289,33 +289,6 @@ describe('testMapping/index', () => {
       expect(result.display_name).toBe('addition 1digit')
     })
 
-    it('should handle is_legacy flag', () => {
-      const backendTest: BackendTestDefinition = {
-        test_type: 'old-test',
-        operation: 'addition',
-        level_requirement: 1,
-        question_count: 10,
-        is_legacy: true,
-      }
-
-      const result = mapTestDefinitionToFrontend(backendTest, 1)
-
-      expect(result.is_legacy).toBe(true)
-    })
-
-    it('should default is_legacy to false', () => {
-      const backendTest: BackendTestDefinition = {
-        test_type: 'new-test',
-        operation: 'addition',
-        level_requirement: 1,
-        question_count: 10,
-      }
-
-      const result = mapTestDefinitionToFrontend(backendTest, 1)
-
-      expect(result.is_legacy).toBe(false)
-    })
-
     it('should handle empty attempts array', () => {
       const backendTest: BackendTestDefinition = {
         test_type: 'addition-1digit',

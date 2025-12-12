@@ -10,7 +10,7 @@ from contextlib import contextmanager
 from typing import Any, Callable, Generator, TypeVar
 
 from flask import current_app
-from sqlalchemy import event, text
+from sqlalchemy import delete, event, text
 from sqlalchemy.engine import Engine
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -146,21 +146,21 @@ def init_db(app):
             with transaction():
                 # Delete child records first (order matters for foreign keys)
                 # Delete records that reference User, PracticeSession, or Question first
-                TestAttempt.query.delete()
-                DailyStat.query.delete()
-                FlaggedQuestion.query.delete()
-                Response.query.delete()
-                Achievement.query.delete()
-                ServerRecord.query.delete()  # References User and PracticeSession
-                PracticeSession.query.delete()  # References User
+                db.session.execute(delete(TestAttempt))
+                db.session.execute(delete(DailyStat))
+                db.session.execute(delete(FlaggedQuestion))
+                db.session.execute(delete(Response))
+                db.session.execute(delete(Achievement))
+                db.session.execute(delete(ServerRecord))  # References User and PracticeSession
+                db.session.execute(delete(PracticeSession))  # References User
                 
                 # Delete parent records
-                User.query.delete()
-                Question.query.delete()
+                db.session.execute(delete(User))
+                db.session.execute(delete(Question))
                 
                 # Delete config tables (optional - these can be re-seeded)
-                LevelProblemConfig.query.delete()
-                LevelProgression.query.delete()
+                db.session.execute(delete(LevelProblemConfig))
+                db.session.execute(delete(LevelProgression))
                 
                 # Reset SQLite sequence counters so IDs start from 1 after wipe
                 try:

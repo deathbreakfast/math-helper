@@ -20,11 +20,13 @@ class AdaptiveDistributionService:
     """Service for adaptive question distribution based on test performance.
     
     New category-based system:
-    - Level Category (35%): Current level - 2 (33%), Level - 1 (33%), Current level (33%)
+    - Level Category (35%): 50% Type A (single-level session), 50% Type B (mixed levels)
+      Type A: All questions from one level (uniformly selected from {n-2, n-1, n})
+      Type B: Questions distributed across {n-2, n-1, n} with 33% each
     - Requirements Category (35%): 60% questions to earn achievements required by current level + 1,
       40% questions needed to earn achievements required by locked tests
     - Bottom Performers (20%): 50% slowest average level, 50% lowest accuracy level
-    - Random (10%): 50% all questions of same random level, 50% all questions of random level
+    - Random (10%): All questions from a single random level (1 to user_level) per session
     
     Category is selected at session level - all questions in a session use the same category.
     """
@@ -51,34 +53,64 @@ class AdaptiveDistributionService:
     @log_query
     def generate_level_category_distribution(
         user_level: int,
+        mode: str | None = None,
     ) -> list[dict[str, Any]]:
         """Generate distribution for Level category.
         
-        Distribution:
-        - Current level - 2 (33%)
-        - Level - 1 (33%)
-        - Current level (33%)
+        Supports two modes (50/50 selection if mode is None):
+        - Type A (mode='type_a'): Single-level session - pick one level uniformly from {n-2, n-1, n}
+        - Type B (mode='type_b'): Mixed-level session - questions distributed across {n-2, n-1, n} with 33% each
+        
+        Args:
+            user_level: The user's current level
+            mode: 'type_a', 'type_b', or None for random 50/50 selection
+        
+        Returns:
+            Distribution list with level and weight entries
         """
-        distribution = []
+        # Determine which mode to use
+        if mode is None:
+            # 50/50 selection between Type A and Type B
+            mode = 'type_a' if random.random() < 0.5 else 'type_b'
         
-        # Current level - 2
-        if user_level > 2:
-            distribution.append({"level": user_level - 2, "weight": 0.33})
+        if mode == 'type_a':
+            # Type A: Select one level uniformly from {n-2, n-1, n}
+            available_levels = []
+            if user_level > 2:
+                available_levels.append(user_level - 2)
+            if user_level > 1:
+                available_levels.append(user_level - 1)
+            available_levels.append(user_level)
+            
+            # Pick one level uniformly
+            selected_level = random.choice(available_levels)
+            return [{"level": selected_level, "weight": 1.0}]
         
-        # Level - 1
-        if user_level > 1:
-            distribution.append({"level": user_level - 1, "weight": 0.33})
+        elif mode == 'type_b':
+            # Type B: 3-level distribution with 33% each
+            distribution = []
+            
+            # Current level - 2
+            if user_level > 2:
+                distribution.append({"level": user_level - 2, "weight": 0.33})
+            
+            # Level - 1
+            if user_level > 1:
+                distribution.append({"level": user_level - 1, "weight": 0.33})
+            
+            # Current level
+            distribution.append({"level": user_level, "weight": 0.33})
+            
+            # Normalize weights
+            total_weight = sum(item["weight"] for item in distribution)
+            if total_weight > 0:
+                for item in distribution:
+                    item["weight"] = item["weight"] / total_weight
+            
+            return distribution
         
-        # Current level
-        distribution.append({"level": user_level, "weight": 0.33})
-        
-        # Normalize weights
-        total_weight = sum(item["weight"] for item in distribution)
-        if total_weight > 0:
-            for item in distribution:
-                item["weight"] = item["weight"] / total_weight
-        
-        return distribution
+        else:
+            raise ValueError(f"Invalid mode '{mode}'. Must be 'type_a', 'type_b', or None")
 
     @staticmethod
     @log_query
@@ -280,13 +312,14 @@ class AdaptiveDistributionService:
     ) -> list[dict[str, Any]]:
         """Generate distribution for Random category.
         
-        Distribution:
-        - 50%: All questions of same random level
-        - 50%: All questions of random level (different each time)
+        Behavior:
+        - Selects a single random level (between 1 and user_level) for the session
+        - All questions in the session will be from this same level
+        - Different sessions may use different random levels
         
-        For session-level consistency, we'll pick one random level for the session.
+        This provides variety across sessions while maintaining consistency within a session.
         """
-        # Pick a random level for this session
+        # Pick a random level for this session (all questions will use this level)
         random_level = random.randint(1, user_level)
         return [{"level": random_level, "weight": 1.0}]
 
@@ -315,7 +348,8 @@ class AdaptiveDistributionService:
         
         # Generate distribution based on category
         if category == "level":
-            distribution = AdaptiveDistributionService.generate_level_category_distribution(user_level)
+            # Level category uses 50/50 Type A/B selection (mode=None triggers random selection)
+            distribution = AdaptiveDistributionService.generate_level_category_distribution(user_level, mode=None)
         elif category == "requirements":
             distribution = AdaptiveDistributionService.generate_requirements_category_distribution(user)
         elif category == "bottom_performers":

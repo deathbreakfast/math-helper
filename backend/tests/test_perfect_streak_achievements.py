@@ -52,7 +52,7 @@ def test_perfect_streak_bronze_3_sessions(app, test_user):
             } for q in questions]
             
             session = create_test_session_with_responses(test_user.id, responses_data)
-            user = User.query.get(test_user.id)
+            user = db.session.get(User, test_user.id)
             metrics = AnalyticsService.compute_user_metrics(user.id)
             AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -79,7 +79,7 @@ def test_perfect_streak_silver_5_sessions(app, test_user):
             } for q in questions]
             
             session = create_test_session_with_responses(test_user.id, responses_data)
-            user = User.query.get(test_user.id)
+            user = db.session.get(User, test_user.id)
             metrics = AnalyticsService.compute_user_metrics(user.id)
             AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -106,7 +106,7 @@ def test_perfect_streak_broken_by_imperfect_session(app, test_user):
             } for q in questions]
             
             session = create_test_session_with_responses(test_user.id, responses_data)
-            user = User.query.get(test_user.id)
+            user = db.session.get(User, test_user.id)
             metrics = AnalyticsService.compute_user_metrics(user.id)
             AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -122,7 +122,7 @@ def test_perfect_streak_broken_by_imperfect_session(app, test_user):
             })
         
         session = create_test_session_with_responses(test_user.id, responses_data)
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         

@@ -1,6 +1,5 @@
 """Test configuration module."""
 
-from .test_achievements import get_new_test_achievements
 from .test_definitions import (
     get_all_test_definitions,
     get_test_definition,
@@ -13,6 +12,5 @@ __all__ = [
     "get_test_definition",
     "get_all_test_definitions",
     "get_test_definitions_by_level",
-    "get_new_test_achievements",
 ]
 

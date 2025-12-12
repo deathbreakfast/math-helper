@@ -65,7 +65,7 @@ def test_level_up_requires_achievements(app, test_user, target_level, required_a
         from app.services.achievement_service import AchievementService
         
         # Refresh user to get latest state
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         
         # User should not have achievements initially
         can_level, missing = UserService.can_level_up(user, target_level)
@@ -224,7 +224,7 @@ def test_level_up_requires_achievements(app, test_user, target_level, required_a
         
         # Refresh user to get updated achievements
         db.session.refresh(user)
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         
         # User should now be able to level up
         can_level, missing = UserService.can_level_up(user, target_level)
@@ -240,7 +240,7 @@ def test_level_up_cannot_go_backwards(app, test_user):
     with app.app_context():
         # Set user to level 5
         set_user_level_directly(test_user.id, 5)
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         
         # Try to level up to level 3 (lower than current)
         can_level, missing = UserService.can_level_up(user, 3)
@@ -252,7 +252,7 @@ def test_level_up_same_level(app, test_user):
     """LVL-UP-002: User cannot level up to the same level."""
     with app.app_context():
         # User is at level 1
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         
         # Try to level up to level 1 (same as current)
         can_level, missing = UserService.can_level_up(user, 1)
@@ -264,7 +264,7 @@ def test_level_up_level_1_has_no_requirements(app, test_user):
     """LVL-UP-003: Level 1 has no requirements (users start at level 1)."""
     with app.app_context():
         # This is more of a documentation test - users start at level 1
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         assert user.level == 1
 
 
@@ -289,7 +289,7 @@ def test_level_up_api_endpoint_success(app, test_user):
             metadata={"test_type": "addition-1digit"},
         )
         
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         
         # Use level_up service method (simulates API endpoint)
         success, errors = UserService.level_up(user, 2)
@@ -305,7 +305,7 @@ def test_level_up_api_endpoint_success(app, test_user):
 def test_level_up_api_endpoint_failure(app, test_user):
     """LVL-UP-005: Level up API endpoint fails when not eligible."""
     with app.app_context():
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         
         # Try to level up without required achievements
         success, errors = UserService.level_up(user, 2)
@@ -324,7 +324,7 @@ def test_level_up_multiple_requirements(app, test_user):
     with app.app_context():
         from app.services.achievement_service import AchievementService
         
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         
         # Check without any achievements
         can_level, missing = UserService.can_level_up(user, 5)
@@ -334,7 +334,7 @@ def test_level_up_multiple_requirements(app, test_user):
         # Award only one achievement
         award_achievement_directly(test_user.id, "question-master-silver")
         db.session.refresh(user)
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         
         can_level, missing = UserService.can_level_up(user, 5)
         assert can_level is False
@@ -351,7 +351,7 @@ def test_level_up_multiple_requirements(app, test_user):
             metadata={"test_type": "subtraction-1digit-zeros"},
         )
         db.session.refresh(user)
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         
         can_level, missing = UserService.can_level_up(user, 5)
         assert can_level is True

@@ -8,7 +8,6 @@ export interface BackendTestDefinition {
   question_count: number
   constraints?: Record<string, unknown>
   display_name?: string
-  is_legacy?: boolean
   unlock_requirements?: {
     type: string
     achievement_code?: string

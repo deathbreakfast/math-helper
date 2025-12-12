@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 from flask import Blueprint, jsonify, request
+from sqlalchemy import select
 
 from ..services.achievement_service import AchievementService
 from ..services.analytics_service import AnalyticsService
@@ -322,9 +323,9 @@ def check_answer():
         return create_error_response("Question not found", 404)
 
     # Get session to get user_id
-    from ..models import PracticeSession
+    from ..models import PracticeSession, db
 
-    session = PracticeSession.query.get(session_id)
+    session = db.session.get(PracticeSession, session_id)
     if not session:
         return create_error_response("Session not found", 404)
 
@@ -354,15 +355,17 @@ def complete_session(session_id: int):
     payload = request.get_json(silent=True) or {}
     total_duration_ms = payload.get("total_duration_ms") or payload.get("totalDurationMs")
 
-    from ..models import PracticeSession, Response
+    from ..models import PracticeSession, Response, db
 
     # Get session
-    session = PracticeSession.query.get(session_id)
+    session = db.session.get(PracticeSession, session_id)
     if not session:
         return create_error_response("Session not found", 404)
 
     # Get all responses for this session
-    responses = Response.query.filter_by(session_id=session_id).all()
+    responses = list(db.session.scalars(
+        select(Response).where(Response.session_id == session_id)
+    ))
 
     # Calculate statistics
     total_questions = len(responses)

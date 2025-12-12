@@ -113,21 +113,20 @@ class TestSessionEngineService:
             assert "Unknown test type" in error_msg
 
     def test_check_test_eligibility_legacy_test_type_no_achievement(self, app, test_user):
-        """Test check_test_eligibility with legacy test type without achievement."""
+        """Test check_test_eligibility - all test types only require level (no achievement needed)."""
         with app.app_context():
             test_user.level = 10
             db.session.add(test_user)
             db.session.commit()
-            
-            # Create a mock test type that doesn't start with operation prefixes
-            # This will trigger the legacy path
+
+            # Create a mock test type
             with patch.object(SessionEngineService, 'TEST_TYPES', {
                 'legacy-test': ('addition', 1, 10, {})
             }):
-                with patch.object(AchievementService, 'get_achievement_codes', return_value=[]):
-                    is_eligible, error_msg = SessionEngineService.check_test_eligibility(test_user, "legacy-test")
-                    assert is_eligible is False
-                    assert "has not earned" in error_msg
+                # All tests now only require level, no achievement requirement
+                is_eligible, error_msg = SessionEngineService.check_test_eligibility(test_user, "legacy-test")
+                assert is_eligible is True
+                assert error_msg == ""
 
     def test_check_test_eligibility_legacy_test_type_with_achievement(self, app, test_user):
         """Test check_test_eligibility with legacy test type with achievement."""
@@ -147,16 +146,16 @@ class TestSessionEngineService:
                     assert error_msg == ""
 
     def test_get_eligible_tests_no_achievements(self, app, test_user):
-        """Test get_eligible_tests when user has no achievements."""
+        """Test get_eligible_tests - tests only require level (no achievements needed)."""
         with app.app_context():
             test_user.level = 10
             db.session.add(test_user)
             db.session.commit()
-            
-            with patch.object(AchievementService, 'get_achievement_codes', return_value=[]):
-                eligible = SessionEngineService.get_eligible_tests(test_user)
-                # Should return empty list since no achievements
-                assert eligible == []
+
+            # Tests now only require level, so user should have eligible tests
+            eligible = SessionEngineService.get_eligible_tests(test_user)
+            # Should return tests where user level >= required level
+            assert len(eligible) > 0, "User should have eligible tests based on level alone"
 
     def test_get_eligible_tests_with_achievements(self, app, test_user):
         """Test get_eligible_tests when user has achievements."""
@@ -513,7 +512,7 @@ class TestSessionEngineService:
             result = SessionEngineService.generate_session(user_id=test_user.id)
             
             # Verify question_ids were stored
-            session = PracticeSession.query.get(result["session_id"])
+            session = db.session.get(PracticeSession, result["session_id"])
             assert session.question_ids is not None
             question_ids = json.loads(session.question_ids)
             assert 123 in question_ids
@@ -537,7 +536,7 @@ class TestSessionEngineService:
             
             # Should still create session
             assert result["session_id"] is not None
-            session = PracticeSession.query.get(result["session_id"])
+            session = db.session.get(PracticeSession, result["session_id"])
             # question_ids should be None or empty list
             assert session.question_ids is None or json.loads(session.question_ids) == []
 

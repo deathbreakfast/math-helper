@@ -52,18 +52,6 @@ export const useSummaryData = (filter: FilterType) => {
   const sessionSummary = useMemo<PracticeSessionSummary | null>(() => {
     // Read sessionId from URL (new approach - only ID in URL)
     const sessionId = searchParams.get('sessionId')
-    
-    // Also support legacy 'session' param for backward compatibility during transition
-    const legacySessionParam = searchParams.get('session')
-
-    // If legacy session param exists, try to parse it (backward compatibility)
-    if (legacySessionParam) {
-      try {
-        return JSON.parse(decodeURIComponent(legacySessionParam)) as PracticeSessionSummary
-      } catch {
-        // Invalid JSON, fall through to localStorage
-      }
-    }
 
     // Get session from localStorage (stored with key 'lastPracticeSession')
     const savedSession = localStorage.getItem('lastPracticeSession')

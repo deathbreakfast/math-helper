@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from app.models import Question, User
+from app.models import Question, User, db
 from app.services.adaptive_distribution_service import AdaptiveDistributionService
 
 
@@ -163,7 +163,7 @@ class DistributionTestScenario:
         # Try to get level from question_id
         question_id = question.get("question_id")
         if question_id:
-            question_obj = Question.query.get(question_id)
+            question_obj = db.session.get(Question, question_id)
             if question_obj:
                 return question_obj.required_level
         

@@ -1003,6 +1003,265 @@ frontend/src/features/
    - ✅ Reduced technical debt
    - ✅ Prevents breaking changes when upgrading SQLAlchemy
 
+### Phase 6: Dead Code & Legacy Code Migration (Weeks 12+) - Medium Priority
+
+10. **Identify and Remove Dead Code** (Priority: Medium)
+    - **Current State:** Several dead code files and unused legacy patterns identified
+    - **Impact:** Reduces codebase size, improves maintainability, reduces confusion
+    
+    **Dead Code Identified:**
+    
+    **1. Backup/Old Files (DEAD CODE - Safe to Delete):**
+    - `backend/app/routes.py.old` (1,211 lines) - Old backup file, not referenced anywhere
+      - **Status:** ✅ Safe to delete - routes have been split into domain files
+      - **Impact:** Removes 1,211 lines of dead code
+      - **Risk:** None - file is not imported or referenced
+    
+    **2. Empty/Stub Files (DEAD CODE - Safe to Delete):**
+    - `backend/app/config/tests/test_achievements.py` (18 lines) - Empty stub file
+      - **Status:** ✅ Safe to delete - test achievements removed, function returns empty dict
+      - **Impact:** Removes dead stub code
+      - **Note:** Contains `get_new_test_achievements()` that always returns `{}`
+    
+    - `backend/app/config/achievements/test.py` (18 lines) - Empty stub file
+      - **Status:** ✅ Safe to delete - test achievements removed
+      - **Impact:** Removes dead stub code
+      - **Note:** Contains `TEST_ACHIEVEMENTS = {}` and `_generate_test_tier_achievements()` that returns `{}`
+    
+    **3. Legacy Code Still in Use (MIGRATION NEEDED):**
+    
+    **A. Deprecated Config Imports (HIGH PRIORITY):**
+    - `backend/app/config/achievements_config.py` - Deprecated wrapper, still used
+      - **Issue:** File marked as deprecated but still imported in some places
+      - **Migration:** Update all imports to use `app.config.achievements` instead
+      - **Impact:** Eliminates deprecation warnings (~25 warnings)
+      - **Files to Update:** Search for imports of `achievements_config`
+      - **Estimated Effort:** 2-4 hours
+    
+    - `backend/app/config/test_requirements_config.py` - Deprecated wrapper, still used
+      - **Issue:** File marked as deprecated but still imported in some places
+      - **Migration:** Update all imports to use `app.config.test_requirements` instead
+      - **Impact:** Eliminates deprecation warnings (~25 warnings)
+      - **Files to Update:** Search for imports of `test_requirements_config`
+      - **Estimated Effort:** 2-4 hours
+    
+    **B. Legacy Test Type Handling (MEDIUM PRIORITY):**
+    - `backend/app/services/test_service.py` (lines 46-61) - Legacy test type fallback
+      - **Issue:** Code checks for legacy test types in `SessionEngineService.TEST_TYPES`, but `TEST_TYPES` is now empty (only contains new tests)
+      - **Current Code:**
+        ```python
+        # If not found in new definitions, check legacy test types
+        if not test_def:
+            if test_type in SessionEngineService.TEST_TYPES:
+                # This path is now dead - TEST_TYPES only contains new tests
+        ```
+      - **Migration:** Remove legacy test type fallback logic (lines 46-61)
+      - **Impact:** Simplifies code, removes dead branch
+      - **Risk:** Low - legacy tests don't exist anymore
+      - **Estimated Effort:** 1-2 hours
+    
+    - `backend/app/services/session_engine_service.py` (lines 22-30, 54-67) - Legacy test type handling
+      - **Issue:** `TEST_TYPES` dict is empty (legacy tests removed), but code still has legacy paths
+      - **Current Code:**
+        ```python
+        # Legacy test types (kept for backward compatibility)
+        TEST_TYPES = {}  # Empty!
+        
+        # Legacy test types still require achievement
+        if test_type.startswith(...):
+            # New test types: only level requirement
+        else:
+            # Legacy test types: check achievement requirement
+            # This path is now dead
+        ```
+      - **Migration:** 
+        - Remove empty `TEST_TYPES` initialization comment
+        - Remove legacy achievement requirement check (lines 59-67)
+        - Simplify `check_test_eligibility` to only handle new test types
+      - **Impact:** Simplifies code, removes dead branches
+      - **Risk:** Low - all tests are now from `NEW_TEST_DEFINITIONS`
+      - **Estimated Effort:** 2-3 hours
+    
+    - `backend/app/services/test_service.py` (lines 214-247) - Legacy test type generation
+      - **Issue:** `get_all_test_definitions()` generates legacy operation-based tests that don't exist
+      - **Current Code:**
+        ```python
+        # Add legacy operation-based tests
+        for operation in ["addition", "subtraction", "multiplication", "division"]:
+            # Generates legacy tests with is_legacy=True
+            # But these tests don't actually exist in the system
+        ```
+      - **Migration:** Remove legacy test generation logic (lines 226-241)
+      - **Impact:** Removes dead code, simplifies function
+      - **Risk:** Low - legacy tests are not used
+      - **Estimated Effort:** 1-2 hours
+    
+    **C. Legacy Achievement/Tier Code (LOW PRIORITY):**
+    - `backend/app/services/achievements/achievement_validators/tier_validator.py` - Legacy tier validation
+      - **Issue:** Validates legacy test achievements (b, a, s, ss, sss tiers) that no longer exist
+      - **Current Code:** Validates achievements matching patterns like `%-b`, `%-a`, `%-s`, etc.
+      - **Status:** May still be needed for existing database records, but logic is for removed test achievements
+      - **Migration:** 
+        - Review if any legacy tier achievements exist in production database
+        - If none exist, remove or simplify validation logic
+        - If they exist, keep but document as cleanup-only code
+      - **Impact:** Reduces confusion about removed test achievements
+      - **Risk:** Medium - may be needed for database cleanup
+      - **Estimated Effort:** 2-4 hours (requires database audit)
+    
+    - `frontend/src/lib/levels/achievementMapping.ts` (lines 42-61) - Legacy achievement mappings
+      - **Issue:** Contains legacy mappings for removed test achievements
+      - **Current Code:**
+        ```typescript
+        // Legacy mappings (kept for backward compatibility with old achievements in database)
+        'subtraction-intro': ['subtraction-1digit-b', ...],
+        'mixed-addition': ['addition-2digit-b', ...],
+        // etc.
+        ```
+      - **Migration:** 
+        - Review if any legacy achievements exist in production database
+        - If none exist, remove legacy mappings
+        - If they exist, keep but document as backward compatibility only
+      - **Impact:** Reduces confusion, simplifies mapping
+      - **Risk:** Low - only affects display of old achievements
+      - **Estimated Effort:** 1-2 hours (requires database audit)
+    
+    **D. Legacy Frontend Code (LOW PRIORITY):**
+    - `frontend/e2e/helpers/test-helpers.ts` (lines 156-179) - `waitForAPIResponseLegacy`
+      - **Issue:** Deprecated function, replaced by `waitForAPIResponse` from `loading-helpers`
+      - **Status:** Marked as `@deprecated` but still exists
+      - **Migration:** 
+        - Check if any tests still use `waitForAPIResponseLegacy`
+        - If none, remove function
+        - If used, migrate tests to use `waitForAPIResponse`
+      - **Impact:** Removes deprecated code
+      - **Risk:** Low - replacement exists
+      - **Estimated Effort:** 1-2 hours
+    
+    - `frontend/src/utils/routing.ts` (lines 156-159) - Legacy routing exports
+      - **Issue:** Legacy exports for backward compatibility
+      - **Current Code:**
+        ```typescript
+        // Legacy exports for backward compatibility
+        export const useRouterNavigate = () => useNavigate()
+        export const useRouterSearchParams = () => useSearchParams()
+        export const useRouterLocation = () => useLocation()
+        ```
+      - **Migration:** 
+        - Check if any code uses these legacy exports
+        - If none, remove legacy exports
+        - If used, migrate to direct `react-router-dom` imports
+      - **Impact:** Removes unnecessary wrapper functions
+      - **Risk:** Low - direct imports are preferred
+      - **Estimated Effort:** 1-2 hours
+    
+    - `frontend/src/features/practice/hooks/useSummaryData.ts` (lines 56-62) - Legacy session param
+      - **Issue:** Supports legacy `session` URL param for backward compatibility
+      - **Current Code:**
+        ```typescript
+        // Also support legacy 'session' param for backward compatibility during transition
+        const legacySessionParam = searchParams.get('session')
+        if (legacySessionParam) {
+            return JSON.parse(decodeURIComponent(legacySessionParam))
+        }
+        ```
+      - **Migration:** 
+        - Check if any URLs still use legacy `session` param
+        - If none, remove legacy param handling
+        - If used, migrate URLs to new format
+      - **Impact:** Simplifies code
+      - **Risk:** Low - new format is standard
+      - **Estimated Effort:** 1 hour
+    
+    **E. Legacy Flag Handling (LOW PRIORITY):**
+    - `is_legacy` flag throughout codebase
+      - **Issue:** Code handles `is_legacy` flag for tests, but legacy tests don't exist
+      - **Affected Files:**
+        - `backend/app/services/test_service.py` (sets `is_legacy: True` for non-existent tests)
+        - `frontend/src/features/students/utils/testMapping/types.ts` (defines `is_legacy?: boolean`)
+        - `frontend/src/lib/tests/testDefinitions.ts` (defines `is_legacy?: boolean`)
+        - `frontend/src/features/students/utils/testMapping/index.ts` (maps `is_legacy` flag)
+        - `backend/tests/test_tests_tab.py` (filters by `is_legacy`)
+      - **Migration:** 
+        - Remove `is_legacy` flag from type definitions
+        - Remove `is_legacy` handling logic
+        - Update tests that check for `is_legacy`
+      - **Impact:** Simplifies code, removes unused flag
+      - **Risk:** Low - legacy tests don't exist
+      - **Estimated Effort:** 3-4 hours
+    
+    **Implementation Strategy:**
+    
+    1. **Phase 6.1: Remove Dead Files (Week 12)**
+       - Delete `backend/app/routes.py.old` (1,211 lines)
+       - Delete `backend/app/config/tests/test_achievements.py` (18 lines)
+       - Delete `backend/app/config/achievements/test.py` (18 lines)
+       - Run full test suite to verify nothing breaks
+       - **Target:** Remove 1,247 lines of dead code
+       - **Estimated Time:** 1 hour
+    
+    2. **Phase 6.2: Migrate Deprecated Config Imports (Week 12)**
+       - Find all imports of `achievements_config`
+       - Update to use `app.config.achievements`
+       - Find all imports of `test_requirements_config`
+       - Update to use `app.config.test_requirements`
+       - Remove deprecated wrapper files (or keep as empty stubs with deprecation warnings)
+       - Run full test suite
+       - **Target:** Eliminate deprecation warnings (~50 warnings)
+       - **Estimated Time:** 4-8 hours
+    
+    3. **Phase 6.3: Remove Legacy Test Type Code (Week 13)**
+       - Remove legacy test type fallback in `test_service.py` (lines 46-61)
+       - Remove legacy test type handling in `session_engine_service.py` (lines 54-67)
+       - Remove legacy test generation in `test_service.py` (lines 226-241)
+       - Simplify `TEST_TYPES` initialization
+       - Update tests that reference legacy test types
+       - Run full test suite
+       - **Target:** Remove ~50 lines of dead code, simplify logic
+       - **Estimated Time:** 4-6 hours
+    
+    4. **Phase 6.4: Remove Legacy Flag Handling (Week 13)**
+       - Remove `is_legacy` from type definitions
+       - Remove `is_legacy` handling logic
+       - Update tests
+       - Run full test suite
+       - **Target:** Remove unused flag, simplify code
+       - **Estimated Time:** 3-4 hours
+    
+    5. **Phase 6.5: Clean Up Legacy Frontend Code (Week 14)**
+       - Remove `waitForAPIResponseLegacy` (if unused)
+       - Remove legacy routing exports (if unused)
+       - Remove legacy session param handling (if unused)
+       - Run full test suite
+       - **Target:** Remove deprecated frontend code
+       - **Estimated Time:** 3-5 hours
+    
+    6. **Phase 6.6: Audit Legacy Achievement Code (Week 14)**
+       - Audit production database for legacy tier achievements
+       - If none exist, remove/simplify tier validator
+       - If none exist, remove legacy achievement mappings
+       - Document findings
+       - **Target:** Determine if legacy achievement code is needed
+       - **Estimated Time:** 2-4 hours (requires database access)
+    
+    **Success Criteria:**
+    - ✅ All dead files removed
+    - ✅ All deprecated config imports migrated
+    - ✅ All legacy test type code removed
+    - ✅ All legacy flag handling removed
+    - ✅ All deprecated frontend code removed or migrated
+    - ✅ Legacy achievement code audited and documented
+    - ✅ All tests passing
+    - ✅ No dead code branches remaining
+    
+    **Impact:**
+    - ✅ Reduced codebase size (~1,300+ lines removed)
+    - ✅ Improved code clarity (no confusing legacy paths)
+    - ✅ Reduced maintenance burden (less code to maintain)
+    - ✅ Better developer experience (clearer codebase)
+    - ✅ Eliminated deprecation warnings (~50 warnings)
+    - ✅ Reduced technical debt
+
 ---
 
 ## 7. Metrics to Track
@@ -1030,6 +1289,13 @@ frontend/src/features/
   - [ ] SQLAlchemy Query API updates (HIGH: ~500 warnings, 6%)
   - [ ] Pytest configuration fixes (MEDIUM: ~100 warnings, 1%)
   - [ ] Deprecation warning cleanup (LOW: ~50 warnings, <1%)
+- [ ] Dead code and legacy code cleanup (⚠️ PENDING: ~1,300+ lines of dead code, legacy patterns - Phase 6)
+  - [ ] Remove dead files (routes.py.old, empty test achievement stubs)
+  - [ ] Migrate deprecated config imports
+  - [ ] Remove legacy test type handling
+  - [ ] Remove legacy flag handling
+  - [ ] Clean up legacy frontend code
+  - [ ] Audit legacy achievement code
 
 ---
 
@@ -1129,5 +1395,28 @@ The codebase has grown organically and now requires strategic refactoring to mai
   - **HIGH (6%):** SQLAlchemy Query API updates - 3-5 days
   - **MEDIUM (1%):** Pytest configuration - 1-2 hours
   - **LOW (4%):** Deprecation and other warnings - 1-2 days
+
+**Dead Code & Legacy Code Cleanup (Phase 6) - Medium Priority:**
+- ⚠️ **~1,300+ lines of dead code** identified
+  - `backend/app/routes.py.old` (1,211 lines) - Old backup file, not referenced
+  - `backend/app/config/tests/test_achievements.py` (18 lines) - Empty stub
+  - `backend/app/config/achievements/test.py` (18 lines) - Empty stub
+  - Legacy test type handling code (~50 lines) - Dead branches
+  - Legacy flag handling code (~30 lines) - Unused flag
+- ⚠️ **Deprecated config imports** still in use
+  - `achievements_config.py` - Deprecated wrapper, should migrate to `app.config.achievements`
+  - `test_requirements_config.py` - Deprecated wrapper, should migrate to `app.config.test_requirements`
+- ⚠️ **Legacy code patterns** still in codebase
+  - Legacy test type fallback logic (tests don't exist)
+  - Legacy achievement/tier validation (for removed test achievements)
+  - Legacy frontend helpers (`waitForAPIResponseLegacy`, legacy routing exports)
+  - `is_legacy` flag handling (legacy tests don't exist)
+- **Impact:** Reduces codebase clarity, increases maintenance burden, causes confusion
+- **Recommendation:** Address in Phase 6 to improve codebase health
+- **Estimated Effort:** 2-3 weeks (phased approach)
+- **Priority Breakdown:**
+  - **HIGH:** Remove dead files, migrate deprecated config imports - 1-2 days
+  - **MEDIUM:** Remove legacy test type code, remove legacy flag handling - 1-2 days
+  - **LOW:** Clean up legacy frontend code, audit legacy achievement code - 1-2 days
 
 

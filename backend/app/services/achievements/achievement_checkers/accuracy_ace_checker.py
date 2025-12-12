@@ -54,7 +54,7 @@ class AccuracyAceChecker(AchievementChecker):
             if not user:
                 # Fetch user from database
                 from ....models import User as UserModel
-                user = UserModel.query.get(session.user_id)
+                user = db.session.get(UserModel, session.user_id)
                 if not user:
                     return new_achievements
         

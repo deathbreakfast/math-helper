@@ -60,7 +60,7 @@ def test_first_victory_achievement(app, test_user):
         session = create_test_session_with_responses(test_user.id, responses_data)
         
         # Get user and compute metrics, then check and award achievements
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -89,7 +89,7 @@ def test_first_steps_achievement(app, test_user):
         session = create_test_session_with_responses(test_user.id, responses_data, level=1)
         
         # Get user and compute metrics, then check and award achievements
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -120,7 +120,7 @@ def test_question_master_bronze_achievement(app, test_user):
             
             session = create_test_session_with_responses(test_user.id, responses_data)
             # Get user and compute metrics, then check and award achievements
-            user = User.query.get(test_user.id)
+            user = db.session.get(User, test_user.id)
             metrics = AnalyticsService.compute_user_metrics(user.id)
             AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -152,7 +152,7 @@ def test_first_steps_achievement(app, test_user):
         session = create_test_session_with_responses(test_user.id, responses_data, level=1)
         
         # Get user and compute metrics, then check and award achievements
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -180,7 +180,7 @@ def test_speed_demon_bronze_achievement(app, test_user):
         session = create_test_session_with_responses(test_user.id, responses_data)
         
         # Get user and compute metrics, then check and award achievements
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -212,7 +212,7 @@ def test_speed_demon_gold_achievement(app, test_user):
         session = create_test_session_with_responses(test_user.id, responses_data)
         
         # Get user and compute metrics, then check and award achievements
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -244,7 +244,7 @@ def test_perfect_streak_bronze_achievement(app, test_user):
             
             session = create_test_session_with_responses(test_user.id, responses_data)
             # Get user and compute metrics, then check and award achievements
-            user = User.query.get(test_user.id)
+            user = db.session.get(User, test_user.id)
             metrics = AnalyticsService.compute_user_metrics(user.id)
             AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
@@ -292,7 +292,7 @@ def test_week_warrior_bronze_achievement(app, test_user):
             AnalyticsService.aggregate_daily_stats(test_user.id, stat_date)
         
         # Get user and compute metrics, then check and award achievements
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(test_user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=None)
         
@@ -329,7 +329,7 @@ def test_first_steps_only_awarded_once(app, test_user):
         }]
         
         session1 = create_test_session_with_responses(test_user.id, responses_data1, level=1)
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session1.id)
         
@@ -350,7 +350,7 @@ def test_first_steps_only_awarded_once(app, test_user):
         }]
         
         session2 = create_test_session_with_responses(test_user.id, responses_data2, level=1)
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session2.id)
         
@@ -376,7 +376,7 @@ def test_first_victory_only_awarded_once(app, test_user):
         }]
         
         session1 = create_test_session_with_responses(test_user.id, responses_data1)
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session1.id)
         
@@ -397,7 +397,7 @@ def test_first_victory_only_awarded_once(app, test_user):
         }]
         
         session2 = create_test_session_with_responses(test_user.id, responses_data2)
-        user = User.query.get(test_user.id)
+        user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session2.id)
         

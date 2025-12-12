@@ -1,7 +1,9 @@
 /**
  * Hook to detect if dev mode is enabled via environment variable
  * Dev mode is enabled when VITE_DEV_MODE=true (default: false)
- * This replaces the previous URL parameter-based approach for better security
+ *
+ * Note: For local development + E2E tests that run against the Vite dev server,
+ * we also support the legacy query param `?env=dev` (dev builds only).
  */
 export function useDevMode(): boolean {
   return isDevMode()
@@ -17,7 +19,17 @@ export function isDevMode(): boolean {
     return false
   }
   
-  // Check environment variable (default: false)
-  return import.meta.env.VITE_DEV_MODE === 'true'
+  // Primary switch: build-time env var (default: false)
+  if (import.meta.env.VITE_DEV_MODE === 'true') {
+    return true
+  }
+
+  // Legacy switch: URL param, but only in Vite dev builds (not production)
+  if (import.meta.env.DEV) {
+    const params = new URLSearchParams(window.location.search)
+    return params.get('env') === 'dev'
+  }
+
+  return false
 }
 

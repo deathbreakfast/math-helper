@@ -176,13 +176,27 @@ export async function getTestEligibility(request: APIRequestContext, userId: num
 /**
  * Start test session via API
  */
-export async function startTestSession(request: APIRequestContext, userId: number, testType: string): Promise<any> {
+export async function startTestSession(
+  request: APIRequestContext,
+  userId: number,
+  testType: string,
+  level?: number
+): Promise<any> {
+  // Backend only records a TestAttempt on completion if session.level is set.
+  // If caller didn't provide it, fall back to the user's current level.
+  let effectiveLevel = level
+  if (effectiveLevel === undefined) {
+    const user = await getUser(request, userId)
+    effectiveLevel = user?.level
+  }
+
   const response = await request.post('/api/practice/sessions/start', {
     data: {
       user_id: userId,
       is_test: true,
       test_type: testType,
-      mode: 'standard'
+      mode: 'standard',
+      level: effectiveLevel,
     }
   })
   if (!response.ok()) {
@@ -317,9 +331,25 @@ export async function createPassedTestAttempt(
   
   try {
     // Start test session
-    const sessionData = await startTestSession(request, userId, testType)
-    const sessionId = sessionData.session_id
-    const questions = sessionData.questions || []
+    // IMPORTANT: backend only records a TestAttempt on completion if session.level is set.
+    // Pass level explicitly so the attempt shows up in /api/tests/* endpoints used by the UI.
+    const sessionData = await request.post('/api/practice/sessions/start', {
+      data: {
+        user_id: userId,
+        is_test: true,
+        test_type: testType,
+        mode: 'standard',
+        level,
+      },
+      timeout: 30000,
+    })
+    if (!sessionData.ok()) {
+      const errorText = await sessionData.text().catch(() => 'Unknown error')
+      throw new Error(`Failed to start test: ${sessionData.status()} - ${errorText}`)
+    }
+    const sessionJson = await sessionData.json()
+    const sessionId = sessionJson.session_id
+    const questions = sessionJson.questions || []
     console.log(`[createPassedTestAttempt] Test session started: sessionId=${sessionId}, questions=${questions.length}`)
     
     // Answer questions to achieve passing score (≥80%)

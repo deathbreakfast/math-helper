@@ -102,4 +102,58 @@ class TestPerfectStreakChecker:
             # Should not award (need at least 3)
             codes = [a.code for a in achievements]
             assert not any("perfect-streak" in code for code in codes)
+    
+    def test_perfect_streak_four_sessions_awards_once(self, app, test_user, achievement_configs):
+        """Test that four perfect sessions yields one achievement, not two."""
+        with app.app_context():
+            # Create 3 perfect sessions (via create_test_session_with_responses)
+            sessions = []
+            for _ in range(3):
+                questions = create_test_questions(10, 1)
+                responses_data = [{
+                    'question_id': q.id,
+                    'answer': q.correct_answer,
+                    'is_correct': True,
+                    'duration_ms': 3000
+                } for q in questions]
+                
+                session = create_test_session_with_responses(test_user.id, responses_data)
+                sessions.append(session)
+            
+            checker = PerfectStreakChecker(achievement_configs)
+            achievements = checker.check(test_user, session_id=sessions[2].id)
+            
+            # Should award perfect-streak-bronze
+            codes = [a.code for a in achievements]
+            assert any("perfect-streak" in code for code in codes), "Should award bronze after 3 perfect sessions"
+            
+            # Verify exactly one perfect-streak achievement exists in DB
+            bronze_count = Achievement.query.filter(
+                Achievement.user_id == test_user.id,
+                Achievement.code == "perfect-streak-bronze"
+            ).count()
+            assert bronze_count == 1, "Should have exactly one bronze achievement"
+            
+            # Create 1 more perfect session
+            questions = create_test_questions(10, 1)
+            responses_data = [{
+                'question_id': q.id,
+                'answer': q.correct_answer,
+                'is_correct': True,
+                'duration_ms': 3000
+            } for q in questions]
+            
+            session4 = create_test_session_with_responses(test_user.id, responses_data)
+            
+            # Check again - should NOT return perfect-streak (already awarded for this run)
+            achievements = checker.check(test_user, session_id=session4.id)
+            codes = [a.code for a in achievements]
+            assert not any("perfect-streak" in code for code in codes), "Should not award again in same uninterrupted run"
+            
+            # Verify still only one perfect-streak achievement exists
+            bronze_count = Achievement.query.filter(
+                Achievement.user_id == test_user.id,
+                Achievement.code == "perfect-streak-bronze"
+            ).count()
+            assert bronze_count == 1, "Should still have exactly one bronze achievement"
 

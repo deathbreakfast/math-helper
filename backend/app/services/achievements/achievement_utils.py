@@ -80,6 +80,18 @@ def _check_existing_achievement(
         ).first()
         return existing
     
+    # For perfect-streak achievements, check by metadata (run_key) first
+    # This ensures we check for the same run before checking by session_id
+    if code.startswith("perfect-streak-") and metadata:
+        metadata_json = json.dumps(metadata, sort_keys=True)
+        existing = Achievement.query.filter_by(
+            user_id=user_id,
+            code=code,
+            achievement_metadata=metadata_json
+        ).first()
+        if existing:
+            return existing
+    
     # Multiple per tier, once per session: check if same tier awarded in this session
     if constraint.get("allow_multiple_per_tier") and not constraint.get("allow_multiple_per_session"):
         if session_id:
@@ -178,9 +190,10 @@ def create_achievement(
     )
     
     if existing:
-        # If we have a session_id and the existing achievement doesn't have one (or has a different one),
-        # update it to link to this session. This ensures achievements earned in this session are properly linked.
-        if session_id and existing.session_id != session_id:
+        # Only backfill session_id if the existing achievement doesn't have one.
+        # Do NOT overwrite a previously-linked session_id, as this would incorrectly
+        # "move" an achievement to a later session.
+        if session_id and existing.session_id is None:
             existing.session_id = session_id
             db.session.add(existing)
             db.session.commit()
@@ -188,12 +201,15 @@ def create_achievement(
     
     # For achievements that allow multiple per tier but once per session, add session_id to metadata
     # This makes each instance unique in the database (bypassing unique constraint)
+    # EXCEPT for perfect-streak achievements which use run_key in metadata instead
     final_metadata = metadata.copy() if metadata else {}
     if (constraint.get("allow_multiple_per_tier") and 
         not constraint.get("allow_multiple_per_session") and 
         session_id and 
-        not constraint.get("unique_achievement")):
+        not constraint.get("unique_achievement") and
+        not code.startswith("perfect-streak-")):
         # Add session_id to metadata to make this instance unique
+        # Skip for perfect-streak as it uses run_key in metadata
         final_metadata["session_id"] = session_id
     
     # Serialize metadata to JSON string if provided (sort keys for consistency)

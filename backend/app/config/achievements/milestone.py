@@ -212,7 +212,19 @@ def _generate_speed_demon_achievements() -> dict[str, dict[str, Any]]:
 
 
 def _generate_perfect_streak_achievements() -> dict[str, dict[str, Any]]:
-    """Generate Perfect Streak (consecutive perfect sessions) achievement definitions."""
+    """Generate Perfect Streak (consecutive perfect sessions) achievement definitions.
+    
+    Perfect Streak achievements are awarded once per uninterrupted perfect run.
+    A run is defined as consecutive perfect sessions (100% accuracy) that ends
+    when an imperfect session is encountered. Achievements can be re-awarded
+    after a run is broken by an imperfect session.
+    
+    For example:
+    - 3 perfect sessions → awards bronze (once)
+    - 4th perfect session → no new award (bronze already awarded for this run)
+    - 1 imperfect session → breaks the run
+    - 3 more perfect sessions → awards bronze again (new run)
+    """
     achievements = {}
     
     tier_requirements = {
@@ -240,7 +252,7 @@ def _generate_perfect_streak_achievements() -> dict[str, dict[str, Any]]:
         if tier == "champion":
             description = f"Longest perfect streak on server ({min_sessions}+ consecutive perfect sessions)"
         else:
-            description = f"{min_sessions} consecutive perfect sessions"
+            description = f"{min_sessions} consecutive perfect sessions (awarded once per uninterrupted run)"
         
         requirements = {
             "type": "perfect_sessions",

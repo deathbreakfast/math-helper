@@ -174,6 +174,9 @@ const PracticeSessionPage = () => {
                     inputRef={inputRef}
                     onMoveNext={() => handleMove('next')}
                     canMoveNext={currentQuestionIndex < problems.length - 1}
+                    canSubmit={canSubmit}
+                    onSessionSubmit={handleSubmit}
+                    isLastQuestion={currentQuestionIndex === problems.length - 1}
                   />
                 )}
 

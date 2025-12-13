@@ -53,6 +53,11 @@ def _generate_lightning_fast_achievements() -> dict[str, dict[str, Any]]:
             "category": "speed",
             "tier": tier,
             "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": True,
+                "unique_achievement": False,
+            },
         }
     
     return achievements

@@ -306,33 +306,33 @@ def test_generic_achievement_022_test_achievements_in_config(app):
 
 
 def test_generic_achievement_023_all_tiers_present_in_accuracy(app):
-    """GEN-ACH-023: All tiers (Bronze through Champion) are present for accuracy achievements.
+    """GEN-ACH-023: All tiers for Accuracy Ace achievements are present.
     
-    Note: Test-specific achievements (e.g., addition-1digit-bronze) have been removed.
-    System now uses generic achievements (accuracy-ace-{tier}) with metadata filters.
+    Note: Accuracy Ace only has bronze, silver, and gold tiers (80%, 90%, 100%).
+    Platinum and higher tiers were removed per user requirements.
     """
     with app.app_context():
         from app.config.achievements import ACHIEVEMENTS_CONFIG
-        from app.utils.tier_utils import ALL_TIERS
         
-        # Check for generic accuracy-ace achievements instead of test-specific ones
-        for tier in ALL_TIERS:
+        # Accuracy Ace only has bronze, silver, gold
+        accuracy_ace_tiers = ["bronze", "silver", "gold"]
+        for tier in accuracy_ace_tiers:
             code = f"accuracy-ace-{tier}"
             assert code in ACHIEVEMENTS_CONFIG, f"Missing achievement: {code}"
 
 
 def test_generic_achievement_024_all_tiers_present_in_tests(app):
-    """GEN-ACH-024: All tiers (Bronze through Champion) are present for test achievements.
+    """GEN-ACH-024: All tiers for Accuracy Ace achievements are present.
     
-    Note: Test-specific achievements (e.g., addition-1digit-bronze) have been removed.
+    Note: Accuracy Ace only has bronze, silver, and gold tiers (80%, 90%, 100%).
+    Platinum and higher tiers were removed per user requirements.
     System now uses generic achievements (accuracy-ace-{tier}) with metadata filters for test requirements.
     """
     with app.app_context():
         from app.config.achievements import ACHIEVEMENTS_CONFIG
-        from app.utils.tier_utils import ALL_TIERS
         
-        # Check for generic accuracy-ace achievements instead of test-specific ones
-        # All tiers should be present
-        for tier in ALL_TIERS:
+        # Accuracy Ace only has bronze, silver, gold
+        accuracy_ace_tiers = ["bronze", "silver", "gold"]
+        for tier in accuracy_ace_tiers:
             code = f"accuracy-ace-{tier}"
             assert code in ACHIEVEMENTS_CONFIG, f"Missing achievement: {code}"

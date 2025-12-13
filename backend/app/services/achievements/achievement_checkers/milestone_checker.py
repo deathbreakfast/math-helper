@@ -8,7 +8,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from ....models import Achievement, User, db
+from ....models import Achievement, PracticeSession, User, db
 from .base_checker import AchievementChecker
 
 
@@ -44,25 +44,29 @@ class MilestoneChecker(AchievementChecker):
         if not metrics:
             return new_achievements
         
-        # Get user's existing achievements
-        from ....services.achievement_service import AchievementService
-        user_achievement_codes = AchievementService.get_achievement_codes(user.id)
-        
         # Extract metrics
         total_answers = metrics.get("questions_answered", 0)
-        avg_speed = metrics.get("average_speed_seconds", 0.0)
         stats = metrics.get("operation_stats", {})
         current_streak = stats.get("currentStreak", 0)
         
+        # For Speed Demon, use session-based speed if session_id is provided
+        # This ensures we award based on this session's performance, not lifetime average
+        avg_speed = metrics.get("average_speed_seconds", 0.0)
+        if session_id:
+            session = db.session.get(PracticeSession, session_id)
+            if session and session.total_duration_ms and session.total_questions and session.total_questions > 0:
+                # Calculate session average speed
+                session_avg_speed = (session.total_duration_ms / 1000.0) / session.total_questions
+                # Use session speed instead of lifetime average for Speed Demon
+                avg_speed = session_avg_speed
+        
         # Group milestone achievements by type
+        # Note: We don't check for existing achievements here - create_achievement() handles constraints
         question_master_achievements = []
         speed_demon_achievements = []
         week_warrior_achievements = []
         
         for achievement_code, config in self.achievement_configs.items():
-            if achievement_code in user_achievement_codes:
-                continue
-            
             if achievement_code.startswith("question-master-"):
                 question_master_achievements.append((achievement_code, config))
             elif achievement_code.startswith("speed-demon-"):
@@ -79,6 +83,7 @@ class MilestoneChecker(AchievementChecker):
                 new_achievements.append(achievement)
         
         # Process speed_demon achievements (award highest tier only)
+        # Use session speed if available, otherwise fall back to lifetime average
         if speed_demon_achievements and avg_speed > 0:
             achievement = self._check_speed_demon(
                 user, speed_demon_achievements, avg_speed, total_answers, session_id

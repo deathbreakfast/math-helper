@@ -137,7 +137,6 @@ export async function waitForTestCards(page: Page, minCount: number = 1): Promis
   })
   
   const count = await testCards.count()
-  console.log(`[waitForTestCards] Found ${count} test cards`)
   return count
 }
 
@@ -164,11 +163,9 @@ export async function clickTestCardSafely(page: Page, testCardLocator: ReturnTyp
 export async function handlePinVerification(page: Page, pin: string = '1234'): Promise<void> {
   // Wait for PIN modal to appear
   const pinModal = page.locator('[role="dialog"]').filter({ hasText: /PIN|pin/i })
-  console.log('[handlePinVerification] Waiting for PIN modal...')
   await expect(pinModal).toBeVisible({ timeout: 5000 })
   
   // Enter PIN digit by digit
-  console.log(`[handlePinVerification] Entering PIN: ${pin}`)
   for (const digit of pin.split('')) {
     const digitButton = page.getByRole('button', { name: digit, exact: true })
     await digitButton.click()
@@ -181,7 +178,6 @@ export async function handlePinVerification(page: Page, pin: string = '1234'): P
   await page.waitForTimeout(300)
   
   // Click Start button in PIN modal
-  console.log('[handlePinVerification] Clicking Start button')
   const modalStartButton = pinModal.getByRole('button', { name: /^start$/i })
   await expect(modalStartButton).toBeEnabled({ timeout: 2000 })
   await modalStartButton.click()

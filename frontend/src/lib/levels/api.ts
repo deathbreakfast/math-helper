@@ -2,6 +2,9 @@ export type BackendLevelRequirement = {
   achievement_code: string
   order: number
   quantity?: number
+  metadata_filter?: Record<string, any>
+  user_count?: number  // Server-calculated count when user_id provided
+  completed?: boolean  // Server-calculated completion status when user_id provided
 }
 
 export type BackendLevelRequirementsResponse = {
@@ -46,9 +49,13 @@ export const fetchAchievementDefinitions = async (): Promise<BackendAchievementD
 
 /**
  * Fetch level requirements for multiple levels using batch endpoint
+ * 
+ * @param levels - Array of level numbers to fetch
+ * @param userId - Optional user ID to include completion status
  */
 export const fetchMultipleLevelRequirements = async (
-  levels: number[]
+  levels: number[],
+  userId?: string
 ): Promise<Record<number, BackendLevelRequirement[]>> => {
   if (levels.length === 0) {
     return {}
@@ -57,7 +64,10 @@ export const fetchMultipleLevelRequirements = async (
   // Use batch endpoint if available (more efficient)
   try {
     const levelsParam = levels.join(',')
-    const response = await fetch(`/api/levels/requirements?levels=${levelsParam}`)
+    const url = userId 
+      ? `/api/levels/requirements?levels=${levelsParam}&user_id=${userId}`
+      : `/api/levels/requirements?levels=${levelsParam}`
+    const response = await fetch(url)
     
     if (response.ok) {
       const data = await response.json()

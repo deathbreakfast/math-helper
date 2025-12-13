@@ -19,6 +19,7 @@ export type LearnerAchievement = {
   icon: string
   earnedAt: Date
   category: string
+  metadata?: Record<string, any>  // Achievement metadata (level, test_type, etc.)
 }
 
 export type Learner = {

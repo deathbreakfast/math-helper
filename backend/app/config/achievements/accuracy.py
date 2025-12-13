@@ -54,6 +54,11 @@ def _generate_level_master_achievements() -> dict[str, dict[str, Any]]:
             "category": "accuracy",
             "tier": tier,
             "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": True,
+                "unique_achievement": False,
+            },
         }
     
     return achievements
@@ -64,44 +69,33 @@ def _generate_accuracy_ace_achievements() -> dict[str, dict[str, Any]]:
     
     Like Lightning Fast, but for accuracy. Session-based accuracy achievement.
     Awarded per session with high accuracy.
+    
+    Only supports Bronze (80%), Silver (90%), and Gold (100%) tiers.
+    Allows multiple instances of the same tier across sessions, but only one per session.
     """
     achievements = {}
     
+    # Only bronze, silver, gold tiers
     tier_requirements = {
         "bronze": {"min_accuracy": 0.80},  # 80%
-        "silver": {"min_accuracy": 0.85},  # 85%
-        "gold": {"min_accuracy": 0.90},  # 90%
-        "platinum": {"min_accuracy": 0.95},  # 95%
-        "diamond": {"min_accuracy": 0.98},  # 98%
-        "master": {"min_accuracy": 0.99},  # 99%
-        "grandmaster": {"min_accuracy": 1.0},  # 100%
-        "legendary": {"min_accuracy": 1.0},  # 100%
-        "mythic": {"min_accuracy": 1.0},  # 100%
-        "divine": {"min_accuracy": 1.0},  # 100%
-        "champion": {"min_accuracy": 1.0},  # 100%, requires server record
+        "silver": {"min_accuracy": 0.90},  # 90%
+        "gold": {"min_accuracy": 1.0},  # 100%
     }
     
-    for tier in ALL_TIERS:
+    for tier in ["bronze", "silver", "gold"]:
         code = f"accuracy-ace-{tier}"
         req = tier_requirements.get(tier, {})
         min_accuracy = req.get("min_accuracy", 0.80)
         
         tier_title = tier.capitalize()
         title = f"Accuracy Ace ({tier_title})"
-        
-        if tier == "champion":
-            description = f"Highest session accuracy on server ({min_accuracy * 100:.0f}%+)"
-        else:
-            description = f"Session accuracy of {min_accuracy * 100:.0f}% or higher"
+        description = f"Session accuracy of {min_accuracy * 100:.0f}% or higher"
         
         requirements = {
             "type": "accuracy_ace",
             "min_accuracy": min_accuracy,
             "min_questions": 10,  # Minimum questions to qualify
         }
-        
-        if tier == "champion":
-            requirements["requires_champion_check"] = True
         
         achievements[code] = {
             "title": title,
@@ -110,6 +104,11 @@ def _generate_accuracy_ace_achievements() -> dict[str, dict[str, Any]]:
             "category": "accuracy",
             "tier": tier,
             "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": False,
+                "unique_achievement": False,
+            },
         }
     
     return achievements

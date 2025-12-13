@@ -20,8 +20,10 @@ export const LevelsTab = ({ userData, isActive, user }: LevelsTabProps) => {
   
   // Only fetch level requirements when tab is active (lazy loading)
   // In dev mode, fetch all 45 levels. Otherwise, fetch levels up to user's level + 3
+  // Pass userId to get completion status from server
   const maxLevel = devMode ? 45 : Math.min((userData.level || 1) + 3, 45)
-  const { requirements: levelRequirementsCache, isLoading, error } = useLevelRequirements(maxLevel, isActive)
+  const userId = user?.id ? String(user.id) : undefined
+  const { requirements: levelRequirementsCache, isLoading, error } = useLevelRequirements(maxLevel, isActive, userId)
   const { definitions: achievementDefinitions } = useAchievementDefinitions()
   
   // Re-map user data with fetched level requirements if user is available

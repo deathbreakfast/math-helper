@@ -47,8 +47,13 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
 
     setIsLoading(true)
     try {
-      const response = await fetch(`/api/achievements?user_id=${userId}&code=${encodeURIComponent(achievement.id)}`)
-      if (!response.ok) throw new Error('Failed to fetch achievement instances')
+      // achievement.id should be the backend code (set in convertBackendDefinitionToFrontend)
+      // But check both id and code fields as fallback
+      const achievementCode = (achievement as any).code || achievement.id
+      const response = await fetch(`/api/achievements?user_id=${userId}&code=${encodeURIComponent(achievementCode)}`)
+      if (!response.ok) {
+        throw new Error(`Failed to fetch achievement instances: ${response.status} ${response.statusText}`)
+      }
       const data = await response.json()
       setInstances(data.achievements || [])
     } catch (error) {
@@ -96,6 +101,7 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4"
             onClick={(e) => e.stopPropagation()}
+            data-testid="testid-achievement-detail-modal"
           >
             <div className="relative w-full max-w-2xl max-h-[90vh] overflow-y-auto rounded-2xl bg-white shadow-2xl">
               {/* Header */}
@@ -119,11 +125,12 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
               {/* Content */}
               <div className="p-6">
                 {isLoading ? (
-                  <div className="flex items-center justify-center py-12">
+                  <div className="flex items-center justify-center py-12" data-testid="testid-achievement-modal-loading">
+                    <div className="mr-3 h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>
                     <div className="text-gray-500">Loading achievement history...</div>
                   </div>
                 ) : instances.length === 0 ? (
-                  <div className="py-12 text-center">
+                  <div className="py-12 text-center" data-testid="testid-achievement-modal-not-earned">
                     <Award className="mx-auto mb-4 h-16 w-16 text-gray-300" />
                     <p className="text-lg font-semibold text-gray-700">Not Yet Earned</p>
                     <p className="text-sm text-gray-500 mt-2">
@@ -131,7 +138,7 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
                     </p>
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4" data-testid="testid-achievement-modal-instances">
                     <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-gray-700">
                       <Info className="h-4 w-4" />
                       <span>Earned {instances.length} time{instances.length !== 1 ? 's' : ''}</span>
@@ -144,6 +151,7 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ delay: index * 0.05 }}
                         className="rounded-xl border-2 border-gray-200 bg-gradient-to-r from-blue-50 to-purple-50 p-4"
+                        data-testid={`testid-achievement-instance-${instance.id}`}
                       >
                         <div className="flex items-start justify-between">
                           <div className="flex-1">

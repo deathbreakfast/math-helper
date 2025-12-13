@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { AlertTriangle, Check, X } from 'lucide-react'
 import ModalShell from '../../../components/ModalShell'
 import PinPad from '../components/PinPad'
@@ -54,7 +54,7 @@ const PINVerificationModal = ({ isOpen, onClose, onVerified, selectedUser }: PIN
     setError(null)
   }
 
-  const handleVerify = async () => {
+  const handleVerify = useCallback(async () => {
     if (!selectedUser || isVerifying) return
     if (pin.length !== 4) {
       setError('Enter all four digits to continue.')
@@ -96,7 +96,22 @@ const PINVerificationModal = ({ isOpen, onClose, onVerified, selectedUser }: PIN
     } finally {
       setIsVerifying(false)
     }
-  }
+  }, [selectedUser, pin, isVerifying, onVerified])
+
+  // Handle Enter key to submit PIN when complete
+  useEffect(() => {
+    if (!isOpen) return
+    
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Enter' && pin.length === 4 && !isVerifying && selectedUser) {
+        event.preventDefault()
+        handleVerify()
+      }
+    }
+    
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [isOpen, pin, isVerifying, selectedUser, handleVerify])
 
   return (
     <ModalShell 

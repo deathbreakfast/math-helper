@@ -12,8 +12,9 @@ export type AchievementDefinitionsCache = Record<string, BackendAchievementDefin
  * 
  * @param maxLevel - Maximum level to fetch requirements for
  * @param enabled - If false, hook will not fetch (for lazy loading). Default: true
+ * @param userId - Optional user ID to include completion status in requirements
  */
-export const useLevelRequirements = (maxLevel: number = 45, enabled: boolean = true) => {
+export const useLevelRequirements = (maxLevel: number = 45, enabled: boolean = true, userId?: string) => {
   const [requirements, setRequirements] = useState<LevelRequirementsCache>({})
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -33,7 +34,8 @@ export const useLevelRequirements = (maxLevel: number = 45, enabled: boolean = t
         const levels = Array.from({ length: maxLevel }, (_, i) => i + 1)
         
         // Use batch endpoint for better performance
-        const fetchedRequirements = await fetchMultipleLevelRequirements(levels)
+        // Pass userId to get completion status from server
+        const fetchedRequirements = await fetchMultipleLevelRequirements(levels, userId)
         
         setRequirements(fetchedRequirements)
       } catch (err) {
@@ -44,7 +46,7 @@ export const useLevelRequirements = (maxLevel: number = 45, enabled: boolean = t
     }
 
     fetchRequirements()
-  }, [maxLevel, enabled])
+  }, [maxLevel, enabled, userId])
 
   return { requirements, isLoading, error }
 }

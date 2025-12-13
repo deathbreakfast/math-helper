@@ -148,8 +148,10 @@ test.describe('Achievements', () => {
   test('ACH-008: Achievement status display', async ({ page, request }) => {
     // Create user with mix of achievements
     const testUser = await createTestUserWithState(request, {
-      achievements: ['first-victory', 'addition-basics']
+      // Use achievements that are guaranteed to exist and unlock as simple milestones
+      achievements: ['first-steps', 'first-victory']
     })
+
     
     try {
       // Navigate directly to achievements tab
@@ -160,12 +162,12 @@ test.describe('Achievements', () => {
       await waitForFramerMotion(page)
       
       // Wait for specific achievement cards to be visible
+      const firstStepsCard = page.getByTestId('testid-achievement-card-first-steps')
       const firstVictoryCard = page.getByTestId('testid-achievement-card-first-victory')
-      const additionBasicsCard = page.getByTestId('testid-achievement-card-addition-basics')
       
       // Wait for at least one of our specific achievements to appear
       await expect(
-        firstVictoryCard.or(additionBasicsCard).first()
+        firstStepsCard.or(firstVictoryCard).first()
       ).toBeVisible({ timeout: 10000 })
       
       // Wait for achievement cards to be ready
@@ -178,14 +180,13 @@ test.describe('Achievements', () => {
       // Wait for animations to complete
       await waitForFramerMotion(page)
       
-      // Verify locked/unlocked states render correctly
-      const unlockedIcon = page.locator('[data-testid="testid-achievement-unlock-icon"]')
-      
-      // Wait for unlock icons to be visible (they might be animating in)
-      await expect(unlockedIcon.first()).toBeVisible({ timeout: 5000 })
-      
-      const unlockedCount = await unlockedIcon.count()
-      expect(unlockedCount).toBeGreaterThan(0)
+      // Verify locked/unlocked states render correctly.
+      // Wait for the unlock icon inside a known-unlocked card. This is more reliable than
+      // searching globally (which is timing-sensitive when lists are still hydrating).
+      const unlockedInFirstSteps = firstStepsCard.getByTestId('testid-achievement-unlock-icon')
+      const unlockedInFirstVictory = firstVictoryCard.getByTestId('testid-achievement-unlock-icon')
+
+      await expect(unlockedInFirstSteps.or(unlockedInFirstVictory).first()).toBeVisible({ timeout: 15000 })
     } finally {
       // Cleanup
       await deleteTestUser(request, testUser.id)

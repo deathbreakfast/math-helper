@@ -111,9 +111,10 @@ export const useSummaryData = (filter: FilterType) => {
     const previousBestSpeed = user?.averageSpeed || 0
     const currentStreak = user?.stats?.currentStreak || 0
 
-    // Check if this is a new personal best
+    // Check if this is a new personal best (strict comparison - only show when truly better)
     const isNewBestAccuracy = accuracy > previousBestAccuracy
-    const isNewBestSpeed = averageSpeed < previousBestSpeed || previousBestSpeed === 0
+    // For speed, lower is better - show only if strictly better (lower) or if no previous best exists
+    const isNewBestSpeed = previousBestSpeed === 0 ? averageSpeed > 0 : averageSpeed < previousBestSpeed
 
     return {
       totalProblems,

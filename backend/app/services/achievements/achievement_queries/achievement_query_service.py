@@ -57,6 +57,30 @@ class AchievementQueryService:
 
     @staticmethod
     @log_query
+    def get_achievements_by_code(user_id: int, achievement_code: str) -> list[Achievement]:
+        """Get all achievements for a user by achievement code.
+        
+        This returns *all* instances of the given code (including different metadata variants),
+        ordered by most recent first.
+        
+        Args:
+            user_id: The user ID to query achievements for
+            achievement_code: The achievement code to filter by
+        
+        Returns:
+            List of achievements with the given code for the user, ordered by earned_at DESC
+        """
+        # Validate and cleanup any incorrectly awarded tier achievements
+        TierValidator.validate_and_cleanup_tier_achievements(user_id)
+
+        return (
+            Achievement.query.filter_by(user_id=user_id, code=achievement_code)
+            .order_by(Achievement.earned_at.desc())
+            .all()
+        )
+
+    @staticmethod
+    @log_query
     def get_achievements_by_category(
         user_id: int | None = None, 
         category: str | None = None, 
@@ -211,7 +235,9 @@ class AchievementQueryService:
                 if ach_metadata_str:
                     try:
                         ach_metadata = json.loads(ach_metadata_str)
-                        if ach_metadata != metadata_filter:
+                        # Remove session_id from metadata for comparison (it's added for uniqueness, not filtering)
+                        ach_metadata_for_filter = {k: v for k, v in ach_metadata.items() if k != "session_id"}
+                        if ach_metadata_for_filter != metadata_filter:
                             continue
                     except (json.JSONDecodeError, TypeError):
                         continue
@@ -219,9 +245,16 @@ class AchievementQueryService:
                     # Achievement has no metadata but filter requires it
                     continue
             else:
-                # No metadata filter - only match achievements with no metadata
+                # No metadata filter - only match achievements with no metadata (or only session_id)
                 if ach.achievement_metadata:
-                    continue
+                    try:
+                        ach_metadata = json.loads(ach.achievement_metadata)
+                        # If metadata only contains session_id, treat it as no metadata for filtering
+                        if set(ach_metadata.keys()) != {"session_id"}:
+                            continue
+                    except (json.JSONDecodeError, TypeError):
+                        # If we can't parse metadata, skip it
+                        continue
             
             # Check session-level filters if provided
             if level is not None or min_accuracy is not None or operation is not None:

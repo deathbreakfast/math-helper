@@ -71,7 +71,7 @@ TEST_UNLOCK_REQUIREMENTS: dict[str, dict[str, Any]] = {
     # Addition Tests
     "addition-1digit": {
         "type": "achievement",
-        "achievement_codes": ["question-master-bronze", "level-master-bronze"],
+        "achievement_codes": ["level-master-bronze"],
         "metadata_filters": {
             "level-master-bronze": {"level": 1}
         },

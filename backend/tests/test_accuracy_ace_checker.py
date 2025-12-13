@@ -79,11 +79,12 @@ class TestAccuracyAceChecker:
             assert result == []
 
     def test_check_test_session(self, app, test_user, accuracy_ace_checker):
-        """Test check returns empty for test session."""
+        """Test check awards for test sessions with test_type metadata."""
         with app.app_context():
             session = PracticeSession(
                 user_id=test_user.id,
                 is_test=True,
+                test_type="addition-1digit",
                 mode="standard",
                 level=1,
                 total_questions=10,
@@ -95,7 +96,13 @@ class TestAccuracyAceChecker:
             db.session.commit()
             
             result = accuracy_ace_checker.check(session, user=test_user)
-            assert result == []
+            # Should award achievement with test_type metadata
+            assert len(result) == 1
+            assert result[0].code == "accuracy-ace-gold"
+            # Verify metadata contains test_type
+            import json
+            metadata = json.loads(result[0].achievement_metadata) if result[0].achievement_metadata else {}
+            assert metadata.get("test_type") == "addition-1digit"
 
     def test_check_no_user_provided(self, app, test_user, accuracy_ace_checker):
         """Test check fetches user from session if not provided."""
@@ -185,19 +192,9 @@ class TestAccuracyAceChecker:
             assert result == []
 
     def test_check_already_earned(self, app, test_user, accuracy_ace_checker):
-        """Test check does not award if already earned."""
+        """Test check does not award if already earned in same session, but allows across sessions."""
         with app.app_context():
-            # Create existing achievement
-            achievement = Achievement(
-                user_id=test_user.id,
-                code="accuracy-ace-bronze",
-                title="Accuracy Ace (Bronze)",
-                description="80% accuracy",
-                icon="🎯",
-                category="accuracy"
-            )
-            db.session.add(achievement)
-            
+            # Create a session
             session = PracticeSession(
                 user_id=test_user.id,
                 is_test=False,
@@ -211,9 +208,25 @@ class TestAccuracyAceChecker:
             db.session.add(session)
             db.session.commit()
             
-            result = accuracy_ace_checker.check(session, user=test_user)
-            # Should not award if already earned
-            assert len(result) == 0
+            # First check - should award
+            result1 = accuracy_ace_checker.check(session, user=test_user)
+            assert len(result1) == 1
+            assert result1[0].code == "accuracy-ace-bronze"
+            first_achievement_id = result1[0].id
+            
+            # Second check for same session - should return existing achievement (same ID)
+            result2 = accuracy_ace_checker.check(session, user=test_user)
+            # create_achievement returns the existing achievement, so checker returns it
+            assert len(result2) == 1
+            assert result2[0].id == first_achievement_id, "Should return existing achievement, not create new"
+            
+            # Verify only one achievement exists in database
+            count = Achievement.query.filter_by(
+                user_id=test_user.id,
+                code="accuracy-ace-bronze",
+                session_id=session.id
+            ).count()
+            assert count == 1, "Should only have one achievement for this session"
 
     def test_check_awards_highest_tier(self, app, test_user, accuracy_ace_checker):
         """Test check awards highest qualifying tier."""
@@ -224,7 +237,7 @@ class TestAccuracyAceChecker:
                 mode="standard",
                 level=1,
                 total_questions=10,
-                correct_count=9,  # 90% accuracy (qualifies for gold)
+                correct_count=9,  # 90% accuracy (qualifies for silver, not gold - gold is 100%)
                 accuracy=90.0,
                 completed_at=datetime.utcnow()
             )
@@ -233,9 +246,10 @@ class TestAccuracyAceChecker:
             
             result = accuracy_ace_checker.check(session, user=test_user)
             
-            # Should award highest tier (gold, not bronze or silver)
+            # Should award highest qualifying tier (silver for 90%, not bronze)
+            # Gold requires 100%
             assert len(result) == 1
-            assert result[0].code == "accuracy-ace-gold"
+            assert result[0].code == "accuracy-ace-silver"
 
     def test_check_champion_eligibility_check(self, app, test_user, accuracy_ace_checker):
         """Test check checks Champion tier eligibility for Divine tier."""

@@ -14,6 +14,7 @@ from ..services.practice_service import PracticeService
 from ..services.session_engine_service import SessionEngineService
 from ..services.test_eligibility_service import TestEligibilityService
 from ..services.user_service import UserService
+from .common import invalidate_user_cache
 from ..config.test_requirements import get_all_test_requirements, get_test_requirements
 from .route_helpers import (
     create_error_response,
@@ -385,33 +386,42 @@ def complete_session(session_id: int):
     if not user:
         return create_error_response("User not found", 404)
 
-    # Record test attempt if this is a test session
+    # Record test attempt if this is a test session.
+    #
+    # NOTE: Test attempts should always be recorded for completed test sessions so the
+    # Tests tab can show history. Previously this was gated on `get_test_requirements()`
+    # returning a config entry, but the current test requirements config may be empty.
+    # In that case, fall back to the default passing score of 80%.
     if session.is_test and session.test_type and session.level:
         from ..models import TestAttempt, db
         
         test_requirements = get_test_requirements(session.level)
+        passing_score = None
         if test_requirements:
-            passing_score = test_requirements["passing_score"]
-            score = session.accuracy / 100.0  # Convert percentage to decimal
-            passed = score >= passing_score
-            
-            # Calculate average time per question
-            avg_time_per_question_ms = None
-            if total_questions > 0 and calculated_duration > 0:
-                avg_time_per_question_ms = calculated_duration // total_questions
-            
-            # Create test attempt record
-            test_attempt = TestAttempt(
-                user_id=user.id,
-                level=session.level,
-                test_type=session.test_type,
-                score=score,
-                avg_time_per_question_ms=avg_time_per_question_ms,
-                total_duration_ms=total_duration_ms or calculated_duration,
-                passed=passed,
-            )
-            db.session.add(test_attempt)
-            db.session.commit()
+            passing_score = test_requirements.get("passing_score")
+        if passing_score is None:
+            passing_score = 0.8
+
+        score = session.accuracy / 100.0  # Convert percentage to decimal
+        passed = score >= passing_score
+        
+        # Calculate average time per question
+        avg_time_per_question_ms = None
+        if total_questions > 0 and calculated_duration > 0:
+            avg_time_per_question_ms = calculated_duration // total_questions
+        
+        # Create test attempt record
+        test_attempt = TestAttempt(
+            user_id=user.id,
+            level=session.level,
+            test_type=session.test_type,
+            score=score,
+            avg_time_per_question_ms=avg_time_per_question_ms,
+            total_duration_ms=total_duration_ms or calculated_duration,
+            passed=passed,
+        )
+        db.session.add(test_attempt)
+        db.session.commit()
 
     # Aggregate daily stats
     AnalyticsService.aggregate_daily_stats(user.id)
@@ -480,6 +490,10 @@ def complete_session(session_id: int):
             user = UserService.get_user(session.user_id)
         else:
             level_up_result["errors"] = errors
+
+    # User state may have changed (new achievements and/or level). Invalidate cached user
+    # so immediate subsequent GET /api/users/<id> returns fresh data.
+    invalidate_user_cache(session.user_id)
 
     return create_success_response({
         "session": {

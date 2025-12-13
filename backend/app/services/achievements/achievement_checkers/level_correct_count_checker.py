@@ -85,3 +85,4 @@ class LevelCorrectCountChecker(AchievementChecker):
         else:
             debug_print(f"[ACHIEVEMENT DEBUG]   ✗ Not awarding (need {min_correct}, have {correct_count})")
             return []
+

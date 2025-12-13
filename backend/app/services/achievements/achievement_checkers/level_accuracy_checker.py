@@ -106,3 +106,4 @@ class LevelAccuracyChecker(AchievementChecker):
             category=config["category"],
             session_id=session_id,
         )]
+

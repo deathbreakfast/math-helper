@@ -28,7 +28,7 @@ export async function setUserLevelDirectly(
  * 
  * Supports both string array and object array formats:
  * - String format: ["first-steps", "first-victory"]
- * - Object format: [{"code": "accuracy-ace-platinum", "metadata": {"test_type": "addition-1digit"}}]
+ * - Object format: [{"code": "accuracy-ace-gold", "metadata": {"test_type": "addition-1digit"}}]
  */
 export async function awardAchievements(
   request: APIRequestContext,
@@ -52,7 +52,7 @@ export async function awardAchievements(
  * 
  * Achievements can be:
  * - String array: ["first-steps", "first-victory"]
- * - Object array: [{"code": "accuracy-ace-platinum", "metadata": {"test_type": "addition-1digit"}}]
+ * - Object array: [{"code": "accuracy-ace-gold", "metadata": {"test_type": "addition-1digit"}}]
  */
 export async function setupTestUserState(
   request: APIRequestContext,
@@ -62,6 +62,12 @@ export async function setupTestUserState(
     achievements?: string[] | Array<{ code: string; metadata?: Record<string, any> }>
   }
 ): Promise<void> {
+  const debug = process.env.E2E_DEBUG_API === '1'
+  if (debug) {
+    // eslint-disable-next-line no-console
+    console.log('[e2e api] POST /api/users/:id/test-setup payload:', { userId, ...options })
+  }
+
   const response = await request.post(`/api/users/${userId}/test-setup`, {
     data: {
       level: options.level,
@@ -73,6 +79,26 @@ export async function setupTestUserState(
     const error = await response.json()
     throw new Error(`Failed to setup test user state: ${JSON.stringify(error)}`)
   }
+
+  if (debug) {
+    // eslint-disable-next-line no-console
+    console.log('[e2e api] POST /api/users/:id/test-setup status:', response.status(), response.statusText())
+    try {
+      const contentType = response.headers()['content-type'] || ''
+      if (contentType.includes('application/json')) {
+        const body = await response.json()
+        // eslint-disable-next-line no-console
+        console.log('[e2e api] POST /api/users/:id/test-setup response json:', body)
+      } else {
+        const text = await response.text()
+        // eslint-disable-next-line no-console
+        console.log('[e2e api] POST /api/users/:id/test-setup response text (truncated):', text.substring(0, 300))
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log('[e2e api] POST /api/users/:id/test-setup response read failed:', e)
+    }
+  }
 }
 
 /**
@@ -81,7 +107,7 @@ export async function setupTestUserState(
  * 
  * Achievements can be:
  * - String array: ["first-steps", "first-victory"]
- * - Object array: [{"code": "accuracy-ace-platinum", "metadata": {"test_type": "addition-1digit"}}]
+ * - Object array: [{"code": "accuracy-ace-gold", "metadata": {"test_type": "addition-1digit"}}]
  */
 export async function createTestUserWithState(
   request: APIRequestContext,
@@ -218,13 +244,7 @@ export async function createCompletedPracticeSessions(
 ): Promise<void> {
   const { startPracticeSessionViaAPI, answerQuestionViaAPI } = await import('./practice-api')
   
-  const startTime = Date.now()
-  console.log(`[createCompletedPracticeSessions] Starting: userId=${userId}, level=${level}, count=${count}`)
-  
   for (let i = 0; i < count; i++) {
-    const sessionStartTime = Date.now()
-    console.log(`[createCompletedPracticeSessions] Creating session ${i + 1}/${count}`)
-    
     try {
       // Start a practice session
       const sessionData = await startPracticeSessionViaAPI(request, userId, {
@@ -234,7 +254,6 @@ export async function createCompletedPracticeSessions(
       
       const sessionId = sessionData.session_id
       const questions = sessionData.questions || []
-      console.log(`[createCompletedPracticeSessions] Session ${i + 1} started: sessionId=${sessionId}, questions=${questions.length}`)
       
       // Answer all questions correctly to complete the session
       for (let qIdx = 0; qIdx < questions.length; qIdx++) {
@@ -253,8 +272,6 @@ export async function createCompletedPracticeSessions(
         }
       }
       
-      console.log(`[createCompletedPracticeSessions] All questions answered for session ${i + 1}, completing...`)
-      
       // Complete the session with retry logic
       let completeResponse
       let retries = 3
@@ -270,8 +287,6 @@ export async function createCompletedPracticeSessions(
           })
           
           if (completeResponse.ok()) {
-            const sessionDuration = Date.now() - sessionStartTime
-            console.log(`[createCompletedPracticeSessions] Session ${i + 1} completed successfully in ${sessionDuration}ms`)
             break
           } else {
             const errorText = await completeResponse.text().catch(() => 'Unknown error')
@@ -308,9 +323,6 @@ export async function createCompletedPracticeSessions(
       throw error
     }
   }
-  
-  const totalDuration = Date.now() - startTime
-  console.log(`[createCompletedPracticeSessions] Completed all ${count} sessions in ${totalDuration}ms`)
 }
 
 /**
@@ -325,9 +337,6 @@ export async function createPassedTestAttempt(
   testType: string
 ): Promise<void> {
   const { answerQuestionViaAPI } = await import('./practice-api')
-  
-  const startTime = Date.now()
-  console.log(`[createPassedTestAttempt] Starting: userId=${userId}, level=${level}, testType=${testType}`)
   
   try {
     // Start test session
@@ -350,12 +359,10 @@ export async function createPassedTestAttempt(
     const sessionJson = await sessionData.json()
     const sessionId = sessionJson.session_id
     const questions = sessionJson.questions || []
-    console.log(`[createPassedTestAttempt] Test session started: sessionId=${sessionId}, questions=${questions.length}`)
     
     // Answer questions to achieve passing score (≥80%)
     // Calculate how many need to be correct: Math.ceil(questions.length * 0.8)
     const passingCount = Math.ceil(questions.length * 0.8)
-    console.log(`[createPassedTestAttempt] Answering ${passingCount} correctly out of ${questions.length} for passing score`)
     
     for (let i = 0; i < questions.length; i++) {
       const question = questions[i]
@@ -387,8 +394,6 @@ export async function createPassedTestAttempt(
       }
     }
     
-    console.log(`[createPassedTestAttempt] All questions answered, completing test session...`)
-    
     // Complete the test session with retry logic
     let completeResponse
     let retries = 3
@@ -404,8 +409,6 @@ export async function createPassedTestAttempt(
         })
         
         if (completeResponse.ok()) {
-          const totalDuration = Date.now() - startTime
-          console.log(`[createPassedTestAttempt] Test session completed successfully in ${totalDuration}ms`)
           break
         } else {
           const errorText = await completeResponse.text().catch(() => 'Unknown error')

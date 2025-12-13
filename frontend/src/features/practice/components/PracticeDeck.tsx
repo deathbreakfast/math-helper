@@ -15,6 +15,9 @@ type PracticeDeckProps = {
   inputRef: RefObject<HTMLInputElement | null>
   onMoveNext?: () => void
   canMoveNext?: boolean
+  canSubmit?: boolean
+  onSessionSubmit?: () => void
+  isLastQuestion?: boolean
 }
 
 const PracticeDeck = ({
@@ -28,6 +31,9 @@ const PracticeDeck = ({
   inputRef,
   onMoveNext,
   canMoveNext = false,
+  canSubmit = false,
+  onSessionSubmit,
+  isLastQuestion = false,
 }: PracticeDeckProps) => {
   const layoutType = question.layout?.type ?? 'vertical'
   const formRef = useRef<HTMLFormElement>(null)
@@ -48,7 +54,7 @@ const PracticeDeck = ({
 
   // Handle keyboard events for Enter key when answer is checked
   useEffect(() => {
-    if (!showAnswer || !onMoveNext || !canMoveNext) return
+    if (!showAnswer) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
       // Handle Enter key when answer is checked
@@ -62,7 +68,14 @@ const PracticeDeck = ({
           // Prevent default only if we're in the practice context
           event.preventDefault()
           event.stopPropagation()
-          onMoveNext()
+          
+          // If can submit and this is last question, submit session
+          if (canSubmit && isLastQuestion && onSessionSubmit) {
+            onSessionSubmit()
+          } else if (onMoveNext && canMoveNext) {
+            // Otherwise, move to next question
+            onMoveNext()
+          }
         }
       }
     }
@@ -72,7 +85,7 @@ const PracticeDeck = ({
     return () => {
       document.removeEventListener('keydown', handleKeyDown, true)
     }
-  }, [showAnswer, onMoveNext, canMoveNext])
+  }, [showAnswer, onMoveNext, canMoveNext, canSubmit, isLastQuestion, onSessionSubmit])
 
   const handleFormSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -147,7 +160,9 @@ const PracticeDeck = ({
               {showAnswer ? 'Answer Locked' : 'Check Answer'}
             </PillButton>
             <p className="text-sm text-slate-400">
-              {showAnswer ? 'Press Enter to go to next question' : 'Press Enter to submit'}
+              {showAnswer 
+                ? (canSubmit && isLastQuestion ? 'Press Enter to submit session' : 'Press Enter to go to next question')
+                : 'Press Enter to submit'}
             </p>
           </form>
         </motion.div>

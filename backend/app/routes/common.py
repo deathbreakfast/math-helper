@@ -44,6 +44,15 @@ def cache_user(user_id: int, data: dict[str, Any]) -> None:
             del _user_cache[key]
 
 
+def invalidate_user_cache(user_id: int) -> None:
+    """Invalidate cached user data (if present).
+    
+    Any endpoint that mutates user state (level, achievements, stats) should call this
+    so subsequent reads via GET /api/users/<id> don't serve stale cached data.
+    """
+    _user_cache.pop(user_id, None)
+
+
 def serialize_user(user, metrics: dict[str, Any] | None = None, achievements_list: list[Any] | None = None, weekly_gain: int | None = None) -> dict[str, Any]:
     """Serialize a user with metrics and achievements (single user version).
     

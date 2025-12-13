@@ -161,3 +161,4 @@ class StreakCalculator:
                 break
 
         return streak
+

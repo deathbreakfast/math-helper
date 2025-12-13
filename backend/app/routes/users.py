@@ -10,7 +10,7 @@ from flask import Blueprint, jsonify, request
 from ..services.achievement_service import AchievementService
 from ..services.analytics_service import AnalyticsService
 from ..services.user_service import UserService
-from .common import cache_user, get_cached_user, serialize_user, serialize_user_fast
+from .common import cache_user, get_cached_user, invalidate_user_cache, serialize_user, serialize_user_fast
 
 users_bp = Blueprint("users", __name__)
 
@@ -158,6 +158,9 @@ def manual_level_up(user_id: int):
     if success:
         # Refresh user to get updated level
         user = UserService.get_user(user_id)
+        # Prevent stale cached user responses after mutating level
+        invalidate_user_cache(user_id)
+        cache_user(user_id, serialize_user(user))
         return jsonify({
             "success": True,
             "eligible": True,
@@ -228,6 +231,9 @@ def reset_user_data(user_id: int):
         user.updated_at = datetime.utcnow()
         db.session.add(user)
     
+    # Prevent stale cached user responses after mutating user state
+    invalidate_user_cache(user_id)
+
     return jsonify({
         "success": True,
         "message": f"All data for user {user_id} has been reset. User level set to 1.",
@@ -336,6 +342,8 @@ def test_setup_user(user_id: int):
                 db.session.add(achievement)
     
     db.session.commit()
+    # Prevent stale cached user responses after mutating user state
+    invalidate_user_cache(user_id)
     
     return jsonify({
         "success": True,

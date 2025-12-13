@@ -16,7 +16,12 @@ MILESTONE_ACHIEVEMENTS: dict[str, dict[str, Any]] = {
         "requirements": {
             "type": "question_count",
             "min_questions": 1
-        }
+        },
+        "constraint": {
+            "allow_multiple_per_tier": False,
+            "allow_multiple_per_session": False,
+            "unique_achievement": True,
+        },
     },
     "first-victory": {
         "title": "First Victory",
@@ -27,7 +32,12 @@ MILESTONE_ACHIEVEMENTS: dict[str, dict[str, Any]] = {
         "requirements": {
             "type": "question_count",
             "min_questions": 1
-        }
+        },
+        "constraint": {
+            "allow_multiple_per_tier": False,
+            "allow_multiple_per_session": False,
+            "unique_achievement": True,
+        },
     },
 }
 
@@ -78,6 +88,11 @@ def _generate_week_warrior_achievements() -> dict[str, dict[str, Any]]:
             "category": "consistency",
             "tier": tier,
             "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": False,
+                "unique_achievement": False,
+            },
         }
     
     return achievements
@@ -129,6 +144,11 @@ def _generate_question_master_achievements() -> dict[str, dict[str, Any]]:
             "category": "milestone",
             "tier": tier,
             "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": False,
+                "unique_achievement": False,
+            },
         }
     
     return achievements
@@ -181,6 +201,11 @@ def _generate_speed_demon_achievements() -> dict[str, dict[str, Any]]:
             "category": "speed",
             "tier": tier,
             "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": False,
+                "unique_achievement": False,
+            },
         }
     
     return achievements
@@ -232,6 +257,11 @@ def _generate_perfect_streak_achievements() -> dict[str, dict[str, Any]]:
             "category": "consistency",
             "tier": tier,
             "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": False,
+                "unique_achievement": False,
+            },
         }
     
     return achievements
@@ -261,6 +291,11 @@ def _generate_level_grandmaster_achievements() -> dict[str, dict[str, Any]]:
         "category": "milestone",
         "tier": "bronze",
         "requirements": requirements,
+        "constraint": {
+            "allow_multiple_per_tier": True,
+            "allow_multiple_per_session": True,
+            "unique_achievement": False,
+        },
     }
     
     return achievements
@@ -294,6 +329,11 @@ def _generate_so_wow_achievements() -> dict[str, dict[str, Any]]:
             "category": "milestone",
             "tier": tier,
             "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": True,
+                "unique_achievement": False,
+            },
         }
     
     return achievements
@@ -323,6 +363,11 @@ def _generate_human_calculator_achievements() -> dict[str, dict[str, Any]]:
         "category": "milestone",
         "tier": "bronze",
         "requirements": requirements,
+        "constraint": {
+            "allow_multiple_per_tier": True,
+            "allow_multiple_per_session": True,
+            "unique_achievement": False,
+        },
     }
     
     # Silver tier
@@ -342,6 +387,11 @@ def _generate_human_calculator_achievements() -> dict[str, dict[str, Any]]:
         "category": "milestone",
         "tier": "silver",
         "requirements": requirements_silver,
+        "constraint": {
+            "allow_multiple_per_tier": True,
+            "allow_multiple_per_session": True,
+            "unique_achievement": False,
+        },
     }
     
     return achievements
@@ -397,6 +447,11 @@ def _generate_master_of_times_tables_achievements() -> dict[str, dict[str, Any]]
             "category": "milestone",
             "tier": tier,
             "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": True,
+                "unique_achievement": False,
+            },
         }
     
     return achievements
@@ -451,6 +506,11 @@ def _generate_master_of_division_tables_achievements() -> dict[str, dict[str, An
             "category": "milestone",
             "tier": tier,
             "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": True,
+                "unique_achievement": False,
+            },
         }
     
     return achievements

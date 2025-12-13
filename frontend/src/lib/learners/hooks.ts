@@ -3,6 +3,16 @@ import { useCallback, useEffect, useState, type Dispatch, type SetStateAction } 
 import { mapApiLearner } from './api'
 import type { Learner } from './types'
 
+function mergeLearnerPreservingRichFields(existing: Learner, incoming: Learner): Learner {
+  return {
+    ...existing,
+    ...incoming,
+    // When the "minimal" users endpoint returns an empty achievements array, it should not
+    // clobber richer data we may have already fetched via /api/users/:id.
+    achievements: incoming.achievements.length > 0 ? incoming.achievements : existing.achievements,
+  }
+}
+
 type UseLearnersState = {
   learners: Learner[]
   isLoading: boolean
@@ -32,7 +42,28 @@ export const useLearners = (): UseLearnersState => {
       }
       const data = await response.json()
       const parsed = Array.isArray(data.users) ? data.users.map(mapApiLearner) : []
-      setLearners(parsed)
+      if (minimal) {
+        setLearners((prev) => {
+          const prevById = new Map(prev.map((u) => [u.id, u]))
+
+          const merged = parsed.map((incoming: Learner) => {
+            const existing = prevById.get(incoming.id)
+            return existing ? mergeLearnerPreservingRichFields(existing, incoming) : incoming
+          })
+
+          // Preserve any users that existed locally but weren't returned (defensive).
+          const mergedIds = new Set(merged.map((u) => u.id))
+          for (const existing of prev) {
+            if (!mergedIds.has(existing.id)) {
+              merged.push(existing)
+            }
+          }
+
+          return merged
+        })
+      } else {
+        setLearners(parsed)
+      }
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to load learners.'
       setError(message)

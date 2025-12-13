@@ -66,11 +66,6 @@ test.describe('Summary Page', () => {
     }
     
     expect(incompleteSession.response_count).toBe(questions.length - 1) // All but last answered
-    console.log('[SUM-001] Verified incomplete session exists:', {
-      session_id: incompleteSession.session.id,
-      response_count: incompleteSession.response_count,
-      mode: incompleteSession.session.mode,
-    })
     
     // Navigate to practice page - this should resume the incomplete session from backend
     // Set up response listener BEFORE navigating
@@ -89,12 +84,6 @@ test.describe('Summary Page', () => {
     }
     
     const responseData = await startSessionResponse.json()
-    console.log('[SUM-001] Start session API response:', {
-      session_id: responseData.session_id,
-      original_session_id: session_id,
-      questions_count: responseData.questions?.length,
-      is_restored: responseData.session_id === session_id,
-    })
     
     // Verify the session was restored (same session_id)
     // NOTE: There's a known issue where the backend may create a new session instead of restoring

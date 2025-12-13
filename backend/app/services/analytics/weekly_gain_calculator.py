@@ -112,3 +112,4 @@ class WeeklyGainCalculator:
             weekly_gain_map[user_id] = max(0, this_week - last_week)
         
         return weekly_gain_map
+

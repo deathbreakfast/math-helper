@@ -37,19 +37,13 @@ export async function answerQuestion(
     waitForDisabled?: boolean
   }
 ): Promise<void> {
-  console.log('[answerQuestion] Starting to answer question with answer:', answer)
   const { answerInput, checkButton } = getPracticeElements(page)
   
-  console.log('[answerQuestion] Filling answer input')
   await answerInput.fill(answer)
-  
-  console.log('[answerQuestion] Clicking check button')
   await checkButton.click()
   
-  console.log('[answerQuestion] Waiting for React state to update')
   // Brief wait for React state to update (reduced from 1000ms)
   await page.waitForTimeout(300)
-  console.log('[answerQuestion] Finished waiting, function complete')
 }
 
 /**
@@ -57,18 +51,14 @@ export async function answerQuestion(
  * Returns: { moved: boolean, onLastQuestion: boolean }
  */
 export async function moveToNextQuestion(page: Page): Promise<{ moved: boolean; onLastQuestion: boolean }> {
-  console.log('[moveToNextQuestion] Starting')
   const { nextButton, answerInput } = getPracticeElements(page)
   
   // Scroll next button into view before checking visibility
   // isVisible() requires element to be in viewport
-  console.log('[moveToNextQuestion] Scrolling next button into view')
   try {
     await nextButton.evaluate((el) => el.scrollIntoView({ behavior: 'auto', block: 'center' }))
   await page.waitForTimeout(100) // Small delay after scrolling
-  console.log('[moveToNextQuestion] Finished scrolling')
   } catch (error) {
-    console.log('[moveToNextQuestion] Scroll failed:', error)
     // Continue anyway - might still be able to interact with it
   }
   
@@ -76,46 +66,37 @@ export async function moveToNextQuestion(page: Page): Promise<{ moved: boolean; 
   // Don't check count() first - it can return 0 even if button exists but isn't visible yet
   const nextVisible = await nextButton.isVisible({ timeout: 1000 }).catch(() => false)
   const nextDisabled = await nextButton.isDisabled().catch(() => true)
-  console.log('[moveToNextQuestion] Next button visible:', nextVisible, 'disabled:', nextDisabled)
   
   if (!nextVisible || nextDisabled) {
-    console.log('[moveToNextQuestion] Next button not available')
     // Next button not visible or disabled
     // Could mean: 1) on last question, 2) button replaced by submit, 3) timing issue
     // Check if submit button is visible instead (means we're on last question)
     const { submitButton } = getPracticeElements(page)
     const submitVisible = await submitButton.isVisible({ timeout: 2000 }).catch(() => false)
     if (submitVisible) {
-      console.log('[moveToNextQuestion] Submit button visible instead - on last question')
       return { moved: false, onLastQuestion: true }
     }
     // Next button not available and submit not visible - assume on last question
-    console.log('[moveToNextQuestion] Next button not available and submit not visible - assuming last question')
     return { moved: false, onLastQuestion: true }
   }
   
   // Check if input is currently disabled (we just answered)
   const inputDisabledBefore = await answerInput.isDisabled().catch(() => false)
-  console.log('[moveToNextQuestion] Input disabled before click:', inputDisabledBefore)
   
   // Click next button
-  console.log('[moveToNextQuestion] Clicking next button')
   await nextButton.click()
   await page.waitForTimeout(300) // Reduced from 1000ms
   
   // Verify we actually moved to a new question by checking if input is enabled again
   // If we're on the last question, clicking next won't change anything and input stays disabled
   const inputEnabledAfter = await answerInput.isEnabled().catch(() => false)
-  console.log('[moveToNextQuestion] Input enabled after click:', inputEnabledAfter)
   
   if (inputDisabledBefore && !inputEnabledAfter) {
-    console.log('[moveToNextQuestion] Input still disabled - on last question')
     // Input was disabled before clicking next and is still disabled after
     // This means we're on the last question and clicking next didn't move us
     return { moved: false, onLastQuestion: true }
   }
   
-  console.log('[moveToNextQuestion] Successfully moved to next question')
   // Successfully moved to next question
   return { moved: true, onLastQuestion: false }
 }
@@ -152,7 +133,6 @@ export async function completePracticeSession(
     answer?: string
   }
 ): Promise<void> {
-  console.log('[completePracticeSession] Starting')
   const maxIterations = options?.maxIterations || 50
   const answer = options?.answer || '10'
   const { answerInput } = getPracticeElements(page)
@@ -160,60 +140,43 @@ export async function completePracticeSession(
   let questionsAnswered = 0
   
   while (questionsAnswered < maxIterations) {
-    console.log(`[completePracticeSession] Loop iteration ${questionsAnswered + 1}/${maxIterations}`)
-    
     // Check if input is available and not disabled
-    console.log('[completePracticeSession] Checking if input is available')
     const inputVisible = await answerInput.isVisible({ timeout: 2000 }).catch(() => false)
     const inputDisabled = await answerInput.isDisabled().catch(() => true)
-    console.log('[completePracticeSession] Input visible:', inputVisible, 'disabled:', inputDisabled)
     
     if (!inputVisible || inputDisabled) {
-      console.log('[completePracticeSession] Input not available - breaking')
       // No more questions to answer
       break
     }
     
     // Answer the question
-    console.log(`[completePracticeSession] Answering question ${questionsAnswered + 1}`)
     await answerQuestion(page, answer, { waitForLocked: true, waitForDisabled: true })
-    console.log(`[completePracticeSession] Finished answering question ${questionsAnswered + 1}`)
     
     questionsAnswered++
-    console.log(`[completePracticeSession] Questions answered so far: ${questionsAnswered}`)
     
     // Check if submit button is now ready (all questions answered)
-    console.log('[completePracticeSession] Checking submit button status')
     const submitStatus = await isSubmitButtonReady(page)
-    console.log('[completePracticeSession] Submit button visible:', submitStatus.visible, 'enabled:', submitStatus.enabled)
     
     if (submitStatus.visible && submitStatus.enabled) {
-      console.log('[completePracticeSession] All questions answered, submit button ready - breaking')
       // All questions answered, submit button is ready
       break
     }
     
     // Move to next question
-    console.log('[completePracticeSession] Moving to next question')
     const moveResult = await moveToNextQuestion(page)
-    console.log('[completePracticeSession] Move result:', moveResult)
     
     if (moveResult.onLastQuestion && !moveResult.moved) {
-      console.log('[completePracticeSession] On last question, waiting for submit button')
       // We're on the last question, wait briefly for submit button to appear
       await page.waitForTimeout(200) // Reduced from 500ms
       const finalSubmitStatus = await isSubmitButtonReady(page)
       if (finalSubmitStatus.visible && finalSubmitStatus.enabled) {
-        console.log('[completePracticeSession] Submit button appeared - breaking')
         break
       }
-      console.log('[completePracticeSession] Submit button did not appear - breaking')
       // If still no submit button, break to avoid infinite loop
       break
     }
     
     if (!moveResult.moved && !moveResult.onLastQuestion) {
-      console.log('[completePracticeSession] Could not move and not on last question - breaking')
       // Couldn't move and not on last question - something went wrong
       break
     }
@@ -221,26 +184,19 @@ export async function completePracticeSession(
     // After successfully moving to next question, wait for input to be enabled
     // This ensures the check at the start of the next loop iteration will pass
     if (moveResult.moved) {
-      console.log('[completePracticeSession] Waiting for input to become enabled')
       // Wait for input to become enabled (new question loaded)
       let attempts = 0
       const maxAttempts = 30 // 3 seconds with 100ms intervals
       while (attempts < maxAttempts) {
         const enabled = await answerInput.isEnabled().catch(() => false)
         if (enabled) {
-          console.log('[completePracticeSession] Input is now enabled')
           break
         }
         await page.waitForTimeout(50) // Reduced from 100ms
         attempts++
       }
-      if (attempts >= maxAttempts) {
-        console.log('[completePracticeSession] Input did not become enabled after waiting')
-      }
     }
   }
-  
-  console.log('[completePracticeSession] Finished, total questions answered:', questionsAnswered)
 }
 
 /**

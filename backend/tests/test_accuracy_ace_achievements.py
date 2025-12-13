@@ -68,41 +68,10 @@ def test_accuracy_ace_bronze_achievement(app, test_user):
 
 
 def test_accuracy_ace_silver_achievement(app, test_user):
-    """Test that Accuracy Ace (Silver) is awarded for 85%+ accuracy with 10+ questions."""
+    """Test that Accuracy Ace (Silver) is awarded for 90%+ accuracy with 10+ questions."""
     with app.app_context():
-        # Create 10 questions and answer 9 correctly (90% accuracy, qualifies for gold, not silver)
-        # For silver, we need 85-89% accuracy. Let's use 87% (8.7 correct, round to 9 correct = 90%)
-        # Actually, let's use 10 questions with 9 correct = 90%, which qualifies for gold
-        # To test silver specifically, we need 85-89%. Let's use 20 questions with 17 correct = 85%
-        questions = create_test_questions(20, 1)
-        responses_data = []
-        for i, q in enumerate(questions):
-            responses_data.append({
-                'question_id': q.id,
-                'answer': q.correct_answer if i < 17 else '999',  # 17 correct, 3 wrong = 85%
-                'is_correct': i < 17,
-                'duration_ms': 3000
-            })
-        
-        session = create_test_session_with_responses(test_user.id, responses_data)
-        
-        # Check achievements
-        accuracy_ace_achievements = AchievementService.check_accuracy_ace_achievements(session)
-        
-        # Verify achievement was awarded (should get silver, not bronze, since 85% >= 85% but < 90%)
-        achievement = Achievement.query.filter_by(
-            user_id=test_user.id,
-            code="accuracy-ace-silver"
-        ).first()
-        
-        assert achievement is not None, "Accuracy Ace (Silver) should be awarded for 85% accuracy"
-        assert achievement.session_id == session.id
-
-
-def test_accuracy_ace_gold_achievement(app, test_user):
-    """Test that Accuracy Ace (Gold) is awarded for 90%+ accuracy with 10+ questions."""
-    with app.app_context():
-        # Create 10 questions and answer 9 correctly (90% accuracy, qualifies for gold)
+        # Silver now requires 90% accuracy (updated requirement)
+        # Create 10 questions and answer 9 correctly (90% accuracy, qualifies for silver)
         questions = create_test_questions(10, 1)
         responses_data = []
         for i, q in enumerate(questions):
@@ -118,13 +87,41 @@ def test_accuracy_ace_gold_achievement(app, test_user):
         # Check achievements
         accuracy_ace_achievements = AchievementService.check_accuracy_ace_achievements(session)
         
-        # Verify gold was awarded for 90% accuracy
+        # Verify achievement was awarded (should get silver for 90% accuracy)
+        achievement = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="accuracy-ace-silver"
+        ).first()
+        
+        assert achievement is not None, "Accuracy Ace (Silver) should be awarded for 90% accuracy"
+        assert achievement.session_id == session.id
+
+
+def test_accuracy_ace_gold_achievement(app, test_user):
+    """Test that Accuracy Ace (Gold) is awarded for 100% accuracy with 10+ questions."""
+    with app.app_context():
+        # Gold now requires 100% accuracy
+        # Create 10 questions and answer all correctly (100% accuracy)
+        questions = create_test_questions(10, 1)
+        responses_data = [{
+            'question_id': q.id,
+            'answer': q.correct_answer,
+            'is_correct': True,
+            'duration_ms': 3000
+        } for q in questions]
+        
+        session = create_test_session_with_responses(test_user.id, responses_data)
+        
+        # Check achievements
+        accuracy_ace_achievements = AchievementService.check_accuracy_ace_achievements(session)
+        
+        # Verify gold was awarded for 100% accuracy
         achievement = Achievement.query.filter_by(
             user_id=test_user.id,
             code="accuracy-ace-gold"
         ).first()
         
-        assert achievement is not None, "Accuracy Ace (Gold) should be awarded for 90% accuracy"
+        assert achievement is not None, "Accuracy Ace (Gold) should be awarded for 100% accuracy"
         assert achievement.session_id == session.id
 
 
@@ -154,8 +151,8 @@ def test_accuracy_ace_minimum_questions_requirement(app, test_user):
         assert achievement is None, "Accuracy Ace should NOT be awarded with less than 10 questions"
 
 
-def test_accuracy_ace_not_awarded_for_test_sessions(app, test_user):
-    """Test that Accuracy Ace is NOT awarded for test sessions."""
+def test_accuracy_ace_awarded_for_test_sessions(app, test_user):
+    """Test that Accuracy Ace IS awarded for test sessions with test_type metadata."""
     with app.app_context():
         # Create a test session with 100% accuracy
         questions = create_test_questions(10, 1)
@@ -166,18 +163,29 @@ def test_accuracy_ace_not_awarded_for_test_sessions(app, test_user):
             'duration_ms': 3000
         } for q in questions]
         
-        session = create_test_session_with_responses(test_user.id, responses_data, is_test=True)
+        session = create_test_session_with_responses(
+            test_user.id, 
+            responses_data, 
+            is_test=True,
+            test_type="addition-1digit"
+        )
         
         # Check achievements
         accuracy_ace_achievements = AchievementService.check_accuracy_ace_achievements(session)
         
-        # Verify NO achievement was awarded
+        # Verify achievement was awarded with test_type metadata
         achievement = Achievement.query.filter(
             Achievement.user_id == test_user.id,
             Achievement.code.like("accuracy-ace-%")
         ).first()
         
-        assert achievement is None, "Accuracy Ace should NOT be awarded for test sessions"
+        assert achievement is not None, "Accuracy Ace should be awarded for test sessions"
+        assert achievement.code == "accuracy-ace-gold", "Should award gold for 100% accuracy"
+        # Verify metadata contains test_type
+        import json
+        if achievement.achievement_metadata:
+            metadata = json.loads(achievement.achievement_metadata)
+            assert metadata.get("test_type") == "addition-1digit", "Metadata should contain test_type"
 
 
 def test_accuracy_ace_not_awarded_below_threshold(app, test_user):
@@ -208,10 +216,34 @@ def test_accuracy_ace_not_awarded_below_threshold(app, test_user):
         assert achievement is None, "Accuracy Ace should NOT be awarded for accuracy below 80%"
 
 
-def test_accuracy_ace_all_tiers(app, test_user):
-    """Test that all Accuracy Ace tiers can be awarded with appropriate accuracy."""
+def test_accuracy_ace_highest_tier_only(app, test_user):
+    """Test that only the highest qualifying tier is awarded."""
     with app.app_context():
-        # Test bronze with 80% accuracy (10 questions, 8 correct)
+        # Test 100% accuracy should award gold (highest), not silver or bronze
+        questions = create_test_questions(10, 1)
+        responses_data = [{
+            'question_id': q.id,
+            'answer': q.correct_answer,
+            'is_correct': True,
+            'duration_ms': 3000
+        } for q in questions]
+        session = create_test_session_with_responses(test_user.id, responses_data)
+        AchievementService.check_accuracy_ace_achievements(session)
+        
+        # Should only have gold, not bronze or silver
+        gold = Achievement.query.filter_by(user_id=test_user.id, code="accuracy-ace-gold").first()
+        bronze = Achievement.query.filter_by(user_id=test_user.id, code="accuracy-ace-bronze").first()
+        silver = Achievement.query.filter_by(user_id=test_user.id, code="accuracy-ace-silver").first()
+        
+        assert gold is not None, "Gold should be awarded for 100% accuracy"
+        assert bronze is None, "Bronze should NOT be awarded when gold qualifies"
+        assert silver is None, "Silver should NOT be awarded when gold qualifies"
+
+
+def test_accuracy_ace_multiple_instances_across_sessions(app, test_user):
+    """Test that multiple instances of same tier can be earned across sessions."""
+    with app.app_context():
+        # Session 1: 80% accuracy = bronze
         questions1 = create_test_questions(10, 1)
         responses_data1 = []
         for i, q in enumerate(questions1):
@@ -223,47 +255,55 @@ def test_accuracy_ace_all_tiers(app, test_user):
             })
         session1 = create_test_session_with_responses(test_user.id, responses_data1)
         AchievementService.check_accuracy_ace_achievements(session1)
-        bronze = Achievement.query.filter_by(user_id=test_user.id, code="accuracy-ace-bronze").first()
-        assert bronze is not None, "Bronze should be awarded for 80% accuracy"
+        bronze1 = Achievement.query.filter_by(
+            user_id=test_user.id, 
+            code="accuracy-ace-bronze",
+            session_id=session1.id
+        ).first()
+        assert bronze1 is not None, "Bronze should be awarded in session 1"
         
-        # Clean up
-        db.session.delete(session1)
-        db.session.delete(bronze)
-        db.session.commit()
-        
-        # Test platinum with 95% accuracy (20 questions, 19 correct)
-        questions2 = create_test_questions(20, 1)
+        # Session 2: 80% accuracy again = another bronze
+        questions2 = create_test_questions(10, 1)
         responses_data2 = []
         for i, q in enumerate(questions2):
             responses_data2.append({
                 'question_id': q.id,
-                'answer': q.correct_answer if i < 19 else '999',  # 19 correct = 95%
-                'is_correct': i < 19,
+                'answer': q.correct_answer if i < 8 else '999',  # 8 correct = 80%
+                'is_correct': i < 8,
                 'duration_ms': 3000
             })
         session2 = create_test_session_with_responses(test_user.id, responses_data2)
         AchievementService.check_accuracy_ace_achievements(session2)
-        platinum = Achievement.query.filter_by(user_id=test_user.id, code="accuracy-ace-platinum").first()
-        assert platinum is not None, "Platinum should be awarded for 95% accuracy"
-        
-        # Clean up
-        db.session.delete(session2)
-        db.session.delete(platinum)
-        db.session.commit()
-        
-        # Test grandmaster with 100% accuracy (10 questions, all correct)
-        questions3 = create_test_questions(10, 1)
-        responses_data3 = [{
+        bronze2 = Achievement.query.filter_by(
+            user_id=test_user.id, 
+            code="accuracy-ace-bronze",
+            session_id=session2.id
+        ).first()
+        assert bronze2 is not None, "Bronze should be awarded in session 2"
+        assert bronze1.id != bronze2.id, "Should be two different bronze achievements"
+
+
+def test_accuracy_ace_only_one_per_session(app, test_user):
+    """Test that only one Accuracy Ace can be awarded per session."""
+    with app.app_context():
+        # 100% accuracy qualifies for all tiers, but should only award gold
+        questions = create_test_questions(10, 1)
+        responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
             'is_correct': True,
             'duration_ms': 3000
-        } for q in questions3]
-        session3 = create_test_session_with_responses(test_user.id, responses_data3)
-        AchievementService.check_accuracy_ace_achievements(session3)
-        grandmaster = Achievement.query.filter(
+        } for q in questions]
+        session = create_test_session_with_responses(test_user.id, responses_data)
+        AchievementService.check_accuracy_ace_achievements(session)
+        
+        # Count achievements for this session
+        achievements = Achievement.query.filter(
             Achievement.user_id == test_user.id,
-            Achievement.code.in_(["accuracy-ace-grandmaster", "accuracy-ace-legendary", "accuracy-ace-mythic", "accuracy-ace-divine", "accuracy-ace-champion"])
-        ).first()
-        assert grandmaster is not None, "Grandmaster or higher (including champion) should be awarded for 100% accuracy"
+            Achievement.code.like("accuracy-ace-%"),
+            Achievement.session_id == session.id
+        ).all()
+        
+        assert len(achievements) == 1, "Should only award one Accuracy Ace per session"
+        assert achievements[0].code == "accuracy-ace-gold", "Should award highest tier (gold)"
 

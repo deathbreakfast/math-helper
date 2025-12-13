@@ -20,13 +20,16 @@ async function globalSetup(config: FullConfig) {
   try {
     // Get base URL from config (frontend URL)
     const baseURL = config.projects[0]?.use?.baseURL || 'http://localhost:5003'
-    
-    // Backend port - configurable via environment variable, defaults to 5004
+
+    // Prefer explicit backend URL (matches Vite proxy configuration).
+    // This avoids assuming the backend runs on the same host as the frontend.
+    const explicitBackendURL = process.env.BACKEND_URL || process.env.VITE_BACKEND_URL
+
+    // Fallback: assume backend runs on same host as frontend with BACKEND_PORT (default 5004)
     const backendPort = process.env.BACKEND_PORT || '5004'
-    
-    // Extract host and port, then adjust for backend
     const url = new URL(baseURL)
-    const backendURL = `${url.protocol}//${url.hostname}:${backendPort}`
+    const backendURL = explicitBackendURL || `${url.protocol}//${url.hostname}:${backendPort}`
+    console.log(`Global reset target backend: ${backendURL}`)
     
     // Create API request context pointing to backend
     const request = await playwrightRequest.newContext({

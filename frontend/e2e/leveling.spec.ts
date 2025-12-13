@@ -70,13 +70,13 @@ test.describe('Leveling', () => {
     // Level 2 requires (per level_progression_config.py):
     // 1. first-steps
     // 2. first-victory
-    // 3. accuracy-ace-platinum with metadata {"test_type": "addition-1digit"}
+    // 3. accuracy-ace-gold with metadata {"test_type": "addition-1digit"}
     const testUser = await createTestUserWithState(request, {
       level: 1,
       achievements: [
         'first-steps' as any,
         'first-victory' as any,
-        { code: 'accuracy-ace-platinum', metadata: { test_type: 'addition-1digit' } }
+        { code: 'accuracy-ace-gold', metadata: { test_type: 'addition-1digit' } }
       ]
     })
     
@@ -181,12 +181,12 @@ test.describe('Leveling', () => {
       // For each missing achievement, verify it appears in at least one requirement's text
       for (const missingAchievement of eligibility.missing_achievements) {
         // Extract just the achievement code (strip quantity info like "(need 1, have 0)")
-        // API returns: "accuracy-ace-platinum with metadata {'test_type': 'addition-1digit'} (need 1, have 0)"
-        // UI shows: "Complete achievement: accuracy ace platinum (1 Digit Addition)"
+        // API returns: "accuracy-ace-gold with metadata {'test_type': 'addition-1digit'} (need 1, have 0)"
+        // UI shows: "Complete achievement: accuracy ace gold (1 Digit Addition)"
         const achievementCode = missingAchievement.split(' (')[0] // Gets base code or code with metadata
         
         // Check if achievement code includes metadata
-        // Format: "accuracy-ace-platinum with metadata {'test_type': 'addition-1digit'}"
+        // Format: "accuracy-ace-gold with metadata {'test_type': 'addition-1digit'}"
         let baseCode = achievementCode
         let metadata: Record<string, any> | null = null
         
@@ -207,8 +207,8 @@ test.describe('Leveling', () => {
         }
         
         // The UI displays achievement codes with hyphens replaced by spaces
-        // e.g., "accuracy-ace-platinum" becomes "accuracy ace platinum"
-        // If metadata has test_type, UI shows: "Complete achievement: accuracy ace platinum (1 Digit Addition)"
+        // e.g., "accuracy-ace-gold" becomes "accuracy ace gold"
+        // If metadata has test_type, UI shows: "Complete achievement: accuracy ace gold (1 Digit Addition)"
         const normalizedCode = baseCode.replace(/-/g, ' ')
         
         // Get test display name if metadata has test_type
@@ -227,14 +227,6 @@ test.describe('Leveling', () => {
           testDisplayName = testTypeMap[metadata.test_type] || metadata.test_type.replace(/-/g, ' ')
         }
         
-        // Debug logging
-        console.log(`[LVL-005] Looking for missing achievement: "${missingAchievement}"`)
-        console.log(`[LVL-005] Extracted achievement code: "${achievementCode}"`)
-        console.log(`[LVL-005] Base code: "${baseCode}"`)
-        console.log(`[LVL-005] Normalized code: "${normalizedCode}"`)
-        console.log(`[LVL-005] Metadata:`, metadata)
-        console.log(`[LVL-005] Test display name:`, testDisplayName)
-        
         // Check if any requirement item contains this achievement code (in either format)
         // The UI may show it as "Complete achievement: {code}" or "Complete achievement: {code} ({test_name})"
         let found = false
@@ -250,11 +242,9 @@ test.describe('Leveling', () => {
           if (hasDescriptionElement) {
             // Get text from the description element specifically
             text = await descriptionElement.textContent()
-            console.log(`[LVL-005] Requirement ${i} description element text: "${text}"`)
           } else {
             // Fallback to getting text from the entire requirement item
             text = await requirementItem.textContent()
-            console.log(`[LVL-005] Requirement ${i} full text (fallback): "${text}"`)
           }
           
           if (text) {
@@ -263,10 +253,6 @@ test.describe('Leveling', () => {
             const lowerText = normalizedText.toLowerCase()
             const lowerCode = baseCode.toLowerCase()
             const lowerNormalized = normalizedCode.toLowerCase()
-            
-            // Debug logging for each requirement item
-            console.log(`[LVL-005] Requirement ${i} normalized text: "${normalizedText}"`)
-            console.log(`[LVL-005] Requirement ${i} lowerText: "${lowerText}"`)
             
             // Patterns to check
             const patterns = [
@@ -292,17 +278,12 @@ test.describe('Leveling', () => {
               )
             }
             
-            console.log(`[LVL-005] Checking patterns:`, patterns)
-            
             // Match if text contains the code (with or without hyphens) or the normalized version
             let matched = false
             for (const pattern of patterns) {
               if (lowerText.includes(pattern)) {
-                console.log(`[LVL-005] ✓ Matched pattern: "${pattern}"`)
                 matched = true
                 break
-              } else {
-                console.log(`[LVL-005] ✗ Pattern "${pattern}" not found`)
               }
             }
             
@@ -310,12 +291,8 @@ test.describe('Leveling', () => {
               found = true
               break
             }
-          } else {
-            console.log(`[LVL-005] Requirement ${i} has no text content`)
           }
         }
-        
-        console.log(`[LVL-005] Final result for "${missingAchievement}": found=${found}`)
         expect(found).toBe(true)
       }
     } finally {

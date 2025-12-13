@@ -37,9 +37,12 @@ def get_batch_level_requirements():
     """Get achievement requirements for multiple levels in one request.
     
     Query parameter: levels (comma-separated list of level numbers)
-    Example: /api/levels/requirements?levels=1,2,3,4,5
+    Optional query parameter: user_id (to include completion status)
+    Example: /api/levels/requirements?levels=1,2,3,4,5&user_id=123
     """
     levels_param = request.args.get('levels', '')
+    user_id = request.args.get('user_id', type=int)
+    
     if not levels_param:
         return jsonify({"error": "levels parameter is required (comma-separated list)"}), 400
     
@@ -55,9 +58,41 @@ def get_batch_level_requirements():
     requirements_by_level = {}
     for level in levels:
         requirements = LevelConfigService.get_level_progression_config(level)
+        
+        # If user_id provided, add completion status to each requirement
+        if user_id:
+            from ..services.user_service import UserService
+            from ..models import User
+            from .. import db
+            
+            user = db.session.get(User, user_id)
+            if user:
+                # Add completion status for each requirement
+                enriched_requirements = []
+                for req in requirements:
+                    achievement_code = req.get("achievement_code", "")
+                    quantity = req.get("quantity", 1)
+                    metadata_filter = req.get("metadata_filter")
+                    
+                    # Count achievements with metadata filter support
+                    from ..services.achievement_service import AchievementService
+                    count = AchievementService.count_achievements_by_code_with_filters(
+                        user_id=user.id,
+                        achievement_code=achievement_code,
+                        metadata_filter=metadata_filter,
+                    )
+                    
+                    enriched_req = req.copy()
+                    enriched_req["user_count"] = count
+                    enriched_req["completed"] = count >= quantity
+                    enriched_requirements.append(enriched_req)
+                
+                requirements = enriched_requirements
+        
         requirements_by_level[level] = requirements
     
     return jsonify({"requirements": requirements_by_level})
+
 
 
 

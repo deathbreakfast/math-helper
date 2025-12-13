@@ -25,6 +25,7 @@ export const SummaryStatsCards = ({ metrics }: SummaryStatsCardsProps) => {
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               className="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full"
+              data-testid="testid-new-best-accuracy"
             >
               NEW BEST!
             </motion.div>
@@ -61,6 +62,7 @@ export const SummaryStatsCards = ({ metrics }: SummaryStatsCardsProps) => {
               initial={{ scale: 0, rotate: -180 }}
               animate={{ scale: 1, rotate: 0 }}
               className="bg-yellow-400 text-yellow-900 text-xs font-bold px-2 py-1 rounded-full"
+              data-testid="testid-new-best-speed"
             >
               NEW BEST!
             </motion.div>

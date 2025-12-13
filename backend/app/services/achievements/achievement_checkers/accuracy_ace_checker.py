@@ -45,7 +45,7 @@ class AccuracyAceChecker(AchievementChecker):
         
         new_achievements = []
         
-        if not session or not session.completed_at or session.is_test:
+        if not session or not session.completed_at:
             return new_achievements
         
         # Get user from session if not provided
@@ -67,9 +67,6 @@ class AccuracyAceChecker(AchievementChecker):
         if not accuracy_ace_achievements:
             return new_achievements
         
-        # Get user's existing achievements
-        user_achievement_codes = AchievementService.get_achievement_codes(user.id)
-        
         # Get session metrics
         total_questions = session.total_questions
         if total_questions < 10:  # Minimum questions requirement
@@ -79,11 +76,9 @@ class AccuracyAceChecker(AchievementChecker):
         accuracy = session.accuracy / 100.0 if session.accuracy else 0.0  # Convert to 0-1 range
         
         # Find all qualifying tiers
+        # Note: We don't check for existing achievements here - create_achievement() handles constraints
         qualifying_tiers = []
         for achievement_code, config in accuracy_ace_achievements:
-            if achievement_code in user_achievement_codes:
-                continue
-            
             requirements = config.get("requirements", {})
             min_accuracy = requirements.get("min_accuracy", 0.80)
             min_questions = requirements.get("min_questions", 10)
@@ -93,20 +88,14 @@ class AccuracyAceChecker(AchievementChecker):
                 qualifying_tiers.append((tier, achievement_code, config))
         
         if qualifying_tiers:
-            # Sort by tier value (highest first) and award the highest tier
+            # Sort by tier value (highest first) and award the highest tier only
             qualifying_tiers.sort(key=lambda x: get_tier_value(x[0]), reverse=True)
             highest_tier, achievement_code, config = qualifying_tiers[0]
             
-            # Check for Champion tier if this is Divine
-            # Note: Champion eligibility requires session context, so skip for now
-            if highest_tier == "divine":
-                champion_code = "accuracy-ace-champion"
-                champion_config = self.achievement_configs.get(champion_code)
-                if champion_config:
-                    champion_req = champion_config.get("requirements", {})
-                    if accuracy >= champion_req.get("min_accuracy", 1.0):
-                        # Champion tier can be checked during session completion
-                        pass
+            # Build metadata: include test_type for test sessions, otherwise empty
+            metadata = None
+            if session.is_test and session.test_type:
+                metadata = {"test_type": session.test_type}
             
             achievement = AchievementService.create_achievement(
                 user_id=user.id,
@@ -116,6 +105,7 @@ class AccuracyAceChecker(AchievementChecker):
                 icon=config["icon"],
                 category=config["category"],
                 session_id=session.id,
+                metadata=metadata,
             )
             new_achievements.append(achievement)
         

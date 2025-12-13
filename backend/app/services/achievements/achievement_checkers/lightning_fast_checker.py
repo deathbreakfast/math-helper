@@ -86,25 +86,9 @@ class LightningFastChecker(AchievementChecker):
             return new_achievements
         
         # Find all qualifying tiers for this level
+        # Note: We don't check for existing achievements here - create_achievement() handles constraints
         qualifying_tiers = []
         for achievement_code, config in lightning_fast_achievements:
-            if achievement_code in user_achievement_codes:
-                # Check if user already has this achievement for this level
-                existing = Achievement.query.filter_by(
-                    user_id=user.id,
-                    code=achievement_code
-                ).first()
-                
-                if existing:
-                    # Check metadata to see if it's for this level
-                    if existing.achievement_metadata:
-                        try:
-                            metadata = json.loads(existing.achievement_metadata)
-                            if metadata.get("level") == session.level:
-                                continue  # Already have this tier for this level
-                        except (json.JSONDecodeError, KeyError):
-                            pass
-            
             requirements = config.get("requirements", {})
             max_speed = requirements.get("max_speed_seconds", 999)
             min_questions = requirements.get("min_questions", 50)
@@ -129,9 +113,11 @@ class LightningFastChecker(AchievementChecker):
                         # Champion tier can be checked during session completion
                         pass
             
-            # Create metadata for this level
-            metadata = {"level": session.level}
-            metadata_json = json.dumps(metadata, sort_keys=True)
+            # Create metadata: use test_type for test sessions, level for practice sessions
+            if session.is_test and session.test_type:
+                metadata = {"test_type": session.test_type}
+            else:
+                metadata = {"level": session.level}
             
             achievement = AchievementService.create_achievement(
                 user_id=user.id,

@@ -162,8 +162,9 @@ test.describe('Tests Tab UI', () => {
     await openJourneyModal(page, testUser)
     await navigateToTestsTab(page)
 
-    // Find a test card with attempts and click it safely (avoids achievement links)
-    const testCard = page.locator('[data-testid^="testid-test-card-"]').first()
+    // Click the specific test we created an attempt for.
+    // Using `.first()` is flaky because the first card may be a different test type.
+    const testCard = page.getByTestId('testid-test-card-addition-1digit')
     await clickTestCardSafely(page, testCard)
 
     // Verify modal opens
@@ -194,7 +195,6 @@ test.describe('Tests Tab UI', () => {
 
     // Verify past attempts are listed
     const attemptCount = await attemptCards.count()
-    console.log(`[TST-UI-005] Found ${attemptCount} attempt cards after loading`)
 
     // Should have at least one attempt (we created one via createPassedTestAttempt)
     if (attemptCount === 0) {
@@ -240,8 +240,8 @@ test.describe('Tests Tab UI', () => {
     await openJourneyModal(page, testUser)
     await navigateToTestsTab(page)
 
-    // Click on test card safely (avoids achievement links)
-    const testCard = page.locator('[data-testid^="testid-test-card-"]').first()
+    // Click the specific test we created an attempt for.
+    const testCard = page.getByTestId('testid-test-card-addition-1digit')
     await clickTestCardSafely(page, testCard)
 
     // Wait for modal
@@ -287,7 +287,6 @@ test.describe('Tests Tab UI', () => {
 
     // Wait for test cards to render
     const totalCardCount = await waitForTestCards(page, 1)
-    console.log(`[TST-UI-007] Found ${totalCardCount} total test cards`)
 
     // Find unlocked test cards (those without lock icon)
     const unlockedTestCards = page
@@ -296,7 +295,6 @@ test.describe('Tests Tab UI', () => {
     
     // Wait for unlocked cards to be available
     const unlockedCount = await unlockedTestCards.count()
-    console.log(`[TST-UI-007] Found ${unlockedCount} unlocked test cards`)
 
     if (unlockedCount === 0) {
       // If no unlocked tests, check if we have any tests at all
@@ -326,7 +324,6 @@ test.describe('Tests Tab UI', () => {
     const pinModalVisible = await pinModal.isVisible({ timeout: 2000 }).catch(() => false)
     
     if (pinModalVisible) {
-      console.log('[TST-UI-007] PIN modal appeared, handling PIN verification')
       await handlePinVerification(page, testUser.pin || '1234')
     }
 
@@ -442,7 +439,8 @@ test.describe('Tests Tab UI', () => {
     await waitForTestCards(page, 1)
 
     // Open test detail modal - click safely to avoid achievement links
-    const testCard = page.locator('[data-testid^="testid-test-card-"]').first()
+    // Click the specific test we created an attempt for.
+    const testCard = page.getByTestId('testid-test-card-addition-1digit')
     await clickTestCardSafely(page, testCard)
 
     await expect(page.getByTestId('testid-test-detail-modal')).toBeVisible({ timeout: 5000 })
@@ -450,15 +448,12 @@ test.describe('Tests Tab UI', () => {
     // Click "Start New Test" button (this opens PIN modal)
     const startButton = page.getByTestId('testid-test-detail-start-button')
     await expect(startButton).toBeVisible({ timeout: 5000 })
-    console.log('[TST-UI-010] Clicking Start New Test button')
     await startButton.click()
 
     // Handle PIN verification
-    console.log('[TST-UI-010] Handling PIN verification')
     await handlePinVerification(page, testUser.pin || '1234')
 
     // Verify navigation to practice session
-    console.log('[TST-UI-010] Waiting for navigation to /practice')
     await page.waitForURL(/\/practice/, { timeout: 10000 })
 
     await deleteTestUser(request, testUser.id)

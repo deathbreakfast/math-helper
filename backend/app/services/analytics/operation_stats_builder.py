@@ -55,3 +55,4 @@ class OperationStatsBuilder:
         if duration_ms is None:
             return 0.0
         return round(duration_ms / 1000, 1)
+

@@ -74,11 +74,9 @@ class PerfectStreakChecker(AchievementChecker):
                 break  # Break on first non-perfect session
         
         # Find all qualifying tiers
+        # Note: We don't check for existing achievements here - create_achievement() handles constraints
         qualifying_tiers = []
         for achievement_code, config in perfect_streak_achievements:
-            if achievement_code in user_achievement_codes:
-                continue
-            
             requirements = config.get("requirements", {})
             min_sessions = requirements.get("min_sessions", 0)
             if consecutive_perfect >= min_sessions:
@@ -126,31 +124,17 @@ class PerfectStreakChecker(AchievementChecker):
         category: str,
         session_id: int | None = None
     ) -> Achievement:
-        """Create an achievement (helper method)."""
-        from datetime import datetime
+        """Create an achievement using AchievementService for constraint handling."""
+        from ....services.achievement_service import AchievementService
         
-        # Check if achievement already exists
-        existing = Achievement.query.filter_by(
-            user_id=user_id,
-            code=code
-        ).first()
-        
-        if existing:
-            return existing
-        
-        achievement = Achievement(
+        # Use AchievementService.create_achievement to maintain consistency and handle constraints
+        return AchievementService.create_achievement(
             user_id=user_id,
             code=code,
             title=title,
             description=description,
             icon=icon,
             category=category,
-            earned_at=datetime.utcnow(),
             session_id=session_id,
         )
-        db.session.add(achievement)
-        # Note: We don't commit here - the orchestrator will commit all achievements together
-        db.session.flush()
-        
-        return achievement
 

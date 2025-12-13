@@ -26,6 +26,12 @@ export async function createTestUser(
   const avatar = options?.avatar || '🐯'
   const pin = options?.pin || '1234'
 
+  const debug = process.env.E2E_DEBUG_API === '1'
+  if (debug) {
+    // eslint-disable-next-line no-console
+    console.log('[e2e api] POST /api/users payload:', { name, avatar, pin })
+  }
+
   const response = await request.post('/api/users', {
     data: {
       name,
@@ -33,6 +39,26 @@ export async function createTestUser(
       pin,
     },
   })
+
+  if (debug) {
+    // eslint-disable-next-line no-console
+    console.log('[e2e api] POST /api/users status:', response.status(), response.statusText())
+    try {
+      const contentType = response.headers()['content-type'] || ''
+      if (contentType.includes('application/json')) {
+        const body = await response.json()
+        // eslint-disable-next-line no-console
+        console.log('[e2e api] POST /api/users response json:', body)
+      } else {
+        const text = await response.text()
+        // eslint-disable-next-line no-console
+        console.log('[e2e api] POST /api/users response text (truncated):', text.substring(0, 300))
+      }
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.log('[e2e api] POST /api/users response read failed:', e)
+    }
+  }
 
   if (!response.ok()) {
     // Try to parse as JSON, but handle HTML error pages

@@ -174,3 +174,4 @@ def handle_service_error(func: Callable) -> Callable:
             return create_error_response(f"Internal server error: {str(e)}", 500)
     wrapper.__name__ = func.__name__
     return wrapper
+

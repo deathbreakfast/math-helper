@@ -162,3 +162,4 @@ class StreakCalculator:
 
         return streak
 
+

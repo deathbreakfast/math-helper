@@ -308,3 +308,4 @@ test.describe('Summary Page - NEW BEST! Indicators', () => {
     await expect(newBestSpeed3).toBeVisible({ timeout: 3000 })
   })
 })
+

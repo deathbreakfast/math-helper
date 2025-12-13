@@ -231,3 +231,4 @@ class TestCompletionChecker(AchievementChecker):
         else:
             return []
 
+

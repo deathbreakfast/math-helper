@@ -175,3 +175,4 @@ def handle_service_error(func: Callable) -> Callable:
     wrapper.__name__ = func.__name__
     return wrapper
 
+

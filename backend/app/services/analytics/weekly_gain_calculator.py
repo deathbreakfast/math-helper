@@ -113,3 +113,4 @@ class WeeklyGainCalculator:
         
         return weekly_gain_map
 
+

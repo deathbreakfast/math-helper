@@ -107,3 +107,4 @@ class LevelAccuracyChecker(AchievementChecker):
             session_id=session_id,
         )]
 
+

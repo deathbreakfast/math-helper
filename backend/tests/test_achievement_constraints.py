@@ -621,3 +621,4 @@ def test_master_tables_one_per_tier_multiple_per_session(app, test_user):
         assert times_constraint.get("allow_multiple_per_session") == True, "Should allow multiple per session"
         assert division_constraint.get("allow_multiple_per_tier") == True, "Should allow multiple per tier"
         assert division_constraint.get("allow_multiple_per_session") == True, "Should allow multiple per session"
+

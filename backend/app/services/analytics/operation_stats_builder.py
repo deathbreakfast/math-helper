@@ -56,3 +56,4 @@ class OperationStatsBuilder:
             return 0.0
         return round(duration_ms / 1000, 1)
 
+

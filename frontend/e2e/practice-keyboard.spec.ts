@@ -187,3 +187,4 @@ test.describe('Practice Session - Keyboard Input', () => {
     expect(['BUTTON', 'INPUT']).toContain(focusedElement)
   })
 })
+

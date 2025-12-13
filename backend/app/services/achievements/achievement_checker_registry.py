@@ -92,3 +92,4 @@ class AchievementCheckerRegistry:
             return checker.check(user, session_id=session_id)
         return []
 
+

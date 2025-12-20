@@ -366,40 +366,6 @@ class AchievementService:
 
     @staticmethod
     @log_query
-    def count_achievements_by_test_type_with_filters(
-        user_id: int,
-        test_type: str,
-        level: int | None = None,
-        min_accuracy: float | None = None,
-        operation: str | None = None,
-    ) -> int:
-        """Count achievements for a test type with filters for level, accuracy, and operation.
-        
-        This counts all achievements that match the test type pattern (e.g., "addition-1digit-bronze",
-        "addition-1digit-silver", etc.) with the specified filters.
-        
-        Args:
-            user_id: User ID
-            test_type: Test type identifier (e.g., "addition-1digit")
-            level: Optional level filter (session level must match)
-            min_accuracy: Optional minimum accuracy filter (session accuracy must be >= this, as 0.0-1.0)
-            operation: Optional operation filter (session must have questions with this operation)
-            
-        Returns:
-            Number of achievements matching all filters
-        """
-        from .achievements.achievement_queries.achievement_query_service import AchievementQueryService
-        
-        return AchievementQueryService.count_achievements_by_test_type_with_filters(
-            user_id=user_id,
-            test_type=test_type,
-            level=level,
-            min_accuracy=min_accuracy,
-            operation=operation,
-        )
-
-    @staticmethod
-    @log_query
     def check_level_master_achievements(user: User) -> list[Achievement]:
         """Check and award Level Master achievements (consecutive correct at any level).
         

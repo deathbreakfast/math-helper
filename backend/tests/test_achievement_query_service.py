@@ -51,7 +51,6 @@ def test_session(app, test_user):
             user_id=user.id,
             mode="standard",
             level=1,
-            is_test=False,
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=10,
@@ -365,42 +364,4 @@ def test_count_achievements_by_code_with_filters_accuracy(app, test_user, test_s
         )
         
         assert count == 1, "Should return count of 1 for accuracy >= 95%"
-
-
-def test_count_achievements_by_test_type_with_filters(app, test_user, test_session):
-    """Test counting achievements by test type with filters."""
-    with app.app_context():
-        user = db.session.merge(test_user)
-        session = db.session.merge(test_session)
-        
-        # Create achievements matching test type pattern
-        achievement1 = Achievement(
-            user_id=user.id,
-            code="addition-1digit-bronze",
-            title="Addition 1 Digit Bronze",
-            description="Test",
-            icon="🏆",
-            category="test",
-            session_id=session.id,
-            earned_at=datetime.utcnow(),
-        )
-        achievement2 = Achievement(
-            user_id=user.id,
-            code="addition-1digit-silver",
-            title="Addition 1 Digit Silver",
-            description="Test",
-            icon="🏆",
-            category="test",
-            session_id=session.id,
-            earned_at=datetime.utcnow(),
-        )
-        db.session.add_all([achievement1, achievement2])
-        db.session.commit()
-        
-        # Count achievements by test type
-        count = AchievementQueryService.count_achievements_by_test_type_with_filters(
-            user.id, "addition-1digit"
-        )
-        
-        assert count == 2, "Should return count of 2 for addition-1digit test type"
 

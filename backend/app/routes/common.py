@@ -126,7 +126,6 @@ def reset_all_data():
     - All responses
     - All daily stats
     - All flagged questions
-    - All test attempts
     - All questions
     - All level progression configs
     - All level problem configs
@@ -143,7 +142,6 @@ def reset_all_data():
         PracticeSession,
         Question,
         Response,
-        TestAttempt,
         User,
         db,
     )
@@ -156,7 +154,6 @@ def reset_all_data():
     # Delete all data in proper order to respect foreign key constraints
     with transaction():
         # Delete child records first (order matters for foreign keys)
-        db.session.execute(delete(TestAttempt))
         db.session.execute(delete(DailyStat))
         db.session.execute(delete(FlaggedQuestion))
         db.session.execute(delete(Response))

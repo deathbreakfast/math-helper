@@ -137,7 +137,6 @@ def init_db(app):
                 Question,
                 Response,
                 ServerRecord,
-                TestAttempt,
                 User,
             )
             # Note: db is already imported at module level, don't re-import it
@@ -146,7 +145,6 @@ def init_db(app):
             with transaction():
                 # Delete child records first (order matters for foreign keys)
                 # Delete records that reference User, PracticeSession, or Question first
-                db.session.execute(delete(TestAttempt))
                 db.session.execute(delete(DailyStat))
                 db.session.execute(delete(FlaggedQuestion))
                 db.session.execute(delete(Response))
@@ -164,7 +162,7 @@ def init_db(app):
                 
                 # Reset SQLite sequence counters so IDs start from 1 after wipe
                 try:
-                    db.session.execute(text("DELETE FROM sqlite_sequence WHERE name IN ('practice_sessions', 'users', 'questions', 'responses', 'achievements', 'test_attempts', 'daily_stats', 'flagged_questions', 'server_records', 'level_problem_configs', 'level_progressions')"))
+                    db.session.execute(text("DELETE FROM sqlite_sequence WHERE name IN ('practice_sessions', 'users', 'questions', 'responses', 'achievements', 'daily_stats', 'flagged_questions', 'server_records', 'level_problem_configs', 'level_progressions')"))
                     db.session.commit()
                     logger.info("SQLite sequence counters reset")
                 except Exception as e:

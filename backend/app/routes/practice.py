@@ -8,6 +8,7 @@ from typing import Any
 from flask import Blueprint, jsonify, request
 from sqlalchemy import select
 
+from ..database import transaction
 from ..services.achievement_service import AchievementService
 from ..services.analytics_service import AnalyticsService
 from ..services.practice_service import PracticeService
@@ -368,22 +369,31 @@ def complete_session(session_id: int):
         db.session.commit()
         db.session.flush()
 
-    # Check leveling
-    next_level = user.level + 1
-    can_level_up, missing_achievements = UserService.can_level_up(user, next_level)
-    level_up_result = {
-        "eligible": can_level_up,
-        "missing_achievements": missing_achievements,
-    }
+    # Award XP + update level (XP-based leveling)
+    from ..services.xp_service import XPService
 
-    if can_level_up:
-        success, errors = UserService.level_up(user, next_level)
-        if success:
-            level_up_result["new_level"] = next_level
-            # Refresh user
-            user = UserService.get_user(session.user_id)
-        else:
-            level_up_result["errors"] = errors
+    BASE_XP_PER_CORRECT = 10  # TODO: vary by concept_id per MATH_CONCEPTS.md
+    earned_xp = int(correct_count) * BASE_XP_PER_CORRECT
+    prev_total_xp = int(getattr(user, "experience", 0) or 0)
+    prev_level = int(user.level or 1)
+
+    new_total_xp = prev_total_xp + earned_xp
+    new_level = XPService.level_for_total_xp(new_total_xp)
+
+    with transaction():
+        user.experience = new_total_xp
+        user.level = new_level
+        db.session.add(user)
+
+    level_up_result = {
+        "earned_xp": earned_xp,
+        "previous_total_xp": prev_total_xp,
+        "total_xp": new_total_xp,
+        "previous_level": prev_level,
+        "new_level": new_level,
+        "leveled_up": new_level > prev_level,
+        "xp_progress": XPService.progress_for_total_xp(new_total_xp),
+    }
 
     # User state may have changed (new achievements and/or level). Invalidate cached user
     # so immediate subsequent GET /api/users/<id> returns fresh data.

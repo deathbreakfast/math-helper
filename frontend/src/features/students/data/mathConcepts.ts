@@ -89,8 +89,13 @@ const CONCEPT_DISPLAY_NAMES: Record<number, string> = {
 export function getConceptDisplayNameByConceptId(conceptId: string | undefined | null): string | null {
   if (!conceptId) return null
   const level = legacyLevelFromConceptId(conceptId)
-  if (!level) return null
-  return CONCEPT_DISPLAY_NAMES[level] || null
+  if (level) {
+    return CONCEPT_DISPLAY_NAMES[level] || null
+  }
+
+  // Descriptive concept IDs: look up in the catalog.
+  const match = getAllMathConcepts().find(c => c.conceptId === conceptId)
+  return match?.displayName || null
 }
 
 /**

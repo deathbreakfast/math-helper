@@ -164,6 +164,22 @@ describe('levelRequirementConverters', () => {
       expect(result.requirements[0].description).toContain('(Basic Single Digit Addition)')
     })
 
+    it('should render descriptive concept IDs using catalog display names', () => {
+      const backendRequirements = [
+        {
+          achievement_code: 'test-achievement',
+          order: 1,
+          metadata_filter: {
+            concept_id: 'c_add_1s',
+          },
+        },
+      ]
+
+      const result = convertBackendRequirementsToFrontend(backendRequirements, [], 1, 2)
+
+      expect(result.requirements[0].description).toContain('(Single Digit Addition (1s))')
+    })
+
     it('should add level to description from metadata filter', () => {
       const backendRequirements = [
         {

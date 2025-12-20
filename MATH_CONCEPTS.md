@@ -40,7 +40,7 @@ These are the remaining phases/stages of work, tracked as a checklist. Keep this
   - [x] update session engine to generate questions from concept config directly (not via legacy level config)
   - [ ] ensure constraints from this doc are enforced (no-remainder, multiples, fixed divisor, etc.)
 - [ ] **Unlock requirements fully concept-aware**
-  - [ ] ensure unlock requirements support `quantity` + `metadata_filter` (especially `concept_id`)
+  - [x] ensure unlock requirements support `quantity` + `metadata_filter` (especially `concept_id`)
   - [ ] verify/expand backend endpoints so frontend can show `progress` + `completed` reliably
   - [ ] ensure requirement descriptions render correctly in UI (no legacy “test_type” phrasing)
 - [ ] **Descriptive concept IDs end-to-end**

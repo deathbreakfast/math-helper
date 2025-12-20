@@ -22,12 +22,23 @@ export type LearnerAchievement = {
   metadata?: Record<string, any>  // Achievement metadata (level, test_type, etc.)
 }
 
+export type XpProgress = {
+  level: number
+  total_xp: number
+  current_level_total_xp: number
+  next_level_total_xp: number | null
+  xp_into_level: number
+  xp_to_next_level: number | null
+}
+
 export type Learner = {
   id: string
   name: string
   avatar: string
   // PIN is not included for security - use /api/users/<id>/verify-pin endpoint
   level: number
+  experience: number
+  xp_progress?: XpProgress
   questionsAnswered: number
   weeklyGain?: number
   averageSpeed: number
@@ -46,6 +57,8 @@ export type ApiLearner = {
   avatar: string
   // PIN is not included in API responses for security
   level: number
+  experience?: number
+  xp_progress?: XpProgress
   questionsAnswered?: number
   weeklyGain?: number
   averageSpeed?: number

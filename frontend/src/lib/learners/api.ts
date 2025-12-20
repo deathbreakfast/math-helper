@@ -26,6 +26,8 @@ export const mapApiLearner = (payload: ApiLearner): Learner => ({
   avatar: payload.avatar || AVATAR_OPTIONS[0],
   // PIN is not included in API responses for security
   level: payload.level ?? 1,
+  experience: payload.experience ?? 0,
+  xp_progress: payload.xp_progress,
   questionsAnswered: payload.questionsAnswered ?? 0,
   weeklyGain: payload.weeklyGain ?? 0,
   averageSpeed: payload.averageSpeed ?? 0,

@@ -78,81 +78,6 @@ export const practiceHandlers = [
   }),
 ]
 
-// Tests API handlers
-export const testsHandlers = [
-  // Get test definitions
-  http.get('/api/tests/definitions', async ({ request }) => {
-    const url = new URL(request.url)
-    const userId = url.searchParams.get('user_id')
-    
-    return HttpResponse.json({
-      definitions: [
-        {
-          test_type: 'addition-basics',
-          display_name: 'Addition Basics',
-          operation: 'addition',
-          level_requirement: 1,
-          question_count: 10,
-          constraints: {},
-          unlock_status: {
-            is_unlocked: true,
-            requirements_met: 1,
-            requirements_total: 1,
-          },
-        },
-      ],
-    })
-  }),
-
-  // Get test attempts
-  http.get('/api/tests/attempts', async ({ request }) => {
-    const url = new URL(request.url)
-    const userId = url.searchParams.get('user_id')
-    
-    return HttpResponse.json({
-      attempts: [
-        {
-          id: 1,
-          test_type: 'addition-basics',
-          tier: 'Gold',
-          accuracy: 100,
-          attempted_at: new Date().toISOString(),
-        },
-      ],
-    })
-  }),
-
-  // Get test attempts for specific test type
-  http.get('/api/tests/:testType/attempts', async ({ params, request }) => {
-    const url = new URL(request.url)
-    const userId = url.searchParams.get('user_id')
-    
-    return HttpResponse.json({
-      attempts: [
-        {
-          id: 1,
-          test_type: params.testType,
-          tier: 'Gold',
-          accuracy: 100,
-          attempted_at: new Date().toISOString(),
-        },
-      ],
-    })
-  }),
-
-  // Get test attempt detail
-  http.get('/api/tests/attempts/:attemptId/details', async ({ params }) => {
-    return HttpResponse.json({
-      id: parseInt(params.attemptId as string),
-      test_type: 'addition-basics',
-      tier: 'Gold',
-      accuracy: 100,
-      attempted_at: new Date().toISOString(),
-      questions: [],
-    })
-  }),
-]
-
 // Users/Learners API handlers
 export const usersHandlers = [
   // Get all users
@@ -261,7 +186,6 @@ export const usersHandlers = [
 // Combine all handlers
 export const handlers = [
   ...practiceHandlers,
-  ...testsHandlers,
   ...usersHandlers,
 ]
 

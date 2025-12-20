@@ -80,22 +80,6 @@ describe('usePracticeAPI', () => {
       expect(result.sessionMode).toBe('division')
     })
 
-    it('should handle test mode from URL params', async () => {
-      const searchParams = new URLSearchParams()
-      searchParams.set('isTest', 'true')
-      searchParams.set('testType', 'addition-1digit')
-
-      const params: StartSessionParams = {
-        selectedUser: mockUser,
-        practiceMode: 'standard',
-        searchParams,
-      }
-
-      const result = await startSession(params)
-
-      expect(result.sessionState).toBeDefined()
-    })
-
     it('should handle API errors', async () => {
       server.use(
         http.post('/api/practice/sessions/start', () => {

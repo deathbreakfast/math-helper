@@ -2,6 +2,7 @@ import React from 'react'
 import { motion } from 'framer-motion'
 import { Lock, Play, Eye } from 'lucide-react'
 import type { MathConcept } from '../../data/mathConcepts'
+import { getConceptXpPerCorrect } from '../../data/conceptXp'
 
 type MathConceptCardProps = {
   concept: MathConcept
@@ -20,6 +21,7 @@ export const MathConceptCard: React.FC<MathConceptCardProps> = ({
 }) => {
   const isLocked = concept.isLocked
   const hasAttempts = concept.attemptCount > 0
+  const xpPerCorrect = getConceptXpPerCorrect(concept.conceptId)
 
   return (
     <motion.div
@@ -66,6 +68,16 @@ export const MathConceptCard: React.FC<MathConceptCardProps> = ({
       <div className="mb-3 inline-block rounded-full bg-gray-200 px-3 py-1 text-xs font-medium text-gray-700 capitalize">
         {concept.operation}
       </div>
+
+      {/* XP per correct */}
+      {xpPerCorrect !== null && (
+        <div
+          className={`mb-3 text-xs font-semibold ${isLocked ? 'text-gray-400' : 'text-gray-600'}`}
+          data-testid="testid-concept-xp-per-correct"
+        >
+          XP: {xpPerCorrect} per correct
+        </div>
+      )}
 
       {/* Unlock Requirements */}
       {concept.unlockRequirements.length > 0 && (

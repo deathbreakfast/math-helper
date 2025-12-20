@@ -1,0 +1,61 @@
+/**
+ * Concept XP values (XP per correct answer).
+ *
+ * For now this supports legacy `c_concept_###` IDs (1-45), sourced from `MATH_CONCEPTS.md`.
+ * Descriptive concept IDs (e.g. `c_add_1s`) will be supported once the frontend concept
+ * catalog is driven from the doc/config instead of placeholder level mapping.
+ */
+
+export const CONCEPT_XP_PER_CORRECT: Record<string, number> = {
+  c_concept_001: 97,
+  c_concept_002: 42,
+  c_concept_003: 177,
+  c_concept_004: 117,
+  c_concept_005: 102,
+  c_concept_006: 182,
+  c_concept_007: 107,
+  c_concept_008: 187,
+  c_concept_009: 197,
+  c_concept_010: 202,
+  c_concept_011: 212,
+  c_concept_012: 227,
+  c_concept_013: 222,
+  c_concept_014: 242,
+  c_concept_015: 247,
+  c_concept_016: 252,
+  c_concept_017: 257,
+  c_concept_018: 207,
+  c_concept_019: 217,
+  c_concept_020: 232,
+  c_concept_021: 237,
+  c_concept_022: 112,
+  c_concept_023: 192,
+  c_concept_024: 262,
+  c_concept_025: 267,
+  c_concept_026: 277,
+  c_concept_027: 282,
+  c_concept_028: 297,
+  c_concept_029: 302,
+  c_concept_030: 307,
+  c_concept_031: 312,
+  c_concept_032: 317,
+  c_concept_033: 322,
+  c_concept_034: 327,
+  c_concept_035: 287,
+  c_concept_036: 332,
+  c_concept_037: 337,
+  c_concept_038: 292,
+  c_concept_039: 342,
+  c_concept_040: 347,
+  c_concept_041: 352,
+  c_concept_042: 357,
+  c_concept_043: 272,
+  c_concept_044: 362,
+  c_concept_045: 367,
+}
+
+export function getConceptXpPerCorrect(conceptId: string | undefined | null): number | null {
+  if (!conceptId) return null
+  return CONCEPT_XP_PER_CORRECT[conceptId] ?? null
+}
+

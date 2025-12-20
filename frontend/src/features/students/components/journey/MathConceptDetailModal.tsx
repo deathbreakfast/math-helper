@@ -8,6 +8,7 @@ import PINVerificationModal from '../../modals/PINVerificationModal'
 import type { User } from '../../hooks/useLearners'
 import { logError } from '../../../../utils/logger'
 import { getConceptAttempts, getConceptAttemptDetail, type ConceptAttempt, type ConceptAttemptDetail } from '../../hooks/useConceptAttempts'
+import { getConceptXpPerCorrect } from '../../data/conceptXp'
 
 type MathConceptDetailModalProps = {
   concept: MathConcept | null
@@ -29,6 +30,7 @@ export const MathConceptDetailModal: React.FC<MathConceptDetailModalProps> = ({
   const [isPinModalOpen, setIsPinModalOpen] = useState(false)
   const navigate = useNavigate()
   const params = useParams<{ userId?: string }>()
+  const xpPerCorrect = concept ? getConceptXpPerCorrect(concept.conceptId) : null
   
   const handleAchievementClick = (achievementCode: string) => {
     if (params.userId) {
@@ -148,6 +150,11 @@ export const MathConceptDetailModal: React.FC<MathConceptDetailModalProps> = ({
                     <div>
                       <span className="font-medium">Operation:</span> {concept.operation}
                     </div>
+                    {xpPerCorrect !== null && (
+                      <div data-testid="testid-concept-detail-xp">
+                        <span className="font-medium">XP:</span> {xpPerCorrect} per correct answer
+                      </div>
+                    )}
                     {concept.unlockRequirements.length > 0 && (
                       <div className="mt-3 rounded-lg border border-gray-200 bg-white p-3">
                         <div className="mb-2 font-semibold text-gray-900">Unlock Requirements</div>

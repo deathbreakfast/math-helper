@@ -12,7 +12,6 @@ from sqlalchemy.orm import joinedload
 
 from ....database import log_query
 from ....models import Achievement, PracticeSession, Question, Response, db
-from ..achievement_validators.tier_validator import TierValidator
 
 
 class AchievementQueryService:
@@ -30,9 +29,6 @@ class AchievementQueryService:
         Returns:
             List of achievements for the user, ordered by earned_at DESC
         """
-        # Validate and cleanup any incorrectly awarded tier achievements
-        TierValidator.validate_and_cleanup_tier_achievements(user_id)
-        
         query = Achievement.query.filter_by(user_id=user_id).order_by(Achievement.earned_at.desc())
 
         if limit:
@@ -70,9 +66,6 @@ class AchievementQueryService:
         Returns:
             List of achievements with the given code for the user, ordered by earned_at DESC
         """
-        # Validate and cleanup any incorrectly awarded tier achievements
-        TierValidator.validate_and_cleanup_tier_achievements(user_id)
-
         return (
             Achievement.query.filter_by(user_id=user_id, code=achievement_code)
             .order_by(Achievement.earned_at.desc())
@@ -99,10 +92,6 @@ class AchievementQueryService:
             List of Achievement objects, ordered by earned_at DESC (most recent first)
             Uses indexed earned_at column for optimal performance
         """
-        # Validate and cleanup any incorrectly awarded tier achievements
-        if user_id:
-            TierValidator.validate_and_cleanup_tier_achievements(user_id)
-        
         # Use JOIN with User table if we need user names (for all-users queries)
         # Use joinedload to eager load user relationship in a single query (avoids N+1)
         if include_user_name and not user_id:

@@ -330,21 +330,8 @@ class AchievementService:
     @staticmethod
     @log_query
     def validate_and_cleanup_tier_achievements(user_id: int) -> int:
-        """Validate tiered test achievements and remove ones that don't meet requirements.
-        
-        This is a cleanup function to remove incorrectly awarded achievements from before
-        the validation was properly implemented.
-        
-        Args:
-            user_id: The user ID to validate achievements for
-            
-        Returns:
-            Number of achievements removed
-        """
-        from .achievements.achievement_validators.tier_validator import TierValidator
-        
-        validator = TierValidator()
-        return validator.validate(user_id)
+        """Deprecated: tiered test achievements are no longer supported."""
+        return 0
 
     # Test achievement methods removed - test achievements are no longer used
 

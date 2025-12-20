@@ -43,7 +43,7 @@ These are the remaining phases/stages of work, tracked as a checklist. Keep this
   - [x] ensure unlock requirements support `quantity` + `metadata_filter` (especially `concept_id`)
   - [x] verify/expand backend endpoints so frontend can show `progress` + `completed` reliably
   - [x] ensure requirement descriptions render correctly in UI (no legacy “test_type” phrasing)
-- [ ] **Descriptive concept IDs end-to-end**
+- [x] **Descriptive concept IDs end-to-end**
   - [x] support non-legacy ids (e.g. `c_add_1s`) through: catalog → practice start → session engine → XP lookup → attempt history
   - [x] remove remaining assumptions that `concept_id` implies a legacy `level`
 - [ ] **Doc-format parity / UI polish**

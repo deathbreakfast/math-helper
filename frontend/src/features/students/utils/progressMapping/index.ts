@@ -10,6 +10,15 @@ export type UserProgressData = {
   name: string
   avatar: string
   level: number
+  experience: number
+  xp_progress?: {
+    level: number
+    total_xp: number
+    current_level_total_xp: number
+    next_level_total_xp: number | null
+    xp_into_level: number
+    xp_to_next_level: number | null
+  }
   currentStreak: number
   bestStreak: number
   fastestSession: number
@@ -112,6 +121,8 @@ export const mapUserToProgressData = (
     name: user.name,
     avatar: user.avatar,
     level: user.level,
+    experience: user.experience ?? 0,
+    xp_progress: user.xp_progress,
     currentStreak: user.stats.currentStreak,
     bestStreak: user.stats.bestStreak,
     fastestSession: 0, // Would come from actual session data

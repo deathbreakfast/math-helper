@@ -150,6 +150,16 @@ export const MathConceptDetailModal: React.FC<MathConceptDetailModalProps> = ({
                     <div>
                       <span className="font-medium">Operation:</span> {concept.operation}
                     </div>
+                    {concept.layoutType && (
+                      <div data-testid="testid-concept-detail-layout">
+                        <span className="font-medium">Layout:</span> {concept.layoutType}
+                      </div>
+                    )}
+                    {concept.answerFormat && (
+                      <div data-testid="testid-concept-detail-answer-format">
+                        <span className="font-medium">Answer Format:</span> {concept.answerFormat}
+                      </div>
+                    )}
                     {xpPerCorrect !== null && (
                       <div data-testid="testid-concept-detail-xp">
                         <span className="font-medium">XP:</span> {xpPerCorrect} per correct answer

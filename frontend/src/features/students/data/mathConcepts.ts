@@ -24,6 +24,8 @@ export type MathConcept = {
   displayName: string // User-friendly name like "Basic Single Digit Addition"
   legacyLevel: number // The level number this concept maps to (1:1 for now) - internal use only
   operation: string // addition, subtraction, multiplication, division
+  layoutType?: string // vertical, longDivision, partialProducts, etc.
+  answerFormat?: string // integer, remainder, fraction, decimal, mixed
   unlockRequirements: MathConceptUnlockRequirement[]
   isLocked: boolean
   attemptCount: number
@@ -104,6 +106,157 @@ function generateDisplayName(level: number, operation: string): string {
   return operationNames[operation] || operation
 }
 
+const CONCEPT_OPERATION_BY_LEVEL: Record<number, string> = {
+  1: 'addition',
+  2: 'addition',
+  3: 'subtraction',
+  4: 'subtraction',
+  5: 'addition',
+  6: 'subtraction',
+  7: 'addition',
+  8: 'subtraction',
+  9: 'subtraction',
+  10: 'subtraction',
+  11: 'multiplication',
+  12: 'multiplication',
+  13: 'multiplication',
+  14: 'multiplication',
+  15: 'multiplication',
+  16: 'multiplication',
+  17: 'multiplication',
+  18: 'multiplication',
+  19: 'multiplication',
+  20: 'multiplication',
+  21: 'multiplication',
+  22: 'addition',
+  23: 'subtraction',
+  24: 'multiplication',
+  25: 'multiplication',
+  26: 'division',
+  27: 'division',
+  28: 'division',
+  29: 'division',
+  30: 'division',
+  31: 'division',
+  32: 'division',
+  33: 'division',
+  34: 'division',
+  35: 'division',
+  36: 'division',
+  37: 'division',
+  38: 'division',
+  39: 'division',
+  40: 'division',
+  41: 'division',
+  42: 'division',
+  43: 'multiplication',
+  44: 'division',
+  45: 'division',
+}
+
+const CONCEPT_LAYOUT_BY_LEVEL: Record<number, string> = {
+  // Most arithmetic concepts
+  1: 'vertical',
+  2: 'vertical',
+  3: 'vertical',
+  4: 'vertical',
+  5: 'vertical',
+  6: 'vertical',
+  7: 'vertical',
+  8: 'vertical',
+  9: 'vertical',
+  10: 'vertical',
+  11: 'vertical',
+  12: 'vertical',
+  13: 'vertical',
+  14: 'vertical',
+  15: 'vertical',
+  16: 'vertical',
+  17: 'vertical',
+  18: 'vertical',
+  19: 'vertical',
+  20: 'vertical',
+  21: 'vertical',
+  22: 'vertical',
+  23: 'vertical',
+
+  // Partial products multiplication concepts
+  24: 'partialProducts',
+  25: 'partialProducts',
+  43: 'partialProducts',
+
+  // Division concepts
+  26: 'longDivision',
+  27: 'longDivision',
+  28: 'longDivision',
+  29: 'longDivision',
+  30: 'longDivision',
+  31: 'longDivision',
+  32: 'longDivision',
+  33: 'longDivision',
+  34: 'longDivision',
+  35: 'longDivision',
+  36: 'longDivision',
+  37: 'longDivision',
+  38: 'longDivision',
+  39: 'longDivision',
+  40: 'longDivision',
+  41: 'longDivision',
+  42: 'longDivision',
+  44: 'longDivision',
+  45: 'longDivision',
+}
+
+const CONCEPT_ANSWER_FORMAT_BY_LEVEL: Record<number, string> = {
+  // Defaults
+  1: 'integer',
+  2: 'integer',
+  3: 'integer',
+  4: 'integer',
+  5: 'integer',
+  6: 'integer',
+  7: 'integer',
+  8: 'integer',
+  9: 'integer',
+  10: 'integer',
+  11: 'integer',
+  12: 'integer',
+  13: 'integer',
+  14: 'integer',
+  15: 'integer',
+  16: 'integer',
+  17: 'integer',
+  18: 'integer',
+  19: 'integer',
+  20: 'integer',
+  21: 'integer',
+  22: 'integer',
+  23: 'integer',
+  24: 'integer',
+  25: 'integer',
+  26: 'integer',
+  27: 'integer',
+  28: 'integer',
+  29: 'integer',
+  30: 'integer',
+  31: 'integer',
+  32: 'integer',
+  33: 'integer',
+  34: 'integer',
+  35: 'integer',
+  36: 'integer',
+  37: 'integer',
+  38: 'integer',
+  // Special answer formats from doc
+  39: 'remainder',
+  40: 'remainder',
+  41: 'fraction',
+  42: 'fraction',
+  43: 'integer',
+  44: 'fraction',
+  45: 'decimal',
+}
+
 /**
  * Create a math concept from a level number
  * This is a 1:1 mapping initially - each level becomes a concept
@@ -121,6 +274,8 @@ export function createConceptFromLevel(
     displayName: generateDisplayName(level, operation),
     legacyLevel: level, // Keep for internal mapping/backward compatibility
     operation,
+    layoutType: CONCEPT_LAYOUT_BY_LEVEL[level],
+    answerFormat: CONCEPT_ANSWER_FORMAT_BY_LEVEL[level],
     unlockRequirements,
     isLocked,
     attemptCount,
@@ -132,24 +287,12 @@ export function createConceptFromLevel(
  * This will be replaced with a proper data source later
  */
 export function getAllMathConcepts(): MathConcept[] {
-  // For now, return placeholder concepts for levels 1-45
-  // In the future, this should read from a config file or API
   const concepts: MathConcept[] = []
-  
-  // Basic mapping: levels 1-4 are addition/subtraction, then it varies
-  // This is a simplified version - should be enhanced to read from level config
-  const levelOperations: Record<number, string> = {
-    1: 'addition',
-    2: 'addition',
-    3: 'subtraction',
-    4: 'subtraction',
-  }
-  
+
   for (let level = 1; level <= 45; level++) {
-    const operation = levelOperations[level] || 
-      (level <= 20 ? 'addition' : level <= 30 ? 'subtraction' : level <= 40 ? 'multiplication' : 'division')
+    const operation = CONCEPT_OPERATION_BY_LEVEL[level] || 'addition'
     concepts.push(createConceptFromLevel(level, operation))
   }
-  
+
   return concepts
 }

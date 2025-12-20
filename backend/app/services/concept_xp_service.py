@@ -8,8 +8,8 @@ from ..config.concept_xp import CONCEPT_XP_PER_CORRECT
 class ConceptXPService:
     """Simple concept XP lookup.
 
-    Eventually this should be driven by the backend concept catalog (descriptive IDs),
-    but for now we support legacy `c_concept_###` concepts.
+    Backed by `CONCEPT_XP_PER_CORRECT` which includes both legacy `c_concept_###` and
+    descriptive concept IDs (e.g. `c_add_1s`).
     """
 
     DEFAULT_XP_PER_CORRECT = 10

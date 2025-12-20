@@ -45,7 +45,7 @@ These are the remaining phases/stages of work, tracked as a checklist. Keep this
   - [x] ensure requirement descriptions render correctly in UI (no legacy “test_type” phrasing)
 - [ ] **Descriptive concept IDs end-to-end**
   - [x] support non-legacy ids (e.g. `c_add_1s`) through: catalog → practice start → session engine → XP lookup → attempt history
-  - [ ] remove remaining assumptions that `concept_id` implies a legacy `level`
+  - [x] remove remaining assumptions that `concept_id` implies a legacy `level`
 - [ ] **Doc-format parity / UI polish**
   - [ ] Summary: show Concept Name and Achievement Name + Tier in the XP breakdown (not just raw codes/ids)
   - [ ] ensure tier naming/casing is consistent across the app

@@ -77,6 +77,9 @@ export const CONCEPT_XP_PER_CORRECT: Record<string, number> = {
   c_sub_8s: 162,
   c_sub_9s: 167,
   c_sub_10s: 172,
+
+  c_mul_2s: 215,
+  c_mul_3s: 220,
 }
 
 export function getConceptXpPerCorrect(conceptId: string | undefined | null): number | null {

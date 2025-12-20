@@ -80,5 +80,9 @@ CONCEPT_XP_PER_CORRECT: dict[str, int] = {
     "c_sub_8s": 162,
     "c_sub_9s": 167,
     "c_sub_10s": 172,
+
+    # Descriptive multiplication concepts
+    "c_mul_2s": 215,
+    "c_mul_3s": 220,
 }
 

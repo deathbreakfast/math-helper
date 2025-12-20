@@ -365,5 +365,26 @@ export function getAllMathConcepts(): MathConcept[] {
     })
   }
 
+  const mulFixed = [
+    { id: 'c_mul_2s', name: 'Multiplication by 2', multiplier: 2 },
+    { id: 'c_mul_3s', name: 'Multiplication by 3', multiplier: 3 },
+  ]
+
+  for (const c of mulFixed) {
+    concepts.push({
+      id: `concept-${c.id}`,
+      conceptId: c.id,
+      displayName: c.name,
+      legacyLevel: 0,
+      category: 'Multiplication',
+      operation: 'multiplication',
+      layoutType: 'vertical',
+      answerFormat: 'integer',
+      unlockRequirements: [],
+      isLocked: false,
+      attemptCount: 0,
+    })
+  }
+
   return concepts
 }

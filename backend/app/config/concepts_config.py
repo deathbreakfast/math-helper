@@ -68,6 +68,25 @@ CONCEPTS_CONFIG.update(
     }
 )
 
+# Multiplication by N: operand2 fixed N, operand1 1-12
+def _multiplication_table(multiplier: int) -> dict[str, Any]:
+    return {
+        "operation": "multiplication",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": multiplier, "max": multiplier},
+        "constraints": {"fixed_operand2": multiplier},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+    }
+
+
+CONCEPTS_CONFIG.update(
+    {
+        "c_mul_2s": {**_multiplication_table(2)},
+        "c_mul_3s": {**_multiplication_table(3)},
+    }
+)
+
 # Single Digit Subtraction (Ns): operand2 fixed to N, operand1 range ensures answer >= 1
 def _subtraction_fixed_subtrahend(subtrahend: int, op1_min: int, op1_max: int) -> dict[str, Any]:
     return {

@@ -100,5 +100,15 @@ CONCEPT_UNLOCK_REQUIREMENTS: dict[str, list[ConceptRequirement]] = {
         {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_sub_9s"}, "order": 1},
         {"achievement_code": "level-master-silver", "quantity": 1, "metadata_filter": {"concept_id": "c_add_10s"}, "order": 2},
     ],
+
+    # Multiplication by 2/3
+    "c_mul_2s": [
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_011"}, "order": 1},
+        {"achievement_code": "speed-demon-gold", "quantity": 2, "order": 2},
+    ],
+    "c_mul_3s": [
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_mul_2s"}, "order": 1},
+        {"achievement_code": "speed-demon-platinum", "quantity": 1, "order": 2},
+    ],
 }
 

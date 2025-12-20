@@ -38,7 +38,7 @@ These are the remaining phases/stages of work, tracked as a checklist. Keep this
 - [ ] **Backend concept configuration as source of truth for question generation**
   - [x] add concept configs (operation, operand ranges, constraints, layout, answer formats, special rules) keyed by `concept_id`
   - [x] update session engine to generate questions from concept config directly (not via legacy level config)
-  - [ ] ensure constraints from this doc are enforced (no-remainder, multiples, fixed divisor, etc.)
+  - [x] ensure constraints from this doc are enforced (no-remainder, multiples, fixed divisor, etc.)
 - [ ] **Unlock requirements fully concept-aware**
   - [x] ensure unlock requirements support `quantity` + `metadata_filter` (especially `concept_id`)
   - [ ] verify/expand backend endpoints so frontend can show `progress` + `completed` reliably

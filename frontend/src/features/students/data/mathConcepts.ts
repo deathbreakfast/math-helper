@@ -23,6 +23,7 @@ export type MathConcept = {
   conceptId: string // Stable identifier like "c_concept_001" (new format) or "c_add_1s" (descriptive)
   displayName: string // User-friendly name like "Basic Single Digit Addition"
   legacyLevel: number // The level number this concept maps to (1:1 for now) - internal use only
+  category: string // Addition, Subtraction, Multiplication, Division
   operation: string // addition, subtraction, multiplication, division
   layoutType?: string // vertical, longDivision, partialProducts, etc.
   answerFormat?: string // integer, remainder, fraction, decimal, mixed
@@ -268,11 +269,13 @@ export function createConceptFromLevel(
   isLocked: boolean = false,
   attemptCount: number = 0
 ): MathConcept {
+  const category = operation.charAt(0).toUpperCase() + operation.slice(1)
   return {
     id: `concept-${level}`,
     conceptId: conceptIdFromLegacyLevel(level), // Use new format: c_concept_001, c_concept_002, etc.
     displayName: generateDisplayName(level, operation),
     legacyLevel: level, // Keep for internal mapping/backward compatibility
+    category,
     operation,
     layoutType: CONCEPT_LAYOUT_BY_LEVEL[level],
     answerFormat: CONCEPT_ANSWER_FORMAT_BY_LEVEL[level],

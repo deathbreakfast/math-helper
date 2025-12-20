@@ -21,11 +21,6 @@ const PracticeSessionPage = () => {
   const nextButtonRef = useRef<HTMLButtonElement | null>(null)
 
   const { selectedUser, practiceMode } = usePracticeRouting(learners)
-  
-  // Detect test mode from URL params
-  const testType = searchParams.get('testType')
-  const isTestParam = searchParams.get('isTest')
-  const isTest = isTestParam === 'true' && testType !== null
 
   const {
     problems,
@@ -112,7 +107,6 @@ const PracticeSessionPage = () => {
           cardCounterDisplay={cardCounterDisplay}
           currentQuestion={currentQuestion}
           progressPercent={progressPercent}
-          isTest={isTest}
         />
 
         {currentQuestion && (

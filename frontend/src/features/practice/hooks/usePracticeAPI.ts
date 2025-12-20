@@ -62,11 +62,6 @@ export type CompleteSessionResult = {
 export async function startSession(params: StartSessionParams): Promise<StartSessionResult> {
   const { selectedUser, practiceMode, searchParams } = params
 
-  // Check URL parameters for test type
-  const testType = searchParams.get('testType')
-  const isTestParam = searchParams.get('isTest')
-  const isTest = isTestParam === 'true' && testType !== null
-
   // Check URL parameters for concept
   const conceptId = searchParams.get('conceptId')
   const isConceptParam = searchParams.get('isConcept')
@@ -91,16 +86,11 @@ export async function startSession(params: StartSessionParams): Promise<StartSes
   const requestBody: any = {
     user_id: parseInt(selectedUser.id),
     mode,
-    is_test: isTest,
   }
   
   // Only include level if not doing concept practice
   if (level !== undefined) {
     requestBody.level = level
-  }
-
-  if (isTest && testType) {
-    requestBody.test_type = testType
   }
 
   if (isConcept && conceptId) {

@@ -7,7 +7,6 @@ type PracticeHeaderProps = {
   cardCounterDisplay: string
   currentQuestion?: PracticeQuestion
   progressPercent: number
-  isTest?: boolean
 }
 
 const PracticeHeader = ({
@@ -15,7 +14,6 @@ const PracticeHeader = ({
   cardCounterDisplay,
   currentQuestion,
   progressPercent,
-  isTest = false,
 }: PracticeHeaderProps) => {
   const learnerLabel = selectedUser
     ? `${selectedUser.name} • Level ${selectedUser.level ?? 1}`
@@ -38,7 +36,7 @@ const PracticeHeader = ({
               Dashboard
             </a>
             <div>
-              <h1 className="text-3xl font-bold text-slate-900">{isTest ? 'Math Test' : 'Math Practice'}</h1>
+              <h1 className="text-3xl font-bold text-slate-900">Math Practice</h1>
               <p className="text-base text-slate-600">{learnerLabel}</p>
             </div>
           </div>

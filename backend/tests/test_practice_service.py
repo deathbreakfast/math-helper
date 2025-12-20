@@ -980,25 +980,25 @@ class TestPracticeService:
             session1 = PracticeService.create_session(
                 user_id=test_user.id,
                 mode="standard",
-                concept_id="c_level_1"
+                concept_id="c_concept_001"
             )
             session2 = PracticeService.create_session(
                 user_id=test_user.id,
                 mode="standard",
-                concept_id="c_level_3"
+                concept_id="c_concept_003"
             )
             
             # Get incomplete session with concept_id filter
             result, count, _ = PracticeService.get_incomplete_session(
                 test_user.id, 
                 mode="standard",
-                concept_id="c_level_1"
+                concept_id="c_concept_001"
             )
             
             # Should return the session with matching concept_id
             assert result is not None
             assert result.id == session1.id
-            assert result.concept_id == "c_level_1"
+            assert result.concept_id == "c_concept_001"
 
     def test_get_oldest_incomplete_session(self, app, test_user):
         """Test get_oldest_incomplete_session returns oldest session."""
@@ -1009,7 +1009,7 @@ class TestPracticeService:
             session1 = PracticeService.create_session(
                 user_id=test_user.id,
                 mode="standard",
-                concept_id="c_level_1"
+                concept_id="c_concept_001"
             )
             db.session.add(session1)
             db.session.commit()
@@ -1021,7 +1021,7 @@ class TestPracticeService:
             session2 = PracticeService.create_session(
                 user_id=test_user.id,
                 mode="standard",
-                concept_id="c_level_3"
+                concept_id="c_concept_003"
             )
             db.session.add(session2)
             db.session.commit()

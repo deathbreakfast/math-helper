@@ -52,10 +52,11 @@ export function useMathConcepts({ userData, isActive, userId }: UseMathConceptsO
       if (backendReqs.length > 0 && userData.id) {
         // Convert backend requirements to frontend format
         // We need user achievements for this - get from userData
+        // Include metadata from achievements if available (for filtering stage/concept achievements)
         const userBackendAchievements = userAchievements.map(ach => ({
           code: ach.id,
           title: ach.title,
-          metadata: {},
+          metadata: ach.metadata || {}, // Pass through metadata for filtering
         }))
         
         const frontendReq = convertBackendRequirementsToFrontend(

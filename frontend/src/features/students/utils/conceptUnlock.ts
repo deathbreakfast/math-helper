@@ -40,23 +40,27 @@ export function evaluateConceptUnlock(
   }
 
   // Evaluate each requirement
+  // Requirements already have completed/progress calculated by convertBackendRequirementsToFrontend
+  // which handles quantities and metadata filters. We just need to check the completed status.
   let metCount = 0
   const evaluatedRequirements = concept.unlockRequirements.map((req) => {
-    let completed = false
+    // Use the already-calculated completed status if available
+    // Otherwise fall back to simple checks for backward compatibility
+    let completed = req.completed ?? false
 
-    if (req.achievementIds && req.achievementIds.length > 0) {
-      // Check if user has all required achievements
+    if (!completed && req.progress !== undefined && req.maxProgress !== undefined) {
+      // Progress-based requirement: check if progress meets threshold
+      completed = (req.progress || 0) >= (req.maxProgress || 0)
+    } else if (!completed && req.achievementIds && req.achievementIds.length > 0) {
+      // Fallback: Check if user has all required achievements (simple check, no quantities/metadata)
       completed = req.achievementIds.every((achId) =>
         userAchievements.some((ach) => ach.id === achId && ach.unlockedAt !== null)
       )
-    } else if (req.achievementCode) {
-      // Check by achievement code
+    } else if (!completed && req.achievementCode) {
+      // Fallback: Check by achievement code (simple check, no quantities/metadata)
       completed = userAchievements.some(
         (ach) => ach.id === req.achievementCode && ach.unlockedAt !== null
       )
-    } else if (req.progress !== undefined && req.maxProgress !== undefined) {
-      // Progress-based requirement
-      completed = (req.progress || 0) >= (req.maxProgress || 0)
     }
 
     if (completed) {
@@ -69,7 +73,8 @@ export function evaluateConceptUnlock(
     }
   })
 
-  const isUnlocked = metCount === concept.unlockRequirements.length
+  // Concept is unlocked when ALL requirements are met (order is display-only)
+  const isUnlocked = metCount === concept.unlockRequirements.length && concept.unlockRequirements.length > 0
 
   return {
     isUnlocked,

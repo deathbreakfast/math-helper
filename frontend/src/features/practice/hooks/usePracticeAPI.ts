@@ -2,6 +2,7 @@ import { logError } from '../../../utils/logger'
 import type { User, PracticeAttempt } from '../types'
 import { reconstructSessionStateFromResponse } from '../utils/sessionReconstruction'
 import type { ReconstructedSessionState } from '../utils/sessionReconstruction'
+import { legacyLevelFromConceptId } from '../../students/utils/conceptIdUtils'
 
 export type PracticeMode = 'standard' | 'multiplication' | 'division'
 
@@ -76,17 +77,14 @@ export async function startSession(params: StartSessionParams): Promise<StartSes
   // Determine mode and test type
   const mode = practiceMode === 'multiplication' ? 'multiplication' : practiceMode === 'division' ? 'division' : 'standard'
   
-  // For concepts, extract level from conceptId (e.g., "c_level_1" -> 1)
+  // For concepts, don't pass level - backend will derive it from concept_id
   // Otherwise use user's level
-  let level = selectedUser.level ?? 1
+  let level: number | undefined = selectedUser.level ?? 1
   if (isConcept && conceptId) {
-    const levelMatch = conceptId.match(/c_level_(\d+)/)
-    if (levelMatch) {
-      level = parseInt(levelMatch[1], 10)
-      console.log(`[Practice] Starting concept practice: conceptId=${conceptId}, extracted level=${level}`)
-    } else {
-      console.warn(`[Practice] Failed to extract level from conceptId: ${conceptId}`)
-    }
+    // For concept practice, don't send level - backend will extract it from concept_id
+    // This allows backend to use concept-based question generation
+    level = undefined
+    console.log(`[Practice] Starting concept practice: conceptId=${conceptId}`)
   }
 
   // Call start endpoint - it handles both new and existing incomplete sessions
@@ -94,7 +92,11 @@ export async function startSession(params: StartSessionParams): Promise<StartSes
     user_id: parseInt(selectedUser.id),
     mode,
     is_test: isTest,
-    level,
+  }
+  
+  // Only include level if not doing concept practice
+  if (level !== undefined) {
+    requestBody.level = level
   }
 
   if (isTest && testType) {

@@ -3,6 +3,8 @@
  * Each concept has independent unlock requirements and can be practiced in any order.
  */
 
+import { conceptIdFromLegacyLevel } from '../utils/conceptIdUtils'
+
 export type MathConceptUnlockRequirement = {
   description: string
   achievementIds?: string[]
@@ -18,9 +20,9 @@ export type MathConceptUnlockRequirement = {
 
 export type MathConcept = {
   id: string
-  conceptId: string // Stable identifier like "c_level_1"
+  conceptId: string // Stable identifier like "c_concept_001" (new format) or "c_add_1s" (descriptive)
   displayName: string // User-friendly name like "Basic Single Digit Addition"
-  legacyLevel: number // The level number this concept maps to (1:1 for now)
+  legacyLevel: number // The level number this concept maps to (1:1 for now) - internal use only
   operation: string // addition, subtraction, multiplication, division
   unlockRequirements: MathConceptUnlockRequirement[]
   isLocked: boolean
@@ -115,9 +117,9 @@ export function createConceptFromLevel(
 ): MathConcept {
   return {
     id: `concept-${level}`,
-    conceptId: `c_level_${level}`,
+    conceptId: conceptIdFromLegacyLevel(level), // Use new format: c_concept_001, c_concept_002, etc.
     displayName: generateDisplayName(level, operation),
-    legacyLevel: level,
+    legacyLevel: level, // Keep for internal mapping/backward compatibility
     operation,
     unlockRequirements,
     isLocked,

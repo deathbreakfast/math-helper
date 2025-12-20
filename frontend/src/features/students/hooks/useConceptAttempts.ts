@@ -5,6 +5,7 @@
 
 import { useState, useEffect } from 'react'
 import { logError } from '../../../utils/logger'
+import { legacyLevelFromConceptId } from '../utils/conceptIdUtils'
 
 export type ConceptAttempt = {
   attempt_id: number
@@ -37,12 +38,11 @@ export async function getConceptAttempts(
   userId: number
 ): Promise<ConceptAttempt[]> {
   try {
-    // Extract level from conceptId (e.g., "c_level_1" -> 1)
-    const levelMatch = conceptId.match(/c_level_(\d+)/)
-    if (!levelMatch) {
-      throw new Error(`Invalid conceptId: ${conceptId}`)
+    // Extract level from conceptId (supports both old and new formats)
+    const level = legacyLevelFromConceptId(conceptId)
+    if (level === null) {
+      throw new Error(`Invalid conceptId: ${conceptId} - cannot extract legacy level`)
     }
-    const level = parseInt(levelMatch[1], 10)
 
     // Fetch practice sessions for this user and level
     // For now, we'll use a simple endpoint that gets sessions by level
@@ -99,10 +99,13 @@ export async function getConceptAttemptDetail(
       questions = questionsData.questions || []
     }
 
+    // Use concept_id from session if available, otherwise infer from level
+    const inferredConceptId = session.concept_id || (session.level ? `c_concept_${String(session.level).padStart(3, '0')}` : 'c_concept_001')
+    
     return {
       attempt_id: attemptId,
       session_id: attemptId,
-      conceptId: `c_level_${session.level || 1}`, // Infer from session level
+      conceptId: inferredConceptId,
       accuracy: session.accuracy || 0,
       total_questions: session.total_questions || 0,
       correct_count: session.correct_count || 0,

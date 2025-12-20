@@ -299,7 +299,7 @@ class PracticeService:
         Args:
             user_id: User ID
             mode: Optional mode filter (standard/multiplication/division)
-            concept_id: Optional concept_id filter (e.g., "c_level_1", "c_add_1s")
+            concept_id: Optional concept_id filter (e.g., "c_concept_001", "c_add_1s")
         
         Returns:
             Tuple of (session, total_responses_count, None)

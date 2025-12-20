@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import random
+import re
 from typing import Any
 
 from ..config.tests.test_definitions import NEW_TEST_DEFINITIONS
@@ -11,6 +12,7 @@ from ..database import log_query, transaction
 from ..models import User, db
 from ..services.achievement_service import AchievementService
 from ..services.adaptive_distribution_service import AdaptiveDistributionService
+from ..services.level_config_service import LevelConfigService
 from ..services.practice_service import PracticeService
 from ..services.question_service import QuestionService
 from ..services.test_eligibility_service import TestEligibilityService
@@ -27,6 +29,37 @@ class SessionEngineService:
     # Convert format: (operation, level, question_count, constraints, display_name) -> (operation, level, question_count, constraints)
     for test_type, (operation, level, question_count, constraints, _) in NEW_TEST_DEFINITIONS.items():
         TEST_TYPES[test_type] = (operation, level, question_count, constraints)
+
+    @staticmethod
+    def _extract_legacy_level_from_concept_id(concept_id: str | None) -> int | None:
+        """Extract legacy level number from concept ID.
+        
+        Supports:
+        - Old format: c_level_1 -> 1
+        - New format: c_concept_001 -> 1
+        - Descriptive format: c_add_1s -> None (no legacy level mapping)
+        
+        Args:
+            concept_id: The concept ID to parse
+            
+        Returns:
+            The legacy level number if found, None otherwise
+        """
+        if not concept_id:
+            return None
+        
+        # Old format: c_level_1, c_level_2, etc.
+        old_format_match = re.match(r'^c_level_(\d+)$', concept_id)
+        if old_format_match:
+            return int(old_format_match.group(1))
+        
+        # New format: c_concept_001, c_concept_002, etc.
+        new_format_match = re.match(r'^c_concept_(\d+)$', concept_id)
+        if new_format_match:
+            return int(new_format_match.group(1))
+        
+        # Descriptive format (c_add_1s, c_sub_2s, etc.) - no legacy level mapping
+        return None
 
 
     @staticmethod
@@ -132,7 +165,7 @@ class SessionEngineService:
             is_test: Whether this is a test session
             test_type: Test type identifier (required if is_test=True)
             level: Optional level override (defaults to user's level)
-            concept_id: Optional concept identifier (e.g., "c_level_1", "c_add_1s")
+            concept_id: Optional concept identifier (e.g., "c_concept_001", "c_add_1s")
             resume_oldest: If True, resume the oldest incomplete session (for dashboard)
         
         Returns:
@@ -228,7 +261,7 @@ class SessionEngineService:
                 )
                 questions.append(question_data)
             
-            # Create session
+            # Create session (concept_id should already be passed from caller)
             session = PracticeService.create_session(
                 user_id=user_id,
                 mode=mode,
@@ -251,6 +284,7 @@ class SessionEngineService:
                 "test_type": test_type,
                 "mode": mode,
                 "level": required_level,
+                "concept_id": concept_id,
                 "questions": questions,
             }
         
@@ -259,24 +293,18 @@ class SessionEngineService:
             # Default question count for practice
             question_count = 10
             
-            # Always use adaptive distribution (new category-based system)
-            # Category is selected at session level - all questions use same category
-            distribution = AdaptiveDistributionService.generate_adaptive_question_distribution(
-                user, session_level
-            )
+            # If concept_id is provided, generate questions from that concept's config
+            # Otherwise, use adaptive distribution (new category-based system)
+            concept_level = SessionEngineService._extract_legacy_level_from_concept_id(concept_id)
             
-            # Detect if this is a Type A distribution (single level with weight 1.0)
-            # Type A: All questions use same level (e.g., Level Category Type A, Random category)
-            # Type B: Each question selects from distribution (e.g., Level Category Type B)
-            is_type_a = len(distribution) == 1 and distribution[0].get("weight", 0) >= 0.99
-            
-            # Generate questions
-            questions = []
-            
-            if is_type_a:
-                # Type A: Use the single level for all questions (more efficient)
-                selected_level = distribution[0]["level"]
-                operation = AdaptiveDistributionService.get_operation_for_level(selected_level)
+            if concept_id and concept_level is not None:
+                # Generate all questions from the concept's level config
+                config = LevelConfigService.get_level_config(concept_level)
+                if not config:
+                    raise ValueError(f"Concept {concept_id} (level {concept_level}) configuration not found")
+                
+                operation = config["operation"]
+                questions = []
                 
                 for i in range(question_count):
                     max_retries = 3
@@ -285,56 +313,96 @@ class SessionEngineService:
                         try:
                             question_data = QuestionService.generate_question(
                                 operation=operation,
-                                level=selected_level,
+                                level=concept_level,
                                 test_constraints=None,
                             )
                             break  # Success, exit retry loop
                         except ValueError:
                             # Invalid level configuration (e.g., division by zero)
-                            # Retry without changing level to preserve distribution integrity.
                             if retry >= max_retries - 1:
-                                # Exhausted retries: raise so callers/tests can detect failure.
                                 raise
                     
                     if question_data:
                         questions.append(question_data)
             else:
-                # Type B: Select level from distribution for each question
-                for i in range(question_count):
-                    # Select level from distribution
-                    selected_level = AdaptiveDistributionService.select_level_from_distribution(distribution)
-                    
-                    # Get operation for the selected level
+                # Use adaptive distribution (category-based system)
+                # Category is selected at session level - all questions use same category
+                distribution = AdaptiveDistributionService.generate_adaptive_question_distribution(
+                    user, session_level
+                )
+                
+                # Detect if this is a Type A distribution (single level with weight 1.0)
+                # Type A: All questions use same level (e.g., Level Category Type A, Random category)
+                # Type B: Each question selects from distribution (e.g., Level Category Type B)
+                is_type_a = len(distribution) == 1 and distribution[0].get("weight", 0) >= 0.99
+                
+                # Generate questions
+                questions = []
+                
+                if is_type_a:
+                    # Type A: Use the single level for all questions (more efficient)
+                    selected_level = distribution[0]["level"]
                     operation = AdaptiveDistributionService.get_operation_for_level(selected_level)
                     
-                    # Generate question with retry logic for invalid level configurations
-                    # CRITICAL: Always preserve the originally selected level to maintain distribution
-                    # Changing the level breaks the distribution statistics
-                    max_retries = 3
-                    question_data = None
-                    for retry in range(max_retries):
-                        try:
-                            question_data = QuestionService.generate_question(
-                                operation=operation,
-                                level=selected_level,  # Always use originally selected level
-                                test_constraints=None,
-                            )
-                            break  # Success, exit retry loop
-                        except ValueError:
-                            # Invalid level configuration (e.g., division by zero)
-                            # Retry without changing level to preserve distribution integrity.
-                            if retry >= max_retries - 1:
-                                # Exhausted retries: raise so callers/tests can detect failure.
-                                raise
-                    
-                    if question_data:
-                        questions.append(question_data)
+                    for i in range(question_count):
+                        max_retries = 3
+                        question_data = None
+                        for retry in range(max_retries):
+                            try:
+                                question_data = QuestionService.generate_question(
+                                    operation=operation,
+                                    level=selected_level,
+                                    test_constraints=None,
+                                )
+                                break  # Success, exit retry loop
+                            except ValueError:
+                                # Invalid level configuration (e.g., division by zero)
+                                # Retry without changing level to preserve distribution integrity.
+                                if retry >= max_retries - 1:
+                                    # Exhausted retries: raise so callers/tests can detect failure.
+                                    raise
+                        
+                        if question_data:
+                            questions.append(question_data)
+                else:
+                    # Type B: Select level from distribution for each question
+                    for i in range(question_count):
+                        # Select level from distribution
+                        selected_level = AdaptiveDistributionService.select_level_from_distribution(distribution)
+                        
+                        # Get operation for the selected level
+                        operation = AdaptiveDistributionService.get_operation_for_level(selected_level)
+                        
+                        # Generate question with retry logic for invalid level configurations
+                        # CRITICAL: Always preserve the originally selected level to maintain distribution
+                        # Changing the level breaks the distribution statistics
+                        max_retries = 3
+                        question_data = None
+                        for retry in range(max_retries):
+                            try:
+                                question_data = QuestionService.generate_question(
+                                    operation=operation,
+                                    level=selected_level,  # Always use originally selected level
+                                    test_constraints=None,
+                                )
+                                break  # Success, exit retry loop
+                            except ValueError:
+                                # Invalid level configuration (e.g., division by zero)
+                                # Retry without changing level to preserve distribution integrity.
+                                if retry >= max_retries - 1:
+                                    # Exhausted retries: raise so callers/tests can detect failure.
+                                    raise
+                        
+                        if question_data:
+                            questions.append(question_data)
             
-            # Create session
+            # Create session (pass concept_id if provided)
+            # Note: questions should already be populated from either concept-based or adaptive generation above
             session = PracticeService.create_session(
                 user_id=user_id,
                 mode=mode,
                 level=session_level,
+                concept_id=concept_id,
                 is_test=False,
                 test_type=None,
             )
@@ -352,5 +420,6 @@ class SessionEngineService:
                 "test_type": None,
                 "mode": mode,
                 "level": session_level,
+                "concept_id": concept_id,
                 "questions": questions,
             }

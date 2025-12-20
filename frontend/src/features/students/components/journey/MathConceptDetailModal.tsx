@@ -148,9 +148,6 @@ export const MathConceptDetailModal: React.FC<MathConceptDetailModalProps> = ({
                     <div>
                       <span className="font-medium">Operation:</span> {concept.operation}
                     </div>
-                    <div>
-                      <span className="font-medium">Level:</span> {concept.legacyLevel}
-                    </div>
                     {concept.unlockRequirements.length > 0 && (
                       <div className="mt-3 rounded-lg border border-gray-200 bg-white p-3">
                         <div className="mb-2 font-semibold text-gray-900">Unlock Requirements</div>

@@ -577,7 +577,7 @@ class TestSessionEngineService:
         Scenario: Start basic addition practice -> new -> exit -> Start basic addition practice -> resume
         """
         with app.app_context():
-            concept_id = "c_level_1"  # Basic Single Digit Addition
+            concept_id = "c_concept_001"  # Basic Single Digit Addition
             
             # Create incomplete session for concept
             session = PracticeService.create_session(
@@ -640,8 +640,8 @@ class TestSessionEngineService:
         Scenario: Start basic addition practice -> new -> exit -> Start basic subtraction practice -> new
         """
         with app.app_context():
-            addition_concept = "c_level_1"  # Basic Single Digit Addition
-            subtraction_concept = "c_level_3"  # Basic Single Digit Subtraction
+            addition_concept = "c_concept_001"  # Basic Single Digit Addition
+            subtraction_concept = "c_concept_003"  # Basic Single Digit Subtraction
             
             # Create incomplete session for addition concept
             addition_session = PracticeService.create_session(
@@ -693,8 +693,8 @@ class TestSessionEngineService:
         new -> exit -> Start basic addition practice -> resume old basic addition practice
         """
         with app.app_context():
-            addition_concept = "c_level_1"  # Basic Single Digit Addition
-            subtraction_concept = "c_level_3"  # Basic Single Digit Subtraction
+            addition_concept = "c_concept_001"  # Basic Single Digit Addition
+            subtraction_concept = "c_concept_003"  # Basic Single Digit Subtraction
             
             # Create incomplete session for addition concept (oldest)
             addition_session = PracticeService.create_session(
@@ -771,8 +771,8 @@ class TestSessionEngineService:
     def test_generate_session_resumes_oldest_for_dashboard(self, app, test_user):
         """Test that dashboard start practice resumes oldest incomplete session regardless of concept."""
         with app.app_context():
-            addition_concept = "c_level_1"
-            subtraction_concept = "c_level_3"
+            addition_concept = "c_concept_001"
+            subtraction_concept = "c_concept_003"
             
             # Create incomplete session for addition concept (oldest)
             addition_session = PracticeService.create_session(

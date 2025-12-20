@@ -19,6 +19,10 @@ export type BackendAchievementDefinition = {
   icon: string
   category: string
   requirements?: Record<string, unknown>
+  xp_reward?: {
+    bonus_xp: number
+    multiplier: number
+  }
 }
 
 export type BackendAchievementDefinitionsResponse = {

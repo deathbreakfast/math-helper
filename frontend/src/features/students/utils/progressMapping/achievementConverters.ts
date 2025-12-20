@@ -118,6 +118,7 @@ export function convertBackendDefinitionToFrontend(
     lastEarnedAt: earnedAchievement?.earnedAt ? new Date(earnedAchievement.earnedAt) : undefined,
     // Metadata is not available in userAchievements array - it comes from backend requirements
     metadata: undefined,
+    xp_reward: definition.xp_reward,
     testType,
     performanceTier,
   }
@@ -227,6 +228,8 @@ export function convertBackendAchievementToFrontend(
     lastEarnedAt: backendAchievement.earnedAt ? new Date(backendAchievement.earnedAt) : undefined,
     // Metadata is not available in LearnerAchievement type - it comes from backend requirements
     metadata: undefined,
+    // Not always available in this fallback path (depends on /api/users payload).
+    xp_reward: (backendAchievement as any).xp_reward,
     testType,
     performanceTier,
   }

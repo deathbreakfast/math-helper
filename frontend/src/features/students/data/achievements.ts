@@ -46,6 +46,10 @@ export type Achievement = {
   count?: number
   lastEarnedAt?: Date
   metadata?: Record<string, any> // Level/operation filters for achievements with metadata
+  xp_reward?: {
+    bonus_xp: number
+    multiplier: number
+  }
   // Test-specific fields (deprecated - test achievements removed)
   testType?: TestType
   performanceTier?: PerformanceTier

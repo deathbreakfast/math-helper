@@ -134,6 +134,10 @@ export const usersHandlers = [
               code: 'first-steps',
               title: 'First Steps',
               earnedAt: new Date().toISOString(),
+              xp_reward: {
+                bonus_xp: 50,
+                multiplier: 1.01,
+              },
             },
           ],
           stats: {
@@ -179,6 +183,10 @@ export const usersHandlers = [
           code: 'first-steps',
           title: 'First Steps',
           earnedAt: new Date().toISOString(),
+          xp_reward: {
+            bonus_xp: 50,
+            multiplier: 1.01,
+          },
         },
       ],
       stats: {
@@ -231,6 +239,36 @@ export const usersHandlers = [
 export const handlers = [
   ...practiceHandlers,
   ...usersHandlers,
+  http.get('/api/achievements/definitions', async () => {
+    return HttpResponse.json({
+      achievements: {
+        'first-steps': {
+          code: 'first-steps',
+          title: 'First Steps',
+          description: 'Your first practice session',
+          icon: '🔥',
+          category: 'milestone',
+          requirements: {},
+          xp_reward: {
+            bonus_xp: 50,
+            multiplier: 1.01,
+          },
+        },
+        'accuracy-ace-bronze': {
+          code: 'accuracy-ace-bronze',
+          title: 'Accuracy Ace (Bronze)',
+          description: 'Session accuracy of 80% or higher',
+          icon: '🎯',
+          category: 'accuracy',
+          requirements: {},
+          xp_reward: {
+            bonus_xp: 10,
+            multiplier: 1.01,
+          },
+        },
+      },
+    })
+  }),
 ]
 
 

@@ -14,6 +14,8 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, i
   const isInProgress = achievement.status === 'in-progress'
   const progressPercent = achievement.progress && achievement.maxProgress ? (achievement.progress / achievement.maxProgress) * 100 : 0
   const hasMultipleEarns = (achievement.count ?? 0) > 1
+  const reward = achievement.xp_reward
+  const hasReward = !!reward && (reward.bonus_xp > 0 || reward.multiplier > 0)
 
   return (
     <motion.div
@@ -85,6 +87,17 @@ export const AchievementCard: React.FC<AchievementCardProps> = ({ achievement, i
       <div className={`text-xs font-medium ${isLocked ? 'text-gray-400' : 'text-gray-500'}`}>
         Requirement: {achievement.requirement}
       </div>
+
+      {/* XP reward */}
+      {hasReward && (
+        <div
+          className={`mt-2 text-xs font-semibold ${isLocked ? 'text-gray-400' : 'text-gray-600'}`}
+          data-testid="testid-achievement-xp-reward"
+        >
+          {reward?.bonus_xp ? `Bonus: ${reward.bonus_xp.toLocaleString()}xp` : 'Bonus: 0xp'}
+          {reward?.multiplier ? ` • Mult: x${reward.multiplier.toFixed(2)}` : ''}
+        </div>
+      )}
 
       {/* Progress Bar */}
       {isInProgress && achievement.progress && achievement.maxProgress && (

@@ -87,6 +87,9 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
     category: achievement.category,
   }
 
+  const reward = (achievementDefinition as any)?.xp_reward ?? (achievement as any)?.xp_reward
+  const hasReward = !!reward && ((reward.bonus_xp ?? 0) > 0 || (reward.multiplier ?? 0) > 0)
+
   return (
     <AnimatePresence>
       {isOpen && (
@@ -142,6 +145,15 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
                     <p className="text-sm text-gray-500 mt-2">
                       This achievement hasn't been earned yet. Keep practicing to unlock it!
                     </p>
+                    {hasReward && (
+                      <div className="mt-4 rounded-lg bg-purple-50 p-4 border border-purple-200" data-testid="testid-achievement-modal-xp-reward">
+                        <p className="text-sm font-semibold text-gray-700 mb-1">XP reward:</p>
+                        <p className="text-sm text-gray-700">
+                          Bonus: {(reward.bonus_xp ?? 0).toLocaleString()}xp
+                          {(reward.multiplier ?? 0) > 0 ? ` • Multiplier: x${Number(reward.multiplier).toFixed(2)}` : ''}
+                        </p>
+                      </div>
+                    )}
                     {/* Show requirement even when not earned */}
                     {achievement.requirement && (
                       <div className="mt-4 rounded-lg bg-gray-50 p-4">
@@ -157,6 +169,15 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
                       <div className="mb-6 rounded-lg bg-blue-50 p-4 border border-blue-200">
                         <p className="text-sm font-semibold text-gray-700 mb-1">Requirement:</p>
                         <p className="text-sm text-gray-600">{achievement.requirement}</p>
+                      </div>
+                    )}
+                    {hasReward && (
+                      <div className="mb-6 rounded-lg bg-purple-50 p-4 border border-purple-200" data-testid="testid-achievement-modal-xp-reward">
+                        <p className="text-sm font-semibold text-gray-700 mb-1">XP reward:</p>
+                        <p className="text-sm text-gray-700">
+                          Bonus: {(reward.bonus_xp ?? 0).toLocaleString()}xp
+                          {(reward.multiplier ?? 0) > 0 ? ` • Multiplier: x${Number(reward.multiplier).toFixed(2)}` : ''}
+                        </p>
                       </div>
                     )}
                     <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-gray-700">

@@ -304,5 +304,36 @@ export function getAllMathConcepts(): MathConcept[] {
     concepts.push(createConceptFromLevel(level, operation))
   }
 
+  // Descriptive concept IDs (initial set from MATH_CONCEPTS.md)
+  const addFixed = [
+    { id: 'c_add_0s', name: 'Single Digit Addition (0s)', operand2: 0, answerMin: 1 },
+    { id: 'c_add_1s', name: 'Single Digit Addition (1s)', operand2: 1, answerMin: 2 },
+    { id: 'c_add_2s', name: 'Single Digit Addition (2s)', operand2: 2, answerMin: 3 },
+    { id: 'c_add_3s', name: 'Single Digit Addition (3s)', operand2: 3, answerMin: 4 },
+    { id: 'c_add_4s', name: 'Single Digit Addition (4s)', operand2: 4, answerMin: 5 },
+    { id: 'c_add_5s', name: 'Single Digit Addition (5s)', operand2: 5, answerMin: 6 },
+    { id: 'c_add_6s', name: 'Single Digit Addition (6s)', operand2: 6, answerMin: 7 },
+    { id: 'c_add_7s', name: 'Single Digit Addition (7s)', operand2: 7, answerMin: 8 },
+    { id: 'c_add_8s', name: 'Single Digit Addition (8s)', operand2: 8, answerMin: 9 },
+    { id: 'c_add_9s', name: 'Single Digit Addition (9s)', operand2: 9, answerMin: 10 },
+    { id: 'c_add_10s', name: 'Single Digit Addition (10s)', operand2: 10, answerMin: 11 },
+  ]
+
+  for (const c of addFixed) {
+    concepts.push({
+      id: `concept-${c.id}`,
+      conceptId: c.id,
+      displayName: c.name,
+      legacyLevel: 0,
+      category: 'Addition',
+      operation: 'addition',
+      layoutType: 'vertical',
+      answerFormat: 'integer',
+      unlockRequirements: [],
+      isLocked: false,
+      attemptCount: 0,
+    })
+  }
+
   return concepts
 }

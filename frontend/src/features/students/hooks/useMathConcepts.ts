@@ -1,12 +1,12 @@
 import { useMemo } from 'react'
-import { getAllMathConcepts, createConceptFromLevel, type MathConcept } from '../data/mathConcepts'
+import { getAllMathConcepts, type MathConcept } from '../data/mathConcepts'
 import { evaluateConceptUnlock, getUnlockedConcepts, getLockedConcepts } from '../utils/conceptUnlock'
 import type { Achievement } from '../data/achievements'
 import { useDevMode } from '../../../utils/devMode'
-import { useLevelRequirements, useAchievementDefinitions } from '../../../lib/levels/hooks'
+import { useAchievementDefinitions } from '../../../lib/levels/hooks'
 import type { UserProgressData } from '../utils/progressMapping'
 import { convertBackendRequirementsToFrontend } from '../utils/progressMapping/levelRequirementConverters'
-import type { BackendLevelRequirement } from '../../../lib/levels/api'
+import { useConceptRequirements } from '../../../lib/concepts/hooks'
 
 type UseMathConceptsOptions = {
   userData: UserProgressData
@@ -27,25 +27,20 @@ type UseMathConceptsResult = {
  */
 export function useMathConcepts({ userData, isActive, userId }: UseMathConceptsOptions): UseMathConceptsResult {
   const devMode = useDevMode()
-  
-  // Fetch level requirements to determine unlock requirements for concepts
-  // In dev mode, fetch all 45 levels. Otherwise, fetch levels up to user's level + 3
-  const maxLevel = devMode ? 45 : Math.min((userData.level || 1) + 3, 45)
-  const { requirements: levelRequirementsCache, isLoading: isLoadingRequirements, error: requirementsError } = 
-    useLevelRequirements(maxLevel, isActive, userId)
   const { definitions: achievementDefinitions } = useAchievementDefinitions()
+
+  const allConcepts = useMemo(() => getAllMathConcepts(), [])
+  const conceptIds = useMemo(() => allConcepts.map(c => c.conceptId), [allConcepts])
+  const { requirements: conceptRequirementsCache, isLoading: isLoadingRequirements, error: requirementsError } =
+    useConceptRequirements(conceptIds, isActive, userId)
 
   // Generate concepts from levels
   const concepts = useMemo(() => {
-    const allConcepts = getAllMathConcepts()
     const userAchievements = userData.achievements || []
 
     // Map concepts with unlock requirements from level requirements
     return allConcepts.map((concept) => {
-      // Get unlock requirements from level requirements cache
-      // For concept at level N, we look at requirements for level N (what unlocks that level)
-      const targetLevel = concept.legacyLevel
-      const backendReqs = levelRequirementsCache[targetLevel] || []
+      const backendReqs = conceptRequirementsCache[concept.conceptId] || []
       
       let unlockRequirements = concept.unlockRequirements
       
@@ -62,8 +57,8 @@ export function useMathConcepts({ userData, isActive, userId }: UseMathConceptsO
         const frontendReq = convertBackendRequirementsToFrontend(
           backendReqs,
           userBackendAchievements,
-          targetLevel - 1, // Previous level
-          targetLevel
+          0,
+          0
         )
         
         unlockRequirements = frontendReq.requirements.map(req => ({
@@ -101,7 +96,7 @@ export function useMathConcepts({ userData, isActive, userId }: UseMathConceptsO
         isLocked: !isUnlocked,
       }
     })
-  }, [levelRequirementsCache, userData, devMode])
+  }, [allConcepts, conceptRequirementsCache, userData, devMode])
 
   // Separate unlocked and locked concepts
   const unlockedConcepts = useMemo(() => {

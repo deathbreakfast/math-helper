@@ -239,6 +239,19 @@ export const usersHandlers = [
 export const handlers = [
   ...practiceHandlers,
   ...usersHandlers,
+  http.get('/api/concepts/requirements', async ({ request }) => {
+    const url = new URL(request.url)
+    const conceptIdsParam = url.searchParams.get('concept_ids') || ''
+    const conceptIds = conceptIdsParam.split(',').filter(Boolean)
+
+    // Provide minimal unlock requirements for mocks; treat everything as unlocked.
+    const requirements: Record<string, any[]> = {}
+    for (const cid of conceptIds) {
+      requirements[cid] = []
+    }
+
+    return HttpResponse.json({ requirements })
+  }),
   http.get('/api/achievements/definitions', async () => {
     return HttpResponse.json({
       achievements: {

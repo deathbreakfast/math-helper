@@ -47,7 +47,7 @@ These are the remaining phases/stages of work, tracked as a checklist. Keep this
   - [x] support non-legacy ids (e.g. `c_add_1s`) through: catalog → practice start → session engine → XP lookup → attempt history
   - [x] remove remaining assumptions that `concept_id` implies a legacy `level`
 - [ ] **Doc-format parity / UI polish**
-  - [ ] Summary: show Concept Name and Achievement Name + Tier in the XP breakdown (not just raw codes/ids)
+  - [x] Summary: show Concept Name and Achievement Name + Tier in the XP breakdown (not just raw codes/ids)
   - [ ] ensure tier naming/casing is consistent across the app
 - [ ] **Legacy cleanup**
   - [ ] remove remaining `legacyLevel` plumbing once concept configs and descriptive IDs are fully supported

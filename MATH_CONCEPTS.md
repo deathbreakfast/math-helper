@@ -31,10 +31,10 @@ These are the remaining phases/stages of work, tracked as a checklist. Keep this
   - [x] Level-up celebration/animation on summary when `leveled_up` is true
 
 #### Remaining (next phases)
-- [ ] **Replace placeholder concept catalog with real catalog (doc-driven → code/config)**
-  - [ ] stop generating concepts via placeholder `getAllMathConcepts()` level mapping
-  - [ ] create a real concept list in code/config including: id, name, category, operation, layout, answer formats, unlock requirements
-  - [ ] ensure the Math Concepts tab uses this catalog (sorting/filtering/search)
+- [x] **Replace placeholder concept catalog with real catalog (doc-driven → code/config)**
+  - [x] stop generating concepts via placeholder `getAllMathConcepts()` level mapping
+  - [x] create a real concept list in code/config including: id, name, category, operation, layout, answer formats, unlock requirements
+  - [x] ensure the Math Concepts tab uses this catalog (sorting/filtering/search)
 - [ ] **Backend concept configuration as source of truth for question generation**
   - [ ] add concept configs (operation, operand ranges, constraints, layout, answer formats, special rules) keyed by `concept_id`
   - [ ] update session engine to generate questions from concept config directly (not via legacy level config)

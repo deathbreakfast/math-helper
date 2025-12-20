@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { convertBackendRequirementsToFrontend } from './levelRequirementConverters'
 import * as achievementMapping from '../../../../lib/levels/achievementMapping'
-import * as testDisplayNames from './testDisplayNames'
 
 // Mock dependencies
 vi.mock('../../../../lib/levels/achievementMapping', () => ({
@@ -9,10 +8,6 @@ vi.mock('../../../../lib/levels/achievementMapping', () => ({
     'test-achievement': 'test-id',
     'multi-achievement': ['id1', 'id2'],
   },
-}))
-
-vi.mock('./testDisplayNames', () => ({
-  getTestDisplayName: vi.fn((testType: string) => `Test: ${testType}`),
 }))
 
 describe('levelRequirementConverters', () => {
@@ -159,15 +154,14 @@ describe('levelRequirementConverters', () => {
           achievement_code: 'test-achievement',
           order: 1,
           metadata_filter: {
-            test_type: 'addition-1digit',
+            concept_id: 'c_concept_001',
           },
         },
       ]
 
       const result = convertBackendRequirementsToFrontend(backendRequirements, [], 1, 2)
 
-      expect(testDisplayNames.getTestDisplayName).toHaveBeenCalledWith('addition-1digit')
-      expect(result.requirements[0].description).toContain('(Test: addition-1digit)')
+      expect(result.requirements[0].description).toContain('(Basic Single Digit Addition)')
     })
 
     it('should add level to description from metadata filter', () => {
@@ -192,7 +186,7 @@ describe('levelRequirementConverters', () => {
           achievement_code: 'test-achievement',
           order: 1,
           metadata_filter: {
-            test_type: 'addition-1digit',
+            concept_id: 'c_concept_001',
             level: 5,
           },
         },
@@ -200,7 +194,7 @@ describe('levelRequirementConverters', () => {
 
       const result = convertBackendRequirementsToFrontend(backendRequirements, [], 1, 2)
 
-      expect(result.requirements[0].description).toContain('(Test: addition-1digit, Level 5)')
+      expect(result.requirements[0].description).toContain('(Basic Single Digit Addition, Level 5)')
     })
 
     it('should set isLocked correctly', () => {

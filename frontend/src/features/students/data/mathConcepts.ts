@@ -3,7 +3,7 @@
  * Each concept has independent unlock requirements and can be practiced in any order.
  */
 
-import { conceptIdFromLegacyLevel } from '../utils/conceptIdUtils'
+import { conceptIdFromLegacyLevel, legacyLevelFromConceptId } from '../utils/conceptIdUtils'
 
 export type MathConceptUnlockRequirement = {
   description: string
@@ -84,6 +84,13 @@ const CONCEPT_DISPLAY_NAMES: Record<number, string> = {
   43: 'Three Digit by Two Digit Multiplication (Partial Products)',
   44: 'Division with Fractional Answers (Three Digit Dividends)',
   45: 'Division with Decimal Answers (Single Digit Divisors)',
+}
+
+export function getConceptDisplayNameByConceptId(conceptId: string | undefined | null): string | null {
+  if (!conceptId) return null
+  const level = legacyLevelFromConceptId(conceptId)
+  if (!level) return null
+  return CONCEPT_DISPLAY_NAMES[level] || null
 }
 
 /**

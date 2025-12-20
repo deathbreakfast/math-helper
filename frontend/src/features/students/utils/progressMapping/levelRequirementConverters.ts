@@ -1,6 +1,6 @@
 import type { LevelRequirement } from '../../data/levelRequirements'
 import { ACHIEVEMENT_CODE_TO_FRONTEND_ID } from '../../../../lib/levels/achievementMapping'
-import { getTestDisplayName } from './testDisplayNames'
+import { getConceptDisplayNameByConceptId } from '../../data/mathConcepts'
 
 /**
  * Convert backend level requirements to frontend level requirements format
@@ -83,14 +83,14 @@ export function convertBackendRequirementsToFrontend(
       ? `Complete: ${userAchievement.title}`
       : `Complete achievement: ${req.achievement_code.replace(/-/g, ' ')}`
     
-    // Add metadata to description if present (test_type or level)
+    // Add metadata to description if present (concept_id or level)
     if (req.metadata_filter) {
       const metadataParts: string[] = []
       
-      // Add test_type if present
-      if (req.metadata_filter.test_type) {
-        const testDisplayName = getTestDisplayName(req.metadata_filter.test_type)
-        metadataParts.push(testDisplayName)
+      // Prefer concept_id (concept-aware requirements)
+      if (req.metadata_filter.concept_id) {
+        const conceptName = getConceptDisplayNameByConceptId(req.metadata_filter.concept_id)
+        metadataParts.push(conceptName ? conceptName : `Concept ${req.metadata_filter.concept_id}`)
       }
       
       // Add level if present

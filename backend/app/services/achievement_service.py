@@ -223,28 +223,6 @@ class AchievementService:
 
     @staticmethod
     @log_query
-    def check_consecutive_correct_achievements(user: User, test_type: str | None = None) -> list[Achievement]:
-        """Check and award '30 correct in a row' achievements for test types.
-        
-        This checks the user's recent responses to see if they have 30 consecutive
-        correct answers for a specific test type, and awards the mastery achievement.
-        
-        Args:
-            user: The user to check
-            test_type: Optional test type to check (e.g., "multiplication-by-1")
-        
-        Returns:
-            List of newly created achievements
-        """
-        from .achievements.achievement_checkers.consecutive_checker import ConsecutiveChecker
-        
-        achievement_configs = _get_achievement_configs()
-        checker = ConsecutiveChecker(achievement_configs)
-        
-        return checker.check(user, test_type=test_type)
-
-    @staticmethod
-    @log_query
     def check_all_achievements(user: User, metrics: dict[str, Any], session_id: int | None = None) -> list[Achievement]:
         """Check and award all achievements from config (including milestone, speed, streak, accuracy).
         
@@ -298,7 +276,6 @@ class AchievementService:
             OperationCountChecker,
             LevelAccuracyChecker,
             LevelCorrectCountChecker,
-            TestCompletionChecker,
             SessionAchievementsChecker,
             AchievementCountChecker,
         )
@@ -308,7 +285,6 @@ class AchievementService:
             OperationCountChecker(achievement_configs),
             LevelAccuracyChecker(achievement_configs),
             LevelCorrectCountChecker(achievement_configs),
-            TestCompletionChecker(achievement_configs),
             SessionAchievementsChecker(achievement_configs),
             AchievementCountChecker(achievement_configs),
         ]

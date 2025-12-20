@@ -5,7 +5,6 @@ from .perfect_streak_checker import PerfectStreakChecker
 from .level_checker import LevelAchievementChecker
 from .milestone_checker import MilestoneChecker
 from .basic_milestone_checker import BasicMilestoneChecker
-from .consecutive_checker import ConsecutiveChecker
 from .level_master_checker import LevelMasterChecker
 from .lightning_fast_checker import LightningFastChecker
 from .accuracy_ace_checker import AccuracyAceChecker
@@ -16,7 +15,6 @@ from .human_calculator_checker import HumanCalculatorChecker
 from .operation_count_checker import OperationCountChecker
 from .level_accuracy_checker import LevelAccuracyChecker
 from .level_correct_count_checker import LevelCorrectCountChecker
-from .test_completion_checker import TestCompletionChecker
 from .session_achievements_checker import SessionAchievementsChecker
 from .achievement_count_checker import AchievementCountChecker
 
@@ -26,7 +24,6 @@ __all__ = [
     'LevelAchievementChecker',
     'MilestoneChecker',
     'BasicMilestoneChecker',
-    'ConsecutiveChecker',
     'LevelMasterChecker',
     'LightningFastChecker',
     'AccuracyAceChecker',
@@ -37,7 +34,6 @@ __all__ = [
     'OperationCountChecker',
     'LevelAccuracyChecker',
     'LevelCorrectCountChecker',
-    'TestCompletionChecker',
     'SessionAchievementsChecker',
     'AchievementCountChecker',
 ]

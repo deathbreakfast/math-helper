@@ -1,7 +1,9 @@
 """Level master achievement checker.
 
 Awards level-specific achievements for consecutive correct answers at each level.
-Each level gets its own achievement with metadata {"level": N}.
+Each bucket gets its own achievement with metadata:
+- {"level": N} for legacy level-based buckets (existing behavior)
+- {"concept_id": "..."} for concept-based buckets (enables descriptive concept IDs)
 """
 
 from __future__ import annotations
@@ -49,17 +51,37 @@ class LevelMasterChecker(AchievementChecker):
         
         new_achievements = []
         
-        # Get all distinct levels from questions
+        # Get all distinct legacy levels from questions
         all_levels = [
-            row[0] for row in
-            db.session.query(Question.required_level)
+            row[0]
+            for row in db.session.query(Question.required_level)
             .distinct()
             .order_by(Question.required_level.asc())
             .all()
         ]
-        
-        if not all_levels:
-            return new_achievements
+
+        # Get all distinct concept_ids from the user's sessions (supports descriptive concept ids)
+        concept_rows = (
+            db.session.query(Response.session_id)
+            .filter(Response.user_id == user.id)
+            .distinct()
+            .all()
+        )
+        session_ids = [row[0] for row in concept_rows if row and row[0] is not None]
+        concept_ids: list[str] = []
+        if session_ids:
+            from ....models import PracticeSession
+
+            concept_ids = [
+                row[0]
+                for row in db.session.query(PracticeSession.concept_id)
+                .filter(PracticeSession.id.in_(session_ids))
+                .filter(PracticeSession.concept_id.isnot(None))
+                .distinct()
+                .order_by(PracticeSession.concept_id.asc())
+                .all()
+                if row and row[0]
+            ]
         
         # Get Level Master achievement configs
         level_master_configs = {
@@ -70,96 +92,109 @@ class LevelMasterChecker(AchievementChecker):
         if not level_master_configs:
             return new_achievements
         
-        # Check each level independently
-        for target_level in all_levels:
-            # Get all responses for this level, ordered chronologically
-            level_responses = (
-                Response.query.filter_by(user_id=user.id)
-                .join(Question)
-                .filter(Question.required_level == target_level)
-                .order_by(Response.answered_at.asc())
-                .all()
-            )
-            
-            if not level_responses:
-                continue
-            
-            # Calculate maximum consecutive correct count for this level
+        def _award_for_bucket(
+            bucket_label: str,
+            level_filter: int | None = None,
+            concept_filter: str | None = None,
+        ) -> None:
+            nonlocal new_achievements
+
+            if level_filter is not None:
+                # Get all responses for this level, ordered chronologically
+                responses = (
+                    Response.query.filter_by(user_id=user.id)
+                    .join(Question)
+                    .filter(Question.required_level == level_filter)
+                    .order_by(Response.answered_at.asc())
+                    .all()
+                )
+                metadata = {"level": level_filter}
+            else:
+                # Get all responses for this concept_id, ordered chronologically
+                from ....models import PracticeSession
+
+                responses = (
+                    Response.query.filter_by(user_id=user.id)
+                    .join(PracticeSession, Response.session_id == PracticeSession.id)
+                    .filter(PracticeSession.concept_id == concept_filter)
+                    .order_by(Response.answered_at.asc())
+                    .all()
+                )
+                metadata = {"concept_id": concept_filter}
+
+            if not responses:
+                return
+
             max_consecutive = 0
             current_consecutive = 0
-            
-            for response in level_responses:
+            for response in responses:
                 if response.is_correct:
                     current_consecutive += 1
                     max_consecutive = max(max_consecutive, current_consecutive)
                 else:
                     current_consecutive = 0
-            
-            # Check if user already has an achievement for this level
-            metadata = {"level": target_level}
+
             metadata_json = json.dumps(metadata, sort_keys=True)
-            
-            existing_achievements = Achievement.query.filter_by(
-                user_id=user.id,
-                achievement_metadata=metadata_json
-            ).filter(
-                Achievement.code.like("level-master-%")
-            ).all()
-            
-            # Find highest existing tier for this level
+
+            existing_achievements = (
+                Achievement.query.filter_by(user_id=user.id, achievement_metadata=metadata_json)
+                .filter(Achievement.code.like("level-master-%"))
+                .all()
+            )
+
             highest_existing_tier_value = -1
             for existing in existing_achievements:
-                # Extract tier from code (e.g., "level-master-silver" -> "silver")
                 code_parts = existing.code.split("-")
                 if len(code_parts) >= 3 and code_parts[0] == "level" and code_parts[1] == "master":
                     tier = code_parts[2]
                     tier_value = get_tier_value(tier)
                     highest_existing_tier_value = max(highest_existing_tier_value, tier_value)
-            
-            # Find all qualifying tiers for this level
+
             qualifying_tiers = []
             for achievement_code, config in level_master_configs.items():
                 requirements = config.get("requirements", {})
                 min_consecutive = requirements.get("min_consecutive", 30)
                 tier = config.get("tier", "bronze")
                 tier_value = get_tier_value(tier)
-                
-                # Only consider tiers higher than existing, or first tier if none exists
+
                 if max_consecutive >= min_consecutive and tier_value > highest_existing_tier_value:
                     qualifying_tiers.append((tier_value, tier, achievement_code, config))
-            
-            if qualifying_tiers:
-                # Sort by tier value (highest first) and award the highest tier
-                qualifying_tiers.sort(reverse=True)
-                _, tier, achievement_code, config = qualifying_tiers[0]
-                
-                # Check for Champion tier if this is Divine
-                # Note: Champion eligibility requires session context, so skip for now
-                if tier == "divine":
-                    champion_code = "level-master-champion"
-                    champion_config = self.achievement_configs.get(champion_code)
-                    if champion_config:
-                        champion_req = champion_config.get("requirements", {})
-                        if max_consecutive >= champion_req.get("min_consecutive", 15360):
-                            # Champion tier can be checked during session completion
-                            pass
-                
-                achievement = create_achievement(
-                    user_id=user.id,
-                    code=achievement_code,
-                    title=config["title"],
-                    description=config["description"],
-                    icon=config["icon"],
-                    category=config["category"],
-                    session_id=session_id,
-                    metadata=metadata,
-                )
-                new_achievements.append(achievement)
-        
+
+            if not qualifying_tiers:
+                return
+
+            qualifying_tiers.sort(reverse=True)
+            _, tier, achievement_code, config = qualifying_tiers[0]
+
+            # Champion eligibility is session-contextual; skip here.
+            if tier == "divine":
+                pass
+
+            achievement = create_achievement(
+                user_id=user.id,
+                code=achievement_code,
+                title=config["title"],
+                description=config["description"],
+                icon=config["icon"],
+                category=config["category"],
+                session_id=session_id,
+                metadata=metadata,
+            )
+            new_achievements.append(achievement)
+
+        # Award per legacy level (existing behavior)
+        for target_level in all_levels:
+            _award_for_bucket(bucket_label=f"level:{target_level}", level_filter=target_level)
+
+        # Award per concept_id (enables descriptive concepts)
+        for cid in concept_ids:
+            _award_for_bucket(bucket_label=f"concept:{cid}", concept_filter=cid)
+
         if new_achievements:
             db.session.commit()
-        
+
         return new_achievements
+
 
 
 

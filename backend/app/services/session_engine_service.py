@@ -11,7 +11,6 @@ from ..config.tests.test_definitions import NEW_TEST_DEFINITIONS
 from ..database import log_query, transaction
 from ..models import User, db
 from ..services.achievement_service import AchievementService
-from ..services.adaptive_distribution_service import AdaptiveDistributionService
 from ..services.level_config_service import LevelConfigService
 from ..services.practice_service import PracticeService
 from ..services.question_service import QuestionService
@@ -60,6 +59,11 @@ class SessionEngineService:
         
         # Descriptive format (c_add_1s, c_sub_2s, etc.) - no legacy level mapping
         return None
+
+    @staticmethod
+    def _concept_id_from_legacy_level(level: int) -> str:
+        """Build a new-format concept ID from a legacy level number."""
+        return f"c_concept_{level:03d}"
 
 
     @staticmethod
@@ -292,109 +296,46 @@ class SessionEngineService:
         else:
             # Default question count for practice
             question_count = 10
-            
-            # If concept_id is provided, generate questions from that concept's config
-            # Otherwise, use adaptive distribution (new category-based system)
+
+            # Concept-based default practice selection.
+            # IMPORTANT: do this *after* checking for incomplete sessions above so that
+            # general practice (no concept_id provided) can still resume any incomplete session.
+            if concept_id is None:
+                max_level = min(max(user.level or 1, 1), 45)
+                selected_level = random.randint(1, max_level)
+                concept_id = SessionEngineService._concept_id_from_legacy_level(selected_level)
+                session_level = selected_level
+
             concept_level = SessionEngineService._extract_legacy_level_from_concept_id(concept_id)
-            
-            if concept_id and concept_level is not None:
-                # Generate all questions from the concept's level config
-                config = LevelConfigService.get_level_config(concept_level)
-                if not config:
-                    raise ValueError(f"Concept {concept_id} (level {concept_level}) configuration not found")
-                
-                operation = config["operation"]
-                questions = []
-                
-                for i in range(question_count):
-                    max_retries = 3
-                    question_data = None
-                    for retry in range(max_retries):
-                        try:
-                            question_data = QuestionService.generate_question(
-                                operation=operation,
-                                level=concept_level,
-                                test_constraints=None,
-                            )
-                            break  # Success, exit retry loop
-                        except ValueError:
-                            # Invalid level configuration (e.g., division by zero)
-                            if retry >= max_retries - 1:
-                                raise
-                    
-                    if question_data:
-                        questions.append(question_data)
-            else:
-                # Use adaptive distribution (category-based system)
-                # Category is selected at session level - all questions use same category
-                distribution = AdaptiveDistributionService.generate_adaptive_question_distribution(
-                    user, session_level
-                )
-                
-                # Detect if this is a Type A distribution (single level with weight 1.0)
-                # Type A: All questions use same level (e.g., Level Category Type A, Random category)
-                # Type B: Each question selects from distribution (e.g., Level Category Type B)
-                is_type_a = len(distribution) == 1 and distribution[0].get("weight", 0) >= 0.99
-                
-                # Generate questions
-                questions = []
-                
-                if is_type_a:
-                    # Type A: Use the single level for all questions (more efficient)
-                    selected_level = distribution[0]["level"]
-                    operation = AdaptiveDistributionService.get_operation_for_level(selected_level)
-                    
-                    for i in range(question_count):
-                        max_retries = 3
-                        question_data = None
-                        for retry in range(max_retries):
-                            try:
-                                question_data = QuestionService.generate_question(
-                                    operation=operation,
-                                    level=selected_level,
-                                    test_constraints=None,
-                                )
-                                break  # Success, exit retry loop
-                            except ValueError:
-                                # Invalid level configuration (e.g., division by zero)
-                                # Retry without changing level to preserve distribution integrity.
-                                if retry >= max_retries - 1:
-                                    # Exhausted retries: raise so callers/tests can detect failure.
-                                    raise
-                        
-                        if question_data:
-                            questions.append(question_data)
-                else:
-                    # Type B: Select level from distribution for each question
-                    for i in range(question_count):
-                        # Select level from distribution
-                        selected_level = AdaptiveDistributionService.select_level_from_distribution(distribution)
-                        
-                        # Get operation for the selected level
-                        operation = AdaptiveDistributionService.get_operation_for_level(selected_level)
-                        
-                        # Generate question with retry logic for invalid level configurations
-                        # CRITICAL: Always preserve the originally selected level to maintain distribution
-                        # Changing the level breaks the distribution statistics
-                        max_retries = 3
-                        question_data = None
-                        for retry in range(max_retries):
-                            try:
-                                question_data = QuestionService.generate_question(
-                                    operation=operation,
-                                    level=selected_level,  # Always use originally selected level
-                                    test_constraints=None,
-                                )
-                                break  # Success, exit retry loop
-                            except ValueError:
-                                # Invalid level configuration (e.g., division by zero)
-                                # Retry without changing level to preserve distribution integrity.
-                                if retry >= max_retries - 1:
-                                    # Exhausted retries: raise so callers/tests can detect failure.
-                                    raise
-                        
-                        if question_data:
-                            questions.append(question_data)
+            if concept_level is None:
+                raise ValueError(f"Unsupported concept_id for practice session: {concept_id}")
+
+            # Generate all questions from the concept's level config
+            config = LevelConfigService.get_level_config(concept_level)
+            if not config:
+                raise ValueError(f"Concept {concept_id} (level {concept_level}) configuration not found")
+
+            operation = config["operation"]
+            questions: list[dict[str, Any]] = []
+
+            for i in range(question_count):
+                max_retries = 3
+                question_data = None
+                for retry in range(max_retries):
+                    try:
+                        question_data = QuestionService.generate_question(
+                            operation=operation,
+                            level=concept_level,
+                            test_constraints=None,
+                        )
+                        break  # Success, exit retry loop
+                    except ValueError:
+                        # Invalid level configuration (e.g., division by zero)
+                        if retry >= max_retries - 1:
+                            raise
+
+                if question_data:
+                    questions.append(question_data)
             
             # Create session (pass concept_id if provided)
             # Note: questions should already be populated from either concept-based or adaptive generation above

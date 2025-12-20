@@ -5,6 +5,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request
 
 from ..services.achievement_service import AchievementService
+from ..services.achievement_xp_service import AchievementXPService
 from ..services.analytics_service import AnalyticsService
 from ..services.level_config_service import LevelConfigService
 from ..services.user_service import UserService
@@ -77,6 +78,7 @@ def list_achievement_definitions():
     # Format for frontend consumption
     formatted_achievements = {}
     for code, config in achievements.items():
+        reward = AchievementXPService.reward_for_achievement_code(code)
         formatted_achievements[code] = {
             "code": code,
             "title": config.get("title", ""),
@@ -84,6 +86,10 @@ def list_achievement_definitions():
             "icon": config.get("icon", "🏆"),
             "category": config.get("category", "milestone"),
             "requirements": config.get("requirements", {}),
+            "xp_reward": {
+                "bonus_xp": reward.bonus_xp,
+                "multiplier": reward.multiplier,
+            },
         }
     
     return jsonify({"achievements": formatted_achievements})

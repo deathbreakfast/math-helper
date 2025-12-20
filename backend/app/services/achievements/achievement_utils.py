@@ -240,6 +240,9 @@ def serialize_achievement(achievement: Achievement, user_name: str | None = None
         achievement: The achievement object to serialize
         user_name: Optional user name to include in serialization
     """
+    from ...services.achievement_xp_service import AchievementXPService
+
+    reward = AchievementXPService.reward_for_achievement_code(achievement.code or "")
     result = {
         "id": str(achievement.id),
         "code": achievement.code,
@@ -250,6 +253,10 @@ def serialize_achievement(achievement: Achievement, user_name: str | None = None
         "category": achievement.category,
         "earnedAt": achievement.earned_at.isoformat(),
         "sessionId": achievement.session_id if achievement.session_id else None,
+        "xp_reward": {
+            "bonus_xp": reward.bonus_xp,
+            "multiplier": reward.multiplier,
+        },
     }
     if achievement.achievement_metadata:
         try:

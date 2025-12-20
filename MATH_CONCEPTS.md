@@ -44,7 +44,7 @@ These are the remaining phases/stages of work, tracked as a checklist. Keep this
   - [x] verify/expand backend endpoints so frontend can show `progress` + `completed` reliably
   - [x] ensure requirement descriptions render correctly in UI (no legacy “test_type” phrasing)
 - [ ] **Descriptive concept IDs end-to-end**
-  - [ ] support non-legacy ids (e.g. `c_add_1s`) through: catalog → practice start → session engine → XP lookup → attempt history
+  - [x] support non-legacy ids (e.g. `c_add_1s`) through: catalog → practice start → session engine → XP lookup → attempt history
   - [ ] remove remaining assumptions that `concept_id` implies a legacy `level`
 - [ ] **Doc-format parity / UI polish**
   - [ ] Summary: show Concept Name and Achievement Name + Tier in the XP breakdown (not just raw codes/ids)

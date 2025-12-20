@@ -67,5 +67,18 @@ CONCEPT_XP_PER_CORRECT: dict[str, int] = {
     "c_add_8s": 87,
     "c_add_9s": 92,
     "c_add_10s": 52,
+
+    # Descriptive subtraction concepts
+    "c_sub_0s": 122,
+    "c_sub_1s": 127,
+    "c_sub_2s": 132,
+    "c_sub_3s": 137,
+    "c_sub_4s": 142,
+    "c_sub_5s": 147,
+    "c_sub_6s": 152,
+    "c_sub_7s": 157,
+    "c_sub_8s": 162,
+    "c_sub_9s": 167,
+    "c_sub_10s": 172,
 }
 

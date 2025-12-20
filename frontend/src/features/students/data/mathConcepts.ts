@@ -335,5 +335,35 @@ export function getAllMathConcepts(): MathConcept[] {
     })
   }
 
+  const subFixed = [
+    { id: 'c_sub_0s', name: 'Single Digit Subtraction (0s)' },
+    { id: 'c_sub_1s', name: 'Single Digit Subtraction (1s)' },
+    { id: 'c_sub_2s', name: 'Single Digit Subtraction (2s)' },
+    { id: 'c_sub_3s', name: 'Single Digit Subtraction (3s)' },
+    { id: 'c_sub_4s', name: 'Single Digit Subtraction (4s)' },
+    { id: 'c_sub_5s', name: 'Single Digit Subtraction (5s)' },
+    { id: 'c_sub_6s', name: 'Single Digit Subtraction (6s)' },
+    { id: 'c_sub_7s', name: 'Single Digit Subtraction (7s)' },
+    { id: 'c_sub_8s', name: 'Single Digit Subtraction (8s)' },
+    { id: 'c_sub_9s', name: 'Single Digit Subtraction (9s)' },
+    { id: 'c_sub_10s', name: 'Single Digit Subtraction (10s)' },
+  ]
+
+  for (const c of subFixed) {
+    concepts.push({
+      id: `concept-${c.id}`,
+      conceptId: c.id,
+      displayName: c.name,
+      legacyLevel: 0,
+      category: 'Subtraction',
+      operation: 'subtraction',
+      layoutType: 'vertical',
+      answerFormat: 'integer',
+      unlockRequirements: [],
+      isLocked: false,
+      attemptCount: 0,
+    })
+  }
+
   return concepts
 }

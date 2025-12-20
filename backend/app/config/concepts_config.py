@@ -68,3 +68,38 @@ CONCEPTS_CONFIG.update(
     }
 )
 
+# Single Digit Subtraction (Ns): operand2 fixed to N, operand1 range ensures answer >= 1
+def _subtraction_fixed_subtrahend(subtrahend: int, op1_min: int, op1_max: int) -> dict[str, Any]:
+    return {
+        "operation": "subtraction",
+        "operand1_range": {"min": op1_min, "max": op1_max},
+        "operand2_range": {"min": subtrahend, "max": subtrahend},
+        "constraints": {"fixed_operand2": subtrahend, "answer_min": 1},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+    }
+
+
+CONCEPTS_CONFIG.update(
+    {
+        "c_sub_0s": {
+            "operation": "subtraction",
+            "operand1_range": {"min": 1, "max": 10},
+            "operand2_range": {"min": 0, "max": 0},
+            "constraints": {"fixed_operand2": 0, "answer_min": 1},
+            "layout_type": "vertical",
+            "answer_format": "integer",
+        },
+        "c_sub_1s": {**_subtraction_fixed_subtrahend(1, 2, 11)},
+        "c_sub_2s": {**_subtraction_fixed_subtrahend(2, 3, 12)},
+        "c_sub_3s": {**_subtraction_fixed_subtrahend(3, 4, 13)},
+        "c_sub_4s": {**_subtraction_fixed_subtrahend(4, 5, 14)},
+        "c_sub_5s": {**_subtraction_fixed_subtrahend(5, 6, 15)},
+        "c_sub_6s": {**_subtraction_fixed_subtrahend(6, 7, 16)},
+        "c_sub_7s": {**_subtraction_fixed_subtrahend(7, 8, 17)},
+        "c_sub_8s": {**_subtraction_fixed_subtrahend(8, 9, 18)},
+        "c_sub_9s": {**_subtraction_fixed_subtrahend(9, 10, 19)},
+        "c_sub_10s": {**_subtraction_fixed_subtrahend(10, 11, 20)},
+    }
+)
+

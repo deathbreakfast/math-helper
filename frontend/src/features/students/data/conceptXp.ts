@@ -52,6 +52,31 @@ export const CONCEPT_XP_PER_CORRECT: Record<string, number> = {
   c_concept_043: 272,
   c_concept_044: 362,
   c_concept_045: 367,
+
+  // Descriptive concept IDs (starting set)
+  c_add_0s: 47,
+  c_add_1s: 37,
+  c_add_2s: 57,
+  c_add_3s: 62,
+  c_add_4s: 67,
+  c_add_5s: 72,
+  c_add_6s: 77,
+  c_add_7s: 82,
+  c_add_8s: 87,
+  c_add_9s: 92,
+  c_add_10s: 52,
+
+  c_sub_0s: 122,
+  c_sub_1s: 127,
+  c_sub_2s: 132,
+  c_sub_3s: 137,
+  c_sub_4s: 142,
+  c_sub_5s: 147,
+  c_sub_6s: 152,
+  c_sub_7s: 157,
+  c_sub_8s: 162,
+  c_sub_9s: 167,
+  c_sub_10s: 172,
 }
 
 export function getConceptXpPerCorrect(conceptId: string | undefined | null): number | null {

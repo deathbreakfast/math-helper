@@ -10,6 +10,7 @@ import { PerformanceByDifficulty } from './components/summary/PerformanceByDiffi
 import { AchievementsSection } from './components/summary/AchievementsSection'
 import { SessionStats } from './components/summary/SessionStats'
 import { XPEarningsBreakdown } from './components/summary/XPEarningsBreakdown'
+import { LevelUpCelebrationModal } from './components/summary/LevelUpCelebrationModal'
 import { ProblemGrid } from './components/summary/ProblemGrid'
 import { ProblemDetailModal } from './components/summary/ProblemDetailModal'
 import { SummaryActionButtons } from './components/summary/SummaryActionButtons'
@@ -19,6 +20,7 @@ const SummaryPage = () => {
   const [filter, setFilter] = useState<FilterType>('all')
   const [selectedProblem, setSelectedProblem] = useState<ProblemResult | null>(null)
   const [showAchievements, setShowAchievements] = useState(false)
+  const [showLevelUp, setShowLevelUp] = useState(true)
 
   const {
     sessionSummary,
@@ -81,10 +83,16 @@ const SummaryPage = () => {
 
   const studentName = sessionSummary.user?.name || 'Student'
   const level = sessionSummary.user?.level || 1
+  const leveledUp = levelUp?.leveled_up === true
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-purple-50 to-pink-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <LevelUpCelebrationModal
+          levelUp={levelUp}
+          isOpen={showLevelUp && leveledUp}
+          onClose={() => setShowLevelUp(false)}
+        />
         <SummaryHeader studentName={studentName} level={level} onBackToDashboard={handleBackToDashboard} />
 
         <EncouragementBanner

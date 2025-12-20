@@ -10,7 +10,7 @@ type EncouragementBannerProps = {
 }
 
 export const EncouragementBanner = ({ accuracy, totalProblems, totalTime, levelUp }: EncouragementBannerProps) => {
-  const hasLeveledUp = levelUp?.new_level !== undefined
+  const hasLeveledUp = levelUp?.leveled_up === true
 
   return (
     <motion.div

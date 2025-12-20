@@ -22,7 +22,7 @@ export const SummaryActionButtons = ({
   onTryNextLevel,
   onReviewFlagged,
 }: SummaryActionButtonsProps) => {
-  const hasLeveledUp = levelUp?.new_level !== undefined
+  const hasLeveledUp = levelUp?.leveled_up === true
 
   return (
     <motion.div

@@ -1,5 +1,5 @@
 import { logError } from '../../../utils/logger'
-import type { User, PracticeAttempt } from '../types'
+import type { User, PracticeAttempt, PracticeSessionSummary, LevelUpResult } from '../types'
 import { reconstructSessionStateFromResponse } from '../utils/sessionReconstruction'
 import type { ReconstructedSessionState } from '../utils/sessionReconstruction'
 import { legacyLevelFromConceptId } from '../../students/utils/conceptIdUtils'
@@ -42,9 +42,7 @@ export type CompleteSessionResult = {
     correct_count?: number
     accuracy?: number
   }
-  level_up?: {
-    new_level?: number
-  }
+  level_up?: LevelUpResult
   achievements?: Array<{
     id?: string
     code?: string
@@ -192,39 +190,7 @@ export function createSessionSummary(
   problems: any[],
   questionAnswers: Record<string, any>,
   selectedUser: User
-): {
-  id: string
-  submittedAt: string
-  status: string
-  message?: string
-  totals: {
-    questions: number
-    correct: number
-    accuracy: number
-  }
-  user: {
-    id: number
-    name: string
-    avatar?: string
-    level?: number
-  }
-  attempts: PracticeAttempt[]
-  achievements?: Array<{
-    id?: string
-    code?: string
-    title?: string
-    description?: string
-    icon?: string
-    category?: string
-    earnedAt?: string
-  }>
-  level_up?: {
-    eligible?: boolean
-    new_level?: number
-    missing_achievements?: string[]
-    errors?: string[]
-  }
-} {
+): PracticeSessionSummary {
   // Create session summary from backend response
   const attempts: PracticeAttempt[] = problems.map((problem) => {
     const answer = questionAnswers[problem.id]
@@ -241,17 +207,21 @@ export function createSessionSummary(
     }
   })
 
+  const totalQuestions = data.session?.total_questions ?? attempts.length
+  const correct = data.session?.correct_count ?? attempts.filter((a) => a.isCorrect).length
+  const accuracy =
+    data.session?.accuracy ??
+    Math.round((correct / Math.max(1, totalQuestions)) * 100)
+
   return {
     id: data.session?.id?.toString() || `session-${Date.now()}`,
     submittedAt: data.session?.completed_at || new Date().toISOString(),
     status: 'completed',
     message: 'Great job completing the practice session!',
     totals: {
-      questions: data.session?.total_questions || attempts.length,
-      correct: data.session?.correct_count || attempts.filter((a) => a.isCorrect).length,
-      accuracy: data.session?.accuracy || Math.round(
-        ((data.session?.correct_count || 0) / (data.session?.total_questions || 1)) * 100
-      ),
+      questions: totalQuestions,
+      correct,
+      accuracy,
     },
     user: {
       id: selectedUser.id,

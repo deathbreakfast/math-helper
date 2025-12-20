@@ -84,6 +84,33 @@ export type LevelUpResult = {
   new_level?: number
   missing_achievements?: string[]
   errors?: string[]
+
+  // XP-based leveling payload (see MATH_CONCEPTS.md)
+  earned_xp?: number
+  previous_total_xp?: number
+  total_xp?: number
+  previous_level?: number
+  leveled_up?: boolean
+  xp_progress?: {
+    level: number
+    total_xp: number
+    current_level_total_xp: number
+    next_level_total_xp: number | null
+    xp_into_level: number
+    xp_to_next_level: number | null
+  }
+  xp_breakdown?: {
+    concept_id?: string | null
+    xp_per_correct?: number
+    correct_count?: number
+    base_xp?: number
+    multipliers?: Array<{ achievement_code?: string; multiplier?: number }>
+    total_multiplier?: number
+    multiplied_xp?: number
+    bonus_xp?: number
+    bonus_xp_sources?: Array<{ achievement_code?: string; bonus_xp?: number }>
+    total_awarded_xp_raw?: number
+  }
 }
 
 export type PracticeSessionSummary = {

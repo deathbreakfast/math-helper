@@ -9,6 +9,7 @@ import { SummaryStatsCards } from './components/summary/SummaryStatsCards'
 import { PerformanceByDifficulty } from './components/summary/PerformanceByDifficulty'
 import { AchievementsSection } from './components/summary/AchievementsSection'
 import { SessionStats } from './components/summary/SessionStats'
+import { XPEarningsBreakdown } from './components/summary/XPEarningsBreakdown'
 import { ProblemGrid } from './components/summary/ProblemGrid'
 import { ProblemDetailModal } from './components/summary/ProblemDetailModal'
 import { SummaryActionButtons } from './components/summary/SummaryActionButtons'
@@ -94,6 +95,10 @@ const SummaryPage = () => {
         />
 
         <SummaryStatsCards metrics={metrics} />
+
+        <div className="mb-8">
+          <XPEarningsBreakdown levelUp={levelUp} />
+        </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
           <PerformanceByDifficulty performanceByDifficulty={performanceByDifficulty} />

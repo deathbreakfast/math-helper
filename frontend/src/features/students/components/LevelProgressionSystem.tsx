@@ -9,13 +9,9 @@ import { JourneyTabNavigation, type TabId } from './journey/JourneyTabNavigation
 import { OverviewTab } from './journey/OverviewTab'
 import { AchievementsTab } from './journey/AchievementsTab'
 import { MathConceptsTab } from './journey/MathConceptsTab'
-import { TestsTab } from './journey/TestsTab'
 import { useFilteredAchievements } from '../hooks/useFilteredAchievements'
 import { useJourneyFilters } from '../hooks/useJourneyFilters'
-import { useTests } from '../hooks/useTests'
 import { useAchievementDefinitions } from '../../../lib/levels/hooks'
-import type { FrontendTest, NewTier } from '../utils/testMapping'
-import { mapOldTierToNew } from '../utils/testMapping'
 
 import type { User } from '../hooks/useLearners'
 
@@ -76,52 +72,6 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
     tierFilter: 'all',
     textFilter,
   })
-
-  // Tests data
-  const userId = userData ? parseInt(userData.id, 10) : null
-  const { tests, getTestAttempts, getTestAttemptDetail } = useTests({
-    userId,
-    userLevel: userData?.level || 1,
-  })
-
-  // Test filters - also use URL as single source of truth
-  // Support both old and new tier systems for backward compatibility
-  const tierParam = searchParams.get('tier') || 'all'
-  const testTierFilter = (tierParam === 'all' 
-    ? 'all' 
-    : mapOldTierToNew(tierParam)) as 'all' | NewTier
-  const testStatusFilter = (searchParams.get('testStatus') || 'all') as 'all' | 'locked' | 'unlocked' | 'attempted'
-  const testTextFilter = searchParams.get('testText') || ''
-  
-  const setTestTierFilter = (tier: 'all' | NewTier) => {
-    const newParams = new URLSearchParams(searchParams)
-    if (tier !== 'all') {
-      newParams.set('tier', tier)
-    } else {
-      newParams.delete('tier')
-    }
-    setSearchParams(newParams, { replace: true })
-  }
-  
-  const setTestStatusFilter = (status: 'all' | 'locked' | 'unlocked' | 'attempted') => {
-    const newParams = new URLSearchParams(searchParams)
-    if (status !== 'all') {
-      newParams.set('testStatus', status)
-    } else {
-      newParams.delete('testStatus')
-    }
-    setSearchParams(newParams, { replace: true })
-  }
-  
-  const setTestTextFilter = (text: string) => {
-    const newParams = new URLSearchParams(searchParams)
-    if (text) {
-      newParams.set('testText', text)
-    } else {
-      newParams.delete('testText')
-    }
-    setSearchParams(newParams, { replace: true })
-  }
 
   if (!userData) {
     return null
@@ -189,74 +139,10 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
           )}
 
           {activeTab === 'concepts' && <MathConceptsTab userData={userData} user={user} isActive={activeTab === 'concepts'} />}
-
-          {activeTab === 'tests' && (
-            <TestsTab
-              tests={tests}
-              tierFilter={testTierFilter}
-              statusFilter={testStatusFilter}
-              textFilter={testTextFilter}
-              onTierFilterChange={setTestTierFilter}
-              onStatusFilterChange={setTestStatusFilter}
-              onTextFilterChange={setTestTextFilter}
-              onStartTest={handleStartTest}
-              getTestAttempts={getTestAttempts}
-              getTestAttemptDetail={getTestAttemptDetail}
-              selectedUser={user || (userData ? {
-                id: userData.id,
-                name: userData.name,
-                avatar: userData.avatar,
-                level: userData.level,
-                questionsAnswered: userData.totalQuestions,
-                averageSpeed: 0,
-                achievements: userData.achievements
-                  .filter(ach => ach.unlockedAt) // Only include achievements with earnedAt
-                  .map(ach => ({
-                    id: ach.id,
-                    code: ach.id, // Use id as code for Learner type
-                    title: ach.title,
-                    description: ach.description,
-                    icon: ach.icon,
-                    earnedAt: ach.unlockedAt!, // Non-null assertion since we filtered
-                    category: ach.category,
-                  })),
-                stats: {
-                  additionAccuracy: 0,
-                  subtractionAccuracy: 0,
-                  multiplicationAccuracy: 0,
-                  divisionAccuracy: 0,
-                  additionSpeed: 0,
-                  subtractionSpeed: 0,
-                  multiplicationSpeed: 0,
-                  divisionSpeed: 0,
-                  currentStreak: userData.currentStreak,
-                  bestStreak: userData.bestStreak,
-                },
-              } : null)}
-            />
-          )}
         </AnimatePresence>
       </div>
     </div>
   )
-
-  function handleStartTest(test: FrontendTest) {
-    if (!userData) return
-
-    // FrontendTest extends TestDefinition which has test_type property
-    // TypeScript doesn't always infer extended properties, so we access it directly
-    const testType = (test as FrontendTest & { test_type: string }).test_type
-
-    // Start test session by navigating to practice page with test parameters
-    // Router will preserve context params like env=dev
-    router.navigate('/practice', {
-      user: userData.name,
-      userId: userData.id,
-      avatar: userData.avatar,
-      testType: testType,
-      isTest: 'true',
-    })
-  }
 }
 
 export { mapUserToProgressData } from '../utils/progressMapping'

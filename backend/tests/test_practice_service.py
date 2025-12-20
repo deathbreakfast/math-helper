@@ -973,3 +973,63 @@ class TestPracticeService:
             assert PracticeService.validate_answer(test_question, " 8 ") is True
             assert PracticeService.validate_answer(test_question, "8\n") is True
 
+    def test_get_incomplete_session_with_concept_id_filter(self, app, test_user):
+        """Test get_incomplete_session filters by concept_id."""
+        with app.app_context():
+            # Create sessions with different concept_ids
+            session1 = PracticeService.create_session(
+                user_id=test_user.id,
+                mode="standard",
+                concept_id="c_level_1"
+            )
+            session2 = PracticeService.create_session(
+                user_id=test_user.id,
+                mode="standard",
+                concept_id="c_level_3"
+            )
+            
+            # Get incomplete session with concept_id filter
+            result, count, _ = PracticeService.get_incomplete_session(
+                test_user.id, 
+                mode="standard",
+                concept_id="c_level_1"
+            )
+            
+            # Should return the session with matching concept_id
+            assert result is not None
+            assert result.id == session1.id
+            assert result.concept_id == "c_level_1"
+
+    def test_get_oldest_incomplete_session(self, app, test_user):
+        """Test get_oldest_incomplete_session returns oldest session."""
+        with app.app_context():
+            import time
+            
+            # Create first session (oldest)
+            session1 = PracticeService.create_session(
+                user_id=test_user.id,
+                mode="standard",
+                concept_id="c_level_1"
+            )
+            db.session.add(session1)
+            db.session.commit()
+            
+            # Wait a moment to ensure different timestamps
+            time.sleep(0.01)
+            
+            # Create second session (newer)
+            session2 = PracticeService.create_session(
+                user_id=test_user.id,
+                mode="standard",
+                concept_id="c_level_3"
+            )
+            db.session.add(session2)
+            db.session.commit()
+            
+            # Get oldest incomplete session
+            result, count, _ = PracticeService.get_oldest_incomplete_session(test_user.id, mode="standard")
+            
+            # Should return the oldest session (session1)
+            assert result is not None
+            assert result.id == session1.id
+

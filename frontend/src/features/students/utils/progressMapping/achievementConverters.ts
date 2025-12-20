@@ -86,6 +86,20 @@ export function convertBackendDefinitionToFrontend(
   // Count how many times this achievement was earned (count achievements with same code)
   const achievementCount = userAchievements.filter((a) => a.code === code).length
 
+  // Format requirement text - special handling for Lightning Fast to include min_questions
+  let requirementText = definition.description || ''
+  if (code.startsWith('lightning-fast-') && definition.requirements) {
+    const reqs = definition.requirements as { max_speed_seconds?: number; min_questions?: number }
+    const maxSpeed = reqs.max_speed_seconds
+    const minQuestions = reqs.min_questions
+    
+    if (maxSpeed !== undefined && minQuestions !== undefined) {
+      requirementText = `Avg <${maxSpeed}s/question with ${minQuestions}+ correct (per level)`
+    } else if (maxSpeed !== undefined) {
+      requirementText = `Avg <${maxSpeed}s/question (per level)`
+    }
+  }
+
   return {
     id: code,
     title: cleanedTitle,
@@ -93,7 +107,7 @@ export function convertBackendDefinitionToFrontend(
     icon: definition.icon || '🏆',
     type,
     tier,
-    requirement: definition.description || '',
+    requirement: requirementText,
     status: isUnlocked ? ('unlocked' as AchievementStatus) : ('locked' as AchievementStatus),
     progress: isUnlocked ? 1 : 0,
     maxProgress: 1,
@@ -189,6 +203,11 @@ export function convertBackendAchievementToFrontend(
     }
   }
   
+  // Format requirement text - special handling for Lightning Fast
+  // Note: convertBackendAchievementToFrontend doesn't have access to definition.requirements
+  // so we can't format Lightning Fast requirements here. This is a fallback converter.
+  let requirementText = backendAchievement.description || ''
+
   return {
     id: code,
     title: cleanedTitle,
@@ -196,7 +215,7 @@ export function convertBackendAchievementToFrontend(
     icon: backendAchievement.icon || '🏆',
     type,
     tier,
-    requirement: backendAchievement.description || '',
+    requirement: requirementText,
     status: 'unlocked' as AchievementStatus,
     progress: 1,
     maxProgress: 1,

@@ -1,0 +1,159 @@
+/**
+ * Hook to fetch concept practice attempts
+ * For now, concepts map 1:1 to levels, so we fetch practice sessions by level
+ */
+
+import { useState, useEffect } from 'react'
+import { logError } from '../../../utils/logger'
+
+export type ConceptAttempt = {
+  attempt_id: number
+  session_id: number
+  conceptId: string
+  accuracy: number
+  total_questions: number
+  correct_count: number
+  attempted_at: Date
+  total_duration_ms?: number
+}
+
+export type ConceptAttemptDetail = ConceptAttempt & {
+  questions?: Array<{
+    question_id: number
+    prompt: string
+    submitted_answer: string
+    correct_answer: string
+    is_correct: boolean
+    duration_ms?: number
+  }>
+}
+
+/**
+ * Fetch concept attempts for a given concept
+ * For now, we fetch practice sessions by level (since concept maps 1:1 to level)
+ */
+export async function getConceptAttempts(
+  conceptId: string,
+  userId: number
+): Promise<ConceptAttempt[]> {
+  try {
+    // Extract level from conceptId (e.g., "c_level_1" -> 1)
+    const levelMatch = conceptId.match(/c_level_(\d+)/)
+    if (!levelMatch) {
+      throw new Error(`Invalid conceptId: ${conceptId}`)
+    }
+    const level = parseInt(levelMatch[1], 10)
+
+    // Fetch practice sessions for this user and level
+    // For now, we'll use a simple endpoint that gets sessions by level
+    // In the future, this should filter by concept_id
+    const response = await fetch(`/api/practice/sessions?user_id=${userId}&level=${level}&completed=true`)
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch concept attempts: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    
+    // Transform sessions to concept attempts
+    const sessions = data.sessions || []
+    return sessions.map((session: any) => ({
+      attempt_id: session.id,
+      session_id: session.id,
+      conceptId,
+      accuracy: session.accuracy || 0,
+      total_questions: session.total_questions || 0,
+      correct_count: session.correct_count || 0,
+      attempted_at: new Date(session.completed_at || session.started_at),
+      total_duration_ms: session.total_duration_ms,
+    }))
+  } catch (error) {
+    logError('Error fetching concept attempts:', error)
+    throw error
+  }
+}
+
+/**
+ * Fetch detailed attempt information
+ */
+export async function getConceptAttemptDetail(
+  attemptId: number
+): Promise<ConceptAttemptDetail | null> {
+  try {
+    // Fetch session details
+    const response = await fetch(`/api/practice/sessions/${attemptId}`)
+    
+    if (!response.ok) {
+      throw new Error(`Failed to fetch attempt detail: ${response.statusText}`)
+    }
+
+    const data = await response.json()
+    const session = data.session || data
+    
+    // Fetch question responses for this session
+    const questionsResponse = await fetch(`/api/practice/sessions/${attemptId}/questions`)
+    let questions: any[] = []
+    
+    if (questionsResponse.ok) {
+      const questionsData = await questionsResponse.json()
+      questions = questionsData.questions || []
+    }
+
+    return {
+      attempt_id: attemptId,
+      session_id: attemptId,
+      conceptId: `c_level_${session.level || 1}`, // Infer from session level
+      accuracy: session.accuracy || 0,
+      total_questions: session.total_questions || 0,
+      correct_count: session.correct_count || 0,
+      attempted_at: new Date(session.completed_at || session.started_at),
+      total_duration_ms: session.total_duration_ms,
+      questions: questions.map((q: any) => ({
+        question_id: q.question_id || q.id,
+        prompt: q.prompt,
+        submitted_answer: q.response?.submitted_answer || '',
+        correct_answer: q.correctAnswer || q.correct_answer,
+        is_correct: q.response?.is_correct || false,
+        duration_ms: q.response?.duration_ms,
+      })),
+    }
+  } catch (error) {
+    logError('Error fetching attempt detail:', error)
+    return null
+  }
+}
+
+/**
+ * Hook to fetch and manage concept attempts
+ */
+export function useConceptAttempts(conceptId: string | null, userId: number | null, enabled: boolean = true) {
+  const [attempts, setAttempts] = useState<ConceptAttempt[]>([])
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!enabled || !conceptId || !userId) {
+      setAttempts([])
+      setIsLoading(false)
+      return
+    }
+
+    const fetchAttempts = async () => {
+      setIsLoading(true)
+      setError(null)
+      try {
+        const fetchedAttempts = await getConceptAttempts(conceptId, userId)
+        setAttempts(fetchedAttempts)
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch attempts')
+        setAttempts([])
+      } finally {
+        setIsLoading(false)
+      }
+    }
+
+    fetchAttempts()
+  }, [conceptId, userId, enabled])
+
+  return { attempts, isLoading, error }
+}

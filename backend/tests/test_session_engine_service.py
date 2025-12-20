@@ -571,3 +571,276 @@ class TestSessionEngineService:
                             assert result["is_test"] is True
                             assert result["session_id"] != session.id
 
+    def test_generate_session_resumes_same_concept(self, app, test_user):
+        """Test that starting practice for a concept resumes incomplete session of same concept.
+        
+        Scenario: Start basic addition practice -> new -> exit -> Start basic addition practice -> resume
+        """
+        with app.app_context():
+            concept_id = "c_level_1"  # Basic Single Digit Addition
+            
+            # Create incomplete session for concept
+            session = PracticeService.create_session(
+                user_id=test_user.id,
+                mode="standard",
+                level=1,
+                concept_id=concept_id,
+                is_test=False
+            )
+            
+            # Add a question to the session
+            question = Question(
+                operation="addition",
+                operand1=5,
+                operand2=3,
+                correct_answer="8",
+                prompt="5 + 3",
+                required_level=1,
+            )
+            db.session.add(question)
+            db.session.commit()
+            
+            session.question_ids = json.dumps([question.id])
+            db.session.add(session)
+            db.session.commit()
+            
+            # Mock get_session_with_details to return session questions
+            with patch('app.services.session_engine_service.PracticeService.get_session_with_details') as mock_get_details:
+                mock_get_details.return_value = {
+                    "questions": [
+                        {
+                            "id": f"q_{question.id}",
+                            "question_id": question.id,
+                            "response": None,  # Not answered yet
+                        }
+                    ]
+                }
+                
+                # Try to start practice for the same concept
+                with patch('app.services.session_engine_service.AdaptiveDistributionService.generate_adaptive_question_distribution') as mock_dist:
+                    mock_dist.return_value = {"1": 1.0}
+                    
+                    with patch('app.services.session_engine_service.QuestionService.generate_question') as mock_gen:
+                        mock_gen.return_value = {"id": "q1", "question_id": question.id}
+                        
+                        result = SessionEngineService.generate_session(
+                            user_id=test_user.id,
+                            mode="standard",
+                            level=1,
+                            concept_id=concept_id,
+                        )
+                        
+                        # Should resume the existing session
+                        assert result["session_id"] == session.id
+                        assert result["concept_id"] == concept_id
+
+    def test_generate_session_creates_new_for_different_concept(self, app, test_user):
+        """Test that starting practice for a different concept creates new session.
+        
+        Scenario: Start basic addition practice -> new -> exit -> Start basic subtraction practice -> new
+        """
+        with app.app_context():
+            addition_concept = "c_level_1"  # Basic Single Digit Addition
+            subtraction_concept = "c_level_3"  # Basic Single Digit Subtraction
+            
+            # Create incomplete session for addition concept
+            addition_session = PracticeService.create_session(
+                user_id=test_user.id,
+                mode="standard",
+                level=1,
+                concept_id=addition_concept,
+                is_test=False
+            )
+            
+            # Add a question to the session
+            question = Question(
+                operation="addition",
+                operand1=5,
+                operand2=3,
+                correct_answer="8",
+                prompt="5 + 3",
+                required_level=1,
+            )
+            db.session.add(question)
+            db.session.commit()
+            
+            addition_session.question_ids = json.dumps([question.id])
+            db.session.add(addition_session)
+            db.session.commit()
+            
+            # Try to start practice for different concept (subtraction)
+            with patch('app.services.session_engine_service.AdaptiveDistributionService.generate_adaptive_question_distribution') as mock_dist:
+                mock_dist.return_value = {"3": 1.0}
+                
+                with patch('app.services.session_engine_service.QuestionService.generate_question') as mock_gen:
+                    mock_gen.return_value = {"id": "q1", "question_id": 1}
+                    
+                    result = SessionEngineService.generate_session(
+                        user_id=test_user.id,
+                        mode="standard",
+                        level=3,
+                        concept_id=subtraction_concept,
+                    )
+                    
+                    # Should create a new session (not resume addition session)
+                    assert result["session_id"] != addition_session.id
+                    assert result["concept_id"] == subtraction_concept
+
+    def test_generate_session_resumes_old_concept_after_other_sessions(self, app, test_user):
+        """Test that starting practice for a concept resumes old session of that concept.
+        
+        Scenario: Start basic addition practice -> new -> exit -> Start basic subtraction practice -> 
+        new -> exit -> Start basic addition practice -> resume old basic addition practice
+        """
+        with app.app_context():
+            addition_concept = "c_level_1"  # Basic Single Digit Addition
+            subtraction_concept = "c_level_3"  # Basic Single Digit Subtraction
+            
+            # Create incomplete session for addition concept (oldest)
+            addition_session = PracticeService.create_session(
+                user_id=test_user.id,
+                mode="standard",
+                level=1,
+                concept_id=addition_concept,
+                is_test=False
+            )
+            db.session.add(addition_session)
+            db.session.commit()
+            
+            # Wait a moment to ensure different timestamps
+            import time
+            time.sleep(0.01)
+            
+            # Create incomplete session for subtraction concept (newer)
+            subtraction_session = PracticeService.create_session(
+                user_id=test_user.id,
+                mode="standard",
+                level=3,
+                concept_id=subtraction_concept,
+                is_test=False
+            )
+            db.session.add(subtraction_session)
+            db.session.commit()
+            
+            # Add questions to both sessions
+            addition_question = Question(
+                operation="addition",
+                operand1=5,
+                operand2=3,
+                correct_answer="8",
+                prompt="5 + 3",
+                required_level=1,
+            )
+            db.session.add(addition_question)
+            db.session.commit()
+            
+            addition_session.question_ids = json.dumps([addition_question.id])
+            db.session.add(addition_session)
+            db.session.commit()
+            
+            # Mock get_session_with_details to return session questions
+            with patch('app.services.session_engine_service.PracticeService.get_session_with_details') as mock_get_details:
+                mock_get_details.return_value = {
+                    "questions": [
+                        {
+                            "id": f"q_{addition_question.id}",
+                            "question_id": addition_question.id,
+                            "response": None,  # Not answered yet
+                        }
+                    ]
+                }
+                
+                # Try to start practice for addition concept again
+                with patch('app.services.session_engine_service.AdaptiveDistributionService.generate_adaptive_question_distribution') as mock_dist:
+                    mock_dist.return_value = {"1": 1.0}
+                    
+                    with patch('app.services.session_engine_service.QuestionService.generate_question') as mock_gen:
+                        mock_gen.return_value = {"id": "q1", "question_id": addition_question.id}
+                        
+                        result = SessionEngineService.generate_session(
+                            user_id=test_user.id,
+                            mode="standard",
+                            level=1,
+                            concept_id=addition_concept,
+                        )
+                        
+                        # Should resume the old addition session (not the subtraction one)
+                        assert result["session_id"] == addition_session.id
+                        assert result["concept_id"] == addition_concept
+
+    def test_generate_session_resumes_oldest_for_dashboard(self, app, test_user):
+        """Test that dashboard start practice resumes oldest incomplete session regardless of concept."""
+        with app.app_context():
+            addition_concept = "c_level_1"
+            subtraction_concept = "c_level_3"
+            
+            # Create incomplete session for addition concept (oldest)
+            addition_session = PracticeService.create_session(
+                user_id=test_user.id,
+                mode="standard",
+                level=1,
+                concept_id=addition_concept,
+                is_test=False
+            )
+            db.session.add(addition_session)
+            db.session.commit()
+            
+            # Wait a moment to ensure different timestamps
+            import time
+            time.sleep(0.01)
+            
+            # Create incomplete session for subtraction concept (newer)
+            subtraction_session = PracticeService.create_session(
+                user_id=test_user.id,
+                mode="standard",
+                level=3,
+                concept_id=subtraction_concept,
+                is_test=False
+            )
+            db.session.add(subtraction_session)
+            db.session.commit()
+            
+            # Add questions to addition session
+            addition_question = Question(
+                operation="addition",
+                operand1=5,
+                operand2=3,
+                correct_answer="8",
+                prompt="5 + 3",
+                required_level=1,
+            )
+            db.session.add(addition_question)
+            db.session.commit()
+            
+            addition_session.question_ids = json.dumps([addition_question.id])
+            db.session.add(addition_session)
+            db.session.commit()
+            
+            # Mock get_session_with_details to return session questions
+            with patch('app.services.session_engine_service.PracticeService.get_session_with_details') as mock_get_details:
+                mock_get_details.return_value = {
+                    "questions": [
+                        {
+                            "id": f"q_{addition_question.id}",
+                            "question_id": addition_question.id,
+                            "response": None,  # Not answered yet
+                        }
+                    ]
+                }
+                
+                # Try to start practice from dashboard (resume_oldest=True)
+                with patch('app.services.session_engine_service.AdaptiveDistributionService.generate_adaptive_question_distribution') as mock_dist:
+                    mock_dist.return_value = {"1": 1.0}
+                    
+                    with patch('app.services.session_engine_service.QuestionService.generate_question') as mock_gen:
+                        mock_gen.return_value = {"id": "q1", "question_id": addition_question.id}
+                        
+                        result = SessionEngineService.generate_session(
+                            user_id=test_user.id,
+                            mode="standard",
+                            resume_oldest=True,
+                        )
+                        
+                        # Should resume the oldest session (addition, not subtraction)
+                        assert result["session_id"] == addition_session.id
+

@@ -147,12 +147,14 @@ const LearnersDashboard = () => {
     if (!selectedUser) return
     setShowPinModal(false)
 
-    // Router will preserve context params like env=dev
+    // Dashboard start practice should resume oldest incomplete session
+    // Pass resume_oldest flag to indicate this is from dashboard
     router.navigate('/practice', {
       user: selectedUser.name,
       pin,
       userId: selectedUser.id,
       avatar: selectedUser.avatar,
+      resumeOldest: 'true',
     })
   }
 

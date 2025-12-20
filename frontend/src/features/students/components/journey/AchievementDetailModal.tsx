@@ -4,6 +4,7 @@ import { X, Calendar, Award, Info } from 'lucide-react'
 import type { Achievement } from '../../data/achievements'
 import type { BackendAchievementDefinition } from '../../../lib/levels/api'
 import { logError } from '../../../../utils/logger'
+import { getTestDisplayName } from '../../utils/progressMapping/testDisplayNames'
 
 type AchievementInstance = {
   id: string
@@ -67,7 +68,12 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
   const formatMetadata = (metadata?: Record<string, any>): string => {
     if (!metadata) return ''
     const parts: string[] = []
-    if (metadata.level) parts.push(`Level ${metadata.level}`)
+    if (metadata.level) {
+      parts.push(`Level ${metadata.level}`)
+    } else if (metadata.test_type) {
+      // Show friendly test name for test sessions
+      parts.push(getTestDisplayName(metadata.test_type))
+    }
     if (metadata.operation) parts.push(metadata.operation)
     return parts.join(' • ')
   }
@@ -136,9 +142,23 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
                     <p className="text-sm text-gray-500 mt-2">
                       This achievement hasn't been earned yet. Keep practicing to unlock it!
                     </p>
+                    {/* Show requirement even when not earned */}
+                    {achievement.requirement && (
+                      <div className="mt-4 rounded-lg bg-gray-50 p-4">
+                        <p className="text-sm font-semibold text-gray-700 mb-1">Requirement:</p>
+                        <p className="text-sm text-gray-600">{achievement.requirement}</p>
+                      </div>
+                    )}
                   </div>
                 ) : (
                   <div className="space-y-4" data-testid="testid-achievement-modal-instances">
+                    {/* Requirement section */}
+                    {achievement.requirement && (
+                      <div className="mb-6 rounded-lg bg-blue-50 p-4 border border-blue-200">
+                        <p className="text-sm font-semibold text-gray-700 mb-1">Requirement:</p>
+                        <p className="text-sm text-gray-600">{achievement.requirement}</p>
+                      </div>
+                    )}
                     <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-gray-700">
                       <Info className="h-4 w-4" />
                       <span>Earned {instances.length} time{instances.length !== 1 ? 's' : ''}</span>

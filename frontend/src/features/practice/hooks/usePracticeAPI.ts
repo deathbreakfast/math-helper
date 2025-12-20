@@ -66,9 +66,28 @@ export async function startSession(params: StartSessionParams): Promise<StartSes
   const isTestParam = searchParams.get('isTest')
   const isTest = isTestParam === 'true' && testType !== null
 
+  // Check URL parameters for concept
+  const conceptId = searchParams.get('conceptId')
+  const isConceptParam = searchParams.get('isConcept')
+  const isConcept = isConceptParam === 'true' && conceptId !== null
+  const resumeOldestParam = searchParams.get('resumeOldest')
+  const resumeOldest = resumeOldestParam === 'true'
+
   // Determine mode and test type
   const mode = practiceMode === 'multiplication' ? 'multiplication' : practiceMode === 'division' ? 'division' : 'standard'
-  const level = selectedUser.level ?? 1
+  
+  // For concepts, extract level from conceptId (e.g., "c_level_1" -> 1)
+  // Otherwise use user's level
+  let level = selectedUser.level ?? 1
+  if (isConcept && conceptId) {
+    const levelMatch = conceptId.match(/c_level_(\d+)/)
+    if (levelMatch) {
+      level = parseInt(levelMatch[1], 10)
+      console.log(`[Practice] Starting concept practice: conceptId=${conceptId}, extracted level=${level}`)
+    } else {
+      console.warn(`[Practice] Failed to extract level from conceptId: ${conceptId}`)
+    }
+  }
 
   // Call start endpoint - it handles both new and existing incomplete sessions
   const requestBody: any = {
@@ -80,6 +99,14 @@ export async function startSession(params: StartSessionParams): Promise<StartSes
 
   if (isTest && testType) {
     requestBody.test_type = testType
+  }
+
+  if (isConcept && conceptId) {
+    requestBody.concept_id = conceptId
+  }
+
+  if (resumeOldest) {
+    requestBody.resume_oldest = true
   }
 
   const response = await fetch('/api/practice/sessions/start', {

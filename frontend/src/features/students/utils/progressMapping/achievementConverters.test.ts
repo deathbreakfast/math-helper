@@ -165,6 +165,52 @@ describe('achievementConverters', () => {
 
       expect(result.icon).toBe('🏆')
     })
+
+    it('should format Lightning Fast requirement with min_questions and max_speed_seconds', () => {
+      const definition = {
+        title: 'Lightning Fast (Bronze)',
+        description: 'Average <5s per question at a specific level',
+        category: 'speed',
+        requirements: {
+          max_speed_seconds: 5.0,
+          min_questions: 50,
+        },
+      }
+
+      const result = convertBackendDefinitionToFrontend('lightning-fast-bronze', definition, [])
+
+      expect(result.requirement).toBe('Avg <5s/question with 50+ correct (per level)')
+    })
+
+    it('should format Lightning Fast requirement with only max_speed_seconds if min_questions missing', () => {
+      const definition = {
+        title: 'Lightning Fast (Bronze)',
+        description: 'Average <5s per question at a specific level',
+        category: 'speed',
+        requirements: {
+          max_speed_seconds: 5.0,
+        },
+      }
+
+      const result = convertBackendDefinitionToFrontend('lightning-fast-bronze', definition, [])
+
+      expect(result.requirement).toBe('Avg <5s/question (per level)')
+    })
+
+    it('should use description as requirement for non-Lightning Fast achievements', () => {
+      const definition = {
+        title: 'Test Achievement',
+        description: 'Test description',
+        category: 'milestone',
+        requirements: {
+          some_field: 'value',
+        },
+      }
+
+      const result = convertBackendDefinitionToFrontend('test-achievement', definition, [])
+
+      expect(result.requirement).toBe('Test description')
+    })
   })
 
   describe('convertBackendAchievementToFrontend', () => {

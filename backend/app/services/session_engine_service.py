@@ -118,6 +118,8 @@ class SessionEngineService:
         is_test: bool = False,
         test_type: str | None = None,
         level: int | None = None,
+        concept_id: str | None = None,
+        resume_oldest: bool = False,
     ) -> dict[str, Any]:
         """Generate a practice or test session with questions.
         
@@ -130,6 +132,8 @@ class SessionEngineService:
             is_test: Whether this is a test session
             test_type: Test type identifier (required if is_test=True)
             level: Optional level override (defaults to user's level)
+            concept_id: Optional concept identifier (e.g., "c_level_1", "c_add_1s")
+            resume_oldest: If True, resume the oldest incomplete session (for dashboard)
         
         Returns:
             Dictionary with session_id, is_test, test_type, and questions list
@@ -142,10 +146,30 @@ class SessionEngineService:
         session_level = level if level is not None else user.level
         
         # Check for incomplete session first
-        incomplete_session, response_count, _ = PracticeService.get_incomplete_session(user_id, mode)
+        # If resume_oldest is True (dashboard), get oldest session
+        # Otherwise, if concept_id is provided, only resume matching concept sessions
+        if resume_oldest:
+            incomplete_session, response_count, _ = PracticeService.get_oldest_incomplete_session(user_id, mode)
+        else:
+            incomplete_session, response_count, _ = PracticeService.get_incomplete_session(
+                user_id, mode, concept_id=concept_id
+            )
+        
         if incomplete_session:
             # Check if it matches the requested type (test vs practice)
-            if incomplete_session.is_test == is_test:
+            # For concept-specific practice, concept_id must match
+            # For dashboard resume (resume_oldest), we resume any incomplete session
+            concept_matches = (
+                incomplete_session.concept_id == concept_id
+                if concept_id is not None
+                else True  # If no concept_id specified, allow resume
+            )
+            level_matches = (
+                incomplete_session.level == session_level 
+                if session_level is not None and incomplete_session.level is not None
+                else True  # If either is None, allow resume (backward compatibility)
+            )
+            if incomplete_session.is_test == is_test and level_matches and concept_matches:
                 # Get full session details with all questions
                 session_data = PracticeService.get_session_with_details(incomplete_session.id)
                 if session_data and session_data.get("questions"):
@@ -173,6 +197,7 @@ class SessionEngineService:
                             "test_type": incomplete_session.test_type,
                             "mode": incomplete_session.mode,
                             "level": incomplete_session.level,
+                            "concept_id": incomplete_session.concept_id,
                             "questions": questions,
                         }
         
@@ -208,6 +233,7 @@ class SessionEngineService:
                 user_id=user_id,
                 mode=mode,
                 level=required_level,
+                concept_id=concept_id,
                 is_test=True,
                 test_type=test_type,
             )

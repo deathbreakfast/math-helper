@@ -39,6 +39,7 @@ class PracticeSession(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     mode = db.Column(db.String(32), nullable=False)  # standard/multiplication/division
     level = db.Column(db.Integer, nullable=True)
+    concept_id = db.Column(db.String(64), nullable=True, index=True)  # e.g., "c_level_1", "c_add_1s"
     is_test = db.Column(db.Boolean, default=False, nullable=False)
     test_type = db.Column(db.String(64), nullable=True)  # e.g., "multiplication-by-1", "division-2digit"
     started_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)

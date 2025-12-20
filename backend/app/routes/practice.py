@@ -218,6 +218,8 @@ def start_practice_session():
     is_test = payload.get("is_test", False) or payload.get("isTest", False)
     test_type = payload.get("test_type") or payload.get("testType")
     level = payload.get("level")
+    concept_id = payload.get("concept_id")
+    resume_oldest = payload.get("resume_oldest", False)
 
     if not user_id:
         return create_error_response("user_id is required", 400)
@@ -229,6 +231,8 @@ def start_practice_session():
             is_test=is_test,
             test_type=test_type,
             level=level,
+            concept_id=concept_id,
+            resume_oldest=resume_oldest,
         )
         return create_success_response(session_data, 201)
     except ValueError as e:

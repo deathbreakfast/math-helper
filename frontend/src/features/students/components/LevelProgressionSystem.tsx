@@ -8,7 +8,7 @@ import { JourneyStatsOverview } from './journey/JourneyStatsOverview'
 import { JourneyTabNavigation, type TabId } from './journey/JourneyTabNavigation'
 import { OverviewTab } from './journey/OverviewTab'
 import { AchievementsTab } from './journey/AchievementsTab'
-import { LevelsTab } from './journey/LevelsTab'
+import { MathConceptsTab } from './journey/MathConceptsTab'
 import { TestsTab } from './journey/TestsTab'
 import { useFilteredAchievements } from '../hooks/useFilteredAchievements'
 import { useJourneyFilters } from '../hooks/useJourneyFilters'
@@ -188,7 +188,7 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
             />
           )}
 
-          {activeTab === 'levels' && <LevelsTab userData={userData} user={user} isActive={activeTab === 'levels'} />}
+          {activeTab === 'concepts' && <MathConceptsTab userData={userData} user={user} isActive={activeTab === 'concepts'} />}
 
           {activeTab === 'tests' && (
             <TestsTab

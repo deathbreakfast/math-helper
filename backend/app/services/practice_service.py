@@ -21,6 +21,7 @@ class PracticeService:
         user_id: int,
         mode: str = "standard",
         level: int | None = None,
+        concept_id: str | None = None,
         is_test: bool = False,
         test_type: str | None = None,
     ) -> PracticeSession:
@@ -30,6 +31,7 @@ class PracticeService:
                 user_id=user_id,
                 mode=mode,
                 level=level,
+                concept_id=concept_id,
                 is_test=is_test,
                 test_type=test_type,
                 started_at=datetime.utcnow(),
@@ -287,8 +289,17 @@ class PracticeService:
 
     @staticmethod
     @log_query
-    def get_incomplete_session(user_id: int, mode: str | None = None) -> tuple[PracticeSession | None, int, int]:
+    def get_incomplete_session(
+        user_id: int, 
+        mode: str | None = None, 
+        concept_id: str | None = None
+    ) -> tuple[PracticeSession | None, int, int]:
         """Get the most recent incomplete session for a user.
+        
+        Args:
+            user_id: User ID
+            mode: Optional mode filter (standard/multiplication/division)
+            concept_id: Optional concept_id filter (e.g., "c_level_1", "c_add_1s")
         
         Returns:
             Tuple of (session, total_responses_count, None)
@@ -302,7 +313,60 @@ class PracticeService:
         if mode:
             query = query.filter_by(mode=mode)
         
+        if concept_id:
+            query = query.filter_by(concept_id=concept_id)
+        
         session = query.order_by(PracticeSession.started_at.desc()).first()
+        
+        if not session:
+            return None, 0, 0
+        
+        # Get response count for this session
+        responses = list(db.session.scalars(
+            select(Response).where(Response.session_id == session.id)
+        ))
+        response_count = len(responses)
+        
+        # Check if all questions are answered
+        if session.question_ids:
+            try:
+                question_ids = json.loads(session.question_ids)
+                total_questions = len(question_ids)
+                # If we have responses for all questions, session is effectively complete
+                if response_count >= total_questions:
+                    # Mark as complete to prevent future resumption
+                    with transaction():
+                        session.completed_at = datetime.utcnow()
+                        db.session.add(session)
+                    return None, 0, 0
+            except (json.JSONDecodeError, TypeError):
+                # If question_ids is invalid JSON, fall through to return session
+                pass
+        
+        return session, response_count, response_count
+    
+    @staticmethod
+    @log_query
+    def get_oldest_incomplete_session(user_id: int, mode: str | None = None) -> tuple[PracticeSession | None, int, int]:
+        """Get the oldest incomplete session for a user (for dashboard resume).
+        
+        Args:
+            user_id: User ID
+            mode: Optional mode filter (standard/multiplication/division)
+        
+        Returns:
+            Tuple of (session, total_responses_count, None)
+            Only returns session if it has unanswered questions (responses exist but session not completed).
+        """
+        query = PracticeSession.query.filter_by(
+            user_id=user_id,
+            completed_at=None  # Incomplete sessions have null completed_at
+        )
+        
+        if mode:
+            query = query.filter_by(mode=mode)
+        
+        session = query.order_by(PracticeSession.started_at.asc()).first()  # Oldest first
         
         if not session:
             return None, 0, 0

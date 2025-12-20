@@ -16,6 +16,8 @@ class User(db.Model):
     # NOTE: PINs are stored in plain text for local-network prototypes only.
     pin = db.Column(db.String(4), nullable=False)
     level = db.Column(db.Integer, default=1, nullable=False)
+    # Total accumulated experience points (XP). Uses BigInteger to support >2B totals (level 99).
+    experience = db.Column(db.BigInteger, default=0, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=True)
 

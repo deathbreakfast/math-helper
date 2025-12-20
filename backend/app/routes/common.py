@@ -94,12 +94,18 @@ def serialize_user_fast(
     # Do not include PIN in response - security best practice
     share_url = {"user": user.display_name}
 
+    from ..services.xp_service import XPService
+
+    xp_progress = XPService.progress_for_total_xp(getattr(user, "experience", 0) or 0)
+
     return {
         "id": user.id,
         "name": user.display_name,
         "avatar": user.avatar,
         # PIN removed for security - use /api/users/<id>/verify-pin endpoint
         "level": user.level,
+        "experience": getattr(user, "experience", 0) or 0,
+        "xp_progress": xp_progress,
         "questionsAnswered": metrics.get("questions_answered", 0),
         "averageSpeed": metrics.get("average_speed_seconds", 0.0),
         "weeklyGain": weekly_gain,

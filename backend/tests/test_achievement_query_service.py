@@ -1,5 +1,6 @@
 """Tests for achievement query service."""
 
+import json
 import pytest
 from datetime import datetime
 
@@ -364,4 +365,31 @@ def test_count_achievements_by_code_with_filters_accuracy(app, test_user, test_s
         )
         
         assert count == 1, "Should return count of 1 for accuracy >= 95%"
+
+
+def test_count_achievements_by_code_with_filters_concept_id_matches_legacy_level_metadata(app, test_user):
+    """concept_id metadata_filter should match achievements stored with only legacy level metadata."""
+    with app.app_context():
+        user = db.session.merge(test_user)
+
+        achievement = Achievement(
+            user_id=user.id,
+            code="level-master-bronze",
+            title="Level Master (Bronze)",
+            description="Test",
+            icon="🎯",
+            category="accuracy",
+            earned_at=datetime.utcnow(),
+            achievement_metadata=json.dumps({"level": 7}, sort_keys=True),
+        )
+        db.session.add(achievement)
+        db.session.commit()
+
+        count = AchievementQueryService.count_achievements_by_code_with_filters(
+            user.id,
+            "level-master-bronze",
+            metadata_filter={"concept_id": "c_concept_007"},
+        )
+
+        assert count == 1
 

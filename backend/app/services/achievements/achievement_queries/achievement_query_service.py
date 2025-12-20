@@ -16,6 +16,59 @@ from ....models import Achievement, PracticeSession, Question, Response, db
 
 class AchievementQueryService:
     """Service for querying achievement data."""
+
+    @staticmethod
+    def _legacy_level_from_concept_id(concept_id: str | None) -> int | None:
+        if not concept_id:
+            return None
+        m = __import__("re").match(r"^c_concept_(\d+)$", str(concept_id))
+        if m:
+            return int(m.group(1))
+        m = __import__("re").match(r"^c_level_(\d+)$", str(concept_id))
+        if m:
+            return int(m.group(1))
+        return None
+
+    @staticmethod
+    def _metadata_matches_filter(
+        ach_metadata_for_filter: dict[str, Any],
+        metadata_filter: dict[str, Any],
+    ) -> bool:
+        """Metadata filter matching with concept_id compatibility.
+
+        If metadata_filter includes concept_id, allow it to match either:
+        - achievement.metadata.concept_id == concept_id, OR
+        - achievement.metadata.level == legacy level parsed from concept_id
+
+        All other keys must match exactly.
+        """
+        if not metadata_filter:
+            return True
+
+        # Fast path: exact match
+        if ach_metadata_for_filter == metadata_filter:
+            return True
+
+        if "concept_id" not in metadata_filter:
+            return False
+
+        filter_concept_id = metadata_filter.get("concept_id")
+        legacy_level = AchievementQueryService._legacy_level_from_concept_id(str(filter_concept_id) if filter_concept_id else None)
+
+        # All non-concept keys must match exactly
+        for k, v in metadata_filter.items():
+            if k == "concept_id":
+                continue
+            if ach_metadata_for_filter.get(k) != v:
+                return False
+
+        # concept_id may match by concept_id or legacy level
+        if ach_metadata_for_filter.get("concept_id") == filter_concept_id:
+            return True
+        if legacy_level is not None and ach_metadata_for_filter.get("level") == legacy_level:
+            return True
+
+        return False
     
     @staticmethod
     @log_query
@@ -176,8 +229,71 @@ class AchievementQueryService:
         if target_tier is None:
             query = Achievement.query.filter_by(user_id=user_id, code=achievement_code)
             if metadata_filter:
-                metadata_json = json.dumps(metadata_filter, sort_keys=True)
-                query = query.filter(Achievement.achievement_metadata == metadata_json)
+                # Metadata is stored as JSON string; allow concept_id matching against legacy level metadata.
+                # For non-tiered achievements we do an in-Python filter for compatibility.
+                all_achievements = query.all()
+                matching = 0
+                for ach in all_achievements:
+                    ach_metadata_str = ach.achievement_metadata
+                    if not ach_metadata_str:
+                        continue
+                    try:
+                        ach_metadata = json.loads(ach_metadata_str)
+                        ach_metadata_for_filter = {k: v for k, v in ach_metadata.items() if k != "session_id"}
+                    except (json.JSONDecodeError, TypeError):
+                        continue
+
+                    if AchievementQueryService._metadata_matches_filter(ach_metadata_for_filter, metadata_filter):
+                        matching += 1
+
+                # Apply session-level filters after metadata filtering if needed
+                if level is not None or min_accuracy is not None or operation is not None:
+                    # Fall back to the slower path below (tiered loop style) for correctness.
+                    # Reuse the tiered path logic by treating each matching achievement as one unit.
+                    # This is rare for non-tiered achievements with metadata.
+                    filtered_achievements = []
+                    for ach in all_achievements:
+                        ach_metadata_str = ach.achievement_metadata
+                        if not ach_metadata_str:
+                            continue
+                        try:
+                            ach_metadata = json.loads(ach_metadata_str)
+                            ach_metadata_for_filter = {k: v for k, v in ach_metadata.items() if k != "session_id"}
+                        except (json.JSONDecodeError, TypeError):
+                            continue
+                        if AchievementQueryService._metadata_matches_filter(ach_metadata_for_filter, metadata_filter):
+                            filtered_achievements.append(ach)
+
+                    # Session-level filters
+                    result = 0
+                    for ach in filtered_achievements:
+                        if not ach.session_id:
+                            continue
+                        session = db.session.get(PracticeSession, ach.session_id)
+                        if not session:
+                            continue
+                        if level is not None and session.level != level:
+                            continue
+                        if min_accuracy is not None:
+                            min_accuracy_percent = min_accuracy * 100.0
+                            if (session.accuracy or 0) < min_accuracy_percent:
+                                continue
+                        if operation is not None:
+                            # Only count if session includes at least one question of operation
+                            has_op = (
+                                db.session.query(Response)
+                                .join(Question, Response.question_id == Question.id)
+                                .filter(Response.session_id == session.id)
+                                .filter(Question.operation == operation)
+                                .first()
+                                is not None
+                            )
+                            if not has_op:
+                                continue
+                        result += 1
+                    return result
+
+                return matching
             
             # Apply session-level filters if provided
             if level is not None or min_accuracy is not None or operation is not None:
@@ -226,7 +342,7 @@ class AchievementQueryService:
                         ach_metadata = json.loads(ach_metadata_str)
                         # Remove session_id from metadata for comparison (it's added for uniqueness, not filtering)
                         ach_metadata_for_filter = {k: v for k, v in ach_metadata.items() if k != "session_id"}
-                        if ach_metadata_for_filter != metadata_filter:
+                        if not AchievementQueryService._metadata_matches_filter(ach_metadata_for_filter, metadata_filter):
                             continue
                     except (json.JSONDecodeError, TypeError):
                         continue

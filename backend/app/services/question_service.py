@@ -93,6 +93,8 @@ class QuestionService:
         constraints: dict[str, Any],
     ) -> bool:
         """Validate operands against constraints."""
+        allow_division_by_zero = bool(constraints.get("allow_division_by_zero"))
+
         # Check exclude_zeros
         if constraints.get("exclude_zeros"):
             if operand1 == 0 or operand2 == 0:
@@ -111,11 +113,16 @@ class QuestionService:
         
         # Check no_remainder for division
         if operation == "division" and constraints.get("no_remainder"):
+            if operand2 == 0:
+                return allow_division_by_zero and operand1 == 0
             if operand1 % operand2 != 0:
                 return False
         
         # Check answer_min
         if "answer_min" in constraints:
+            if operation == "division" and operand2 == 0:
+                # Undefined has no meaningful ordering constraint
+                return allow_division_by_zero
             answer = QuestionService.solve(operation, operand1, operand2)
             if answer < constraints["answer_min"]:
                 return False
@@ -165,13 +172,15 @@ class QuestionService:
             
             # For division, operand2 cannot be 0
             if operation == "division" and operand2 == 0:
+                if constraints.get("allow_division_by_zero"):
+                    return 0, 0
                 # Division by zero - invalid configuration, use operand2_range instead
-                # If range is also invalid (0-0), fall through to regular generation
                 if op2_range["min"] > 0 or op2_range["max"] > 0:
                     operand2 = random.randint(max(1, op2_range["min"]), max(1, op2_range["max"]))
                 else:
-                    # Invalid level config - cannot generate valid division question
-                    raise ValueError(f"Level {level} has invalid division configuration: fixed_operand2=0 and operand2_range=[0,0]")
+                    raise ValueError(
+                        f"Level {level} has invalid division configuration: fixed_operand2=0 and operand2_range=[0,0]"
+                    )
             
             # For division with fixed divisor and no remainder, ensure operand1 is multiple
             if operation == "division" and constraints.get("no_remainder"):
@@ -210,7 +219,8 @@ class QuestionService:
             
             # For division, operand2 cannot be 0
             if operation == "division" and operand2 == 0:
-                # Skip this attempt and try again
+                if constraints.get("allow_division_by_zero"):
+                    return 0, 0
                 continue
             
             # For division, ensure it divides evenly if no_remainder
@@ -240,6 +250,8 @@ class QuestionService:
         
         # For division, ensure operand2 is not 0
         if operation == "division" and operand2 == 0:
+            if constraints.get("allow_division_by_zero"):
+                return 0, 0
             # Use minimum of 1 if range allows, otherwise raise error
             if op2_range["max"] > 0:
                 operand2 = max(1, op2_range["min"])
@@ -334,6 +346,14 @@ class QuestionService:
             })
             
         elif operation == "division":
+            if operand2 == 0:
+                return [
+                    {
+                        "id": "step-1",
+                        "description": "Division by 0 is undefined/indeterminate.",
+                        "value": "undefined",
+                    }
+                ]
             # Long division steps
             steps.append({
                 "id": "step-1",
@@ -586,6 +606,8 @@ class QuestionService:
             operand1 = random.randint(op1_range["min"], op1_range["max"])
 
             if operation == "division" and operand2 == 0:
+                if constraints.get("allow_division_by_zero"):
+                    return 0, 0
                 if op2_range["min"] > 0 or op2_range["max"] > 0:
                     operand2 = random.randint(max(1, op2_range["min"]), max(1, op2_range["max"]))
                 else:
@@ -619,6 +641,8 @@ class QuestionService:
             operand2 = random.randint(op2_range["min"], op2_range["max"])
 
             if operation == "division" and operand2 == 0:
+                if constraints.get("allow_division_by_zero"):
+                    return 0, 0
                 continue
 
             if operation == "division" and constraints.get("no_remainder"):
@@ -642,6 +666,8 @@ class QuestionService:
         operand1 = random.randint(op1_range["min"], op1_range["max"])
         operand2 = random.randint(op2_range["min"], op2_range["max"])
         if operation == "division" and operand2 == 0:
+            if constraints.get("allow_division_by_zero"):
+                return 0, 0
             if op2_range["max"] > 0:
                 operand2 = max(1, op2_range["min"])
             else:

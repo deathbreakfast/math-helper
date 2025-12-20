@@ -1,8 +1,8 @@
 """Concept XP values (XP per correct answer).
 
-For now this is sourced from the `c_concept_###` concept definitions in `MATH_CONCEPTS.md`.
-Descriptive concept IDs (e.g. `c_add_1s`) will be supported once the backend concept
-catalog is loaded from code/config instead of legacy levels.
+For now this includes:
+- Legacy `c_concept_###` concepts (1-45)
+- A first set of descriptive concept IDs (e.g. `c_add_1s`) defined in `MATH_CONCEPTS.md`
 """
 
 from __future__ import annotations
@@ -54,5 +54,18 @@ CONCEPT_XP_PER_CORRECT: dict[str, int] = {
     "c_concept_043": 272,
     "c_concept_044": 362,
     "c_concept_045": 367,
+
+    # Descriptive concept IDs (starting with addition fixed addends)
+    "c_add_0s": 47,
+    "c_add_1s": 37,
+    "c_add_2s": 57,
+    "c_add_3s": 62,
+    "c_add_4s": 67,
+    "c_add_5s": 72,
+    "c_add_6s": 77,
+    "c_add_7s": 82,
+    "c_add_8s": 87,
+    "c_add_9s": 92,
+    "c_add_10s": 52,
 }
 

@@ -31,3 +31,40 @@ CONCEPTS_CONFIG["c_concept_037"] = {
     "legacy_level": 37,
 }
 
+# Descriptive concept IDs (subset from MATH_CONCEPTS.md)
+# Single Digit Addition (Ns): operand2 fixed to N, operand1 1-9
+def _addition_fixed_addend(addend: int, answer_min: int) -> dict[str, Any]:
+    return {
+        "operation": "addition",
+        "operand1_range": {"min": 1, "max": 9},
+        "operand2_range": {"min": addend, "max": addend},
+        "constraints": {"fixed_operand2": addend, "answer_min": answer_min},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+    }
+
+
+CONCEPTS_CONFIG.update(
+    {
+        "c_add_1s": {**_addition_fixed_addend(1, 2)},
+        "c_add_2s": {**_addition_fixed_addend(2, 3)},
+        "c_add_3s": {**_addition_fixed_addend(3, 4)},
+        "c_add_4s": {**_addition_fixed_addend(4, 5)},
+        "c_add_5s": {**_addition_fixed_addend(5, 6)},
+        "c_add_6s": {**_addition_fixed_addend(6, 7)},
+        "c_add_7s": {**_addition_fixed_addend(7, 8)},
+        "c_add_8s": {**_addition_fixed_addend(8, 9)},
+        "c_add_9s": {**_addition_fixed_addend(9, 10)},
+        "c_add_10s": {**_addition_fixed_addend(10, 11)},
+        # Single Digit Addition (0s): operand2 fixed 0, operand1 1-9
+        "c_add_0s": {
+            "operation": "addition",
+            "operand1_range": {"min": 1, "max": 9},
+            "operand2_range": {"min": 0, "max": 0},
+            "constraints": {"fixed_operand2": 0, "answer_min": 1},
+            "layout_type": "vertical",
+            "answer_format": "integer",
+        },
+    }
+)
+

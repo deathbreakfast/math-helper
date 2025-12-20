@@ -358,10 +358,11 @@ class QuestionService:
         operand2: int,
         answer_format: str = "integer",
         test_constraints: dict[str, Any] | None = None,
+        config_override: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Create layout configuration matching frontend ProblemLayoutConfig type."""
         # Get level config to determine layout type
-        config = LevelConfigService.get_level_config(level)
+        config = config_override or LevelConfigService.get_level_config(level)
         layout_type = config.get("layout_type", "vertical") if config else "vertical"
         partial_mode = config.get("partial_products_mode", "easy") if config else "easy"
         
@@ -423,6 +424,7 @@ class QuestionService:
         operation: str,
         level: int,
         test_constraints: dict[str, Any] | None = None,
+        config_override: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Generate a question with solution and work steps.
         
@@ -435,7 +437,7 @@ class QuestionService:
             Dictionary with question data including id, prompt, operands, correct_answer, layout, etc.
         """
         # Get level configuration
-        config = LevelConfigService.get_level_config(level)
+        config = config_override or LevelConfigService.get_level_config(level)
         if not config:
             raise ValueError(f"Level {level} configuration not found")
         
@@ -444,9 +446,14 @@ class QuestionService:
             operation = config["operation"]
         
         # Generate operands with constraints
-        operand1, operand2 = QuestionService.generate_operands_with_constraints(
-            operation, level, test_constraints
-        )
+        if config_override is None:
+            operand1, operand2 = QuestionService.generate_operands_with_constraints(
+                operation, level, test_constraints
+            )
+        else:
+            operand1, operand2 = QuestionService._generate_operands_with_config(
+                operation, config, test_constraints
+            )
         
         # Get answer format from config
         answer_format = config.get("answer_format", "integer")
@@ -463,7 +470,7 @@ class QuestionService:
         
         # Create layout config
         layout_config = QuestionService.create_layout_config(
-            operation, level, operand1, operand2, answer_format, test_constraints
+            operation, level, operand1, operand2, answer_format, test_constraints, config_override=config
         )
         
         # Override layout type if specified in config
@@ -500,8 +507,13 @@ class QuestionService:
             hint = "Use the long division algorithm: divide, multiply, subtract, bring down."
         
         # Create question in database
-        difficulty = f"Level {level}"
-        target_ms = 4000 + level * 500
+        required_level = level
+        legacy_level = config.get("legacy_level")
+        if isinstance(legacy_level, int) and legacy_level > 0:
+            required_level = legacy_level
+
+        difficulty = f"Level {required_level}"
+        target_ms = 4000 + required_level * 500
         
         question = PracticeService.create_question(
             operation=operation,
@@ -509,9 +521,9 @@ class QuestionService:
             operand2=operand2,
             correct_answer=correct_answer,
             prompt=prompt,
-            required_level=level,
+            required_level=required_level,
             difficulty=difficulty,
-            level_tag=str(level),
+            level_tag=str(required_level),
             target_ms=target_ms,
             hint=hint,
             answer_format=answer_format,
@@ -537,4 +549,102 @@ class QuestionService:
             "mathTypeLabel": math_type_label,
             "question_id": question.id,  # For backend use
         }
+
+    @staticmethod
+    def _generate_operands_with_config(
+        operation: str,
+        config: dict[str, Any],
+        test_constraints: dict[str, Any] | None = None,
+        max_attempts: int = 100,
+    ) -> tuple[int, int]:
+        """Generate operands using an explicit config dict (no LevelConfigService lookup)."""
+        constraints = config.get("constraints", {}) or {}
+        op1_range = config["operand1_range"]
+        op2_range = config["operand2_range"]
+
+        # Preserve existing test-constraint behavior (for future extension; tests are removed but this is harmless)
+        if test_constraints:
+            if test_constraints.get("multiplication_table"):
+                operand2 = test_constraints["multiplication_table"]
+                operand1 = random.randint(op1_range["min"], op1_range["max"])
+                return operand1, operand2
+
+            if test_constraints.get("division_table"):
+                operand2 = test_constraints["division_table"]
+                if operand2 == 0:
+                    operand1 = random.randint(op1_range["min"], op1_range["max"])
+                else:
+                    min_quotient = max(1, op1_range["min"] // operand2)
+                    max_quotient = op1_range["max"] // operand2
+                    quotient = random.randint(min_quotient, max_quotient)
+                    operand1 = operand2 * quotient
+                return operand1, operand2
+
+        # Handle fixed operand2 from config
+        if "fixed_operand2" in constraints:
+            operand2 = constraints["fixed_operand2"]
+            operand1 = random.randint(op1_range["min"], op1_range["max"])
+
+            if operation == "division" and operand2 == 0:
+                if op2_range["min"] > 0 or op2_range["max"] > 0:
+                    operand2 = random.randint(max(1, op2_range["min"]), max(1, op2_range["max"]))
+                else:
+                    raise ValueError("Invalid division config: fixed_operand2=0 and operand2_range=[0,0]")
+
+            if operation == "division" and constraints.get("no_remainder"):
+                if operand2 == 0:
+                    raise ValueError("Division by zero")
+                min_quotient = max(1, op1_range["min"] // operand2)
+                max_quotient = op1_range["max"] // operand2
+                quotient = random.randint(min_quotient, max_quotient)
+                operand1 = operand2 * quotient
+
+            if "multiple_of" in constraints:
+                multiple = constraints["multiple_of"]
+                if multiple == 0:
+                    operand1 = random.randint(op1_range["min"], op1_range["max"])
+                else:
+                    min_multiple = max(1, op1_range["min"] // multiple)
+                    max_multiple = op1_range["max"] // multiple
+                    if min_multiple <= max_multiple:
+                        multiplier = random.randint(min_multiple, max_multiple)
+                        operand1 = multiple * multiplier
+                    else:
+                        operand1 = random.randint(op1_range["min"], op1_range["max"])
+
+            return operand1, operand2
+
+        for _ in range(max_attempts):
+            operand1 = random.randint(op1_range["min"], op1_range["max"])
+            operand2 = random.randint(op2_range["min"], op2_range["max"])
+
+            if operation == "division" and operand2 == 0:
+                continue
+
+            if operation == "division" and constraints.get("no_remainder"):
+                if operand2 == 0:
+                    continue
+                operand1 = operand2 * random.randint(
+                    max(1, op1_range["min"] // operand2),
+                    op1_range["max"] // operand2,
+                )
+
+            if "multiple_of" in constraints:
+                multiple = constraints["multiple_of"]
+                min_multiple = max(1, op1_range["min"] // multiple)
+                max_multiple = op1_range["max"] // multiple
+                multiplier = random.randint(min_multiple, max_multiple)
+                operand1 = multiple * multiplier
+
+            if QuestionService.validate_constraints(operation, operand1, operand2, constraints):
+                return operand1, operand2
+
+        operand1 = random.randint(op1_range["min"], op1_range["max"])
+        operand2 = random.randint(op2_range["min"], op2_range["max"])
+        if operation == "division" and operand2 == 0:
+            if op2_range["max"] > 0:
+                operand2 = max(1, op2_range["min"])
+            else:
+                raise ValueError("Invalid division config: operand2_range=[0,0]")
+        return operand1, operand2
 

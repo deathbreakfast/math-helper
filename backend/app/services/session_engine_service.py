@@ -12,6 +12,7 @@ from ..models import User, db
 from ..services.level_config_service import LevelConfigService
 from ..services.practice_service import PracticeService
 from ..services.question_service import QuestionService
+from ..services.concept_config_service import ConceptConfigService
 
 
 class SessionEngineService:
@@ -177,13 +178,13 @@ class SessionEngineService:
             session_level = selected_level
 
         concept_level = SessionEngineService._extract_legacy_level_from_concept_id(concept_id)
-        if concept_level is None:
+
+        config = ConceptConfigService.get_concept_config(concept_id)
+        if not config:
             raise ValueError(f"Unsupported concept_id for practice session: {concept_id}")
 
-        # Generate all questions from the concept's level config
-        config = LevelConfigService.get_level_config(concept_level)
-        if not config:
-            raise ValueError(f"Concept {concept_id} (level {concept_level}) configuration not found")
+        if concept_level is None:
+            concept_level = int(config.get("legacy_level") or 0) or None
 
         operation = config["operation"]
         questions: list[dict[str, Any]] = []
@@ -195,8 +196,9 @@ class SessionEngineService:
                 try:
                     question_data = QuestionService.generate_question(
                         operation=operation,
-                        level=concept_level,
+                        level=concept_level or 1,
                         test_constraints=None,
+                        config_override=config,
                     )
                     break  # Success, exit retry loop
                 except ValueError:

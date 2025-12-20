@@ -6,6 +6,53 @@ This document lists all math concepts available for practice. Each concept has i
 
 This section documents the migration from the old sequential leveling system to the new free-form math concepts system. Follow these steps in order to complete the migration.
 
+### Migration Status Checklist (living)
+
+These are the remaining phases/stages of work, tracked as a checklist. Keep this list up to date as features ship.
+
+#### Decisions (locked in)
+- **Stages**: Not used. Learners choose a concept/stage bucket or “random”; no stage progression system is required.
+- **Concept source of truth**: Keep in the repo as code/config (not generated from this markdown).
+- **MVP scope**: Implement the full concept system we already have defined here (not just a minimal subset).
+
+#### Completed
+- [x] **Concept IDs**: migrate `c_level_X` → `c_concept_###` and add parsing helpers where needed (frontend + backend + tests)
+- [x] **Remove test mode**: delete Tests UI + API + services/config; remove `is_test`/`test_type` usage throughout
+- [x] **Remove adaptive distribution**: default practice is concept-based selection; no distribution service
+- [x] **XP system end-to-end**:
+  - [x] add `User.experience` and XP→level curve
+  - [x] calculate per-session XP from concept XP + achievement rewards
+  - [x] return `level_up` payload with `xp_breakdown` and `xp_progress`
+- [x] **Frontend XP UI**:
+  - [x] Journey header shows total XP + XP-to-next + progress bar
+  - [x] Practice summary shows detailed XP breakdown
+  - [x] Concepts: show “XP: X per correct answer” (card + detail modal)
+  - [x] Achievements: show XP rewards (bonus + multiplier)
+  - [x] Level-up celebration/animation on summary when `leveled_up` is true
+
+#### Remaining (next phases)
+- [ ] **Replace placeholder concept catalog with real catalog (doc-driven → code/config)**
+  - [ ] stop generating concepts via placeholder `getAllMathConcepts()` level mapping
+  - [ ] create a real concept list in code/config including: id, name, category, operation, layout, answer formats, unlock requirements
+  - [ ] ensure the Math Concepts tab uses this catalog (sorting/filtering/search)
+- [ ] **Backend concept configuration as source of truth for question generation**
+  - [ ] add concept configs (operation, operand ranges, constraints, layout, answer formats, special rules) keyed by `concept_id`
+  - [ ] update session engine to generate questions from concept config directly (not via legacy level config)
+  - [ ] ensure constraints from this doc are enforced (no-remainder, multiples, fixed divisor, etc.)
+- [ ] **Unlock requirements fully concept-aware**
+  - [ ] ensure unlock requirements support `quantity` + `metadata_filter` (especially `concept_id`)
+  - [ ] verify/expand backend endpoints so frontend can show `progress` + `completed` reliably
+  - [ ] ensure requirement descriptions render correctly in UI (no legacy “test_type” phrasing)
+- [ ] **Descriptive concept IDs end-to-end**
+  - [ ] support non-legacy ids (e.g. `c_add_1s`) through: catalog → practice start → session engine → XP lookup → attempt history
+  - [ ] remove remaining assumptions that `concept_id` implies a legacy `level`
+- [ ] **Doc-format parity / UI polish**
+  - [ ] Summary: show Concept Name and Achievement Name + Tier in the XP breakdown (not just raw codes/ids)
+  - [ ] ensure tier naming/casing is consistent across the app
+- [ ] **Legacy cleanup**
+  - [ ] remove remaining `legacyLevel` plumbing once concept configs and descriptive IDs are fully supported
+  - [ ] migration strategy for existing persisted data (if not using full DB resets)
+
 ---
 
 ## 1. Concept ID Migration

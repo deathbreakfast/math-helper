@@ -36,8 +36,8 @@ These are the remaining phases/stages of work, tracked as a checklist. Keep this
   - [x] create a real concept list in code/config including: id, name, category, operation, layout, answer formats, unlock requirements
   - [x] ensure the Math Concepts tab uses this catalog (sorting/filtering/search)
 - [ ] **Backend concept configuration as source of truth for question generation**
-  - [ ] add concept configs (operation, operand ranges, constraints, layout, answer formats, special rules) keyed by `concept_id`
-  - [ ] update session engine to generate questions from concept config directly (not via legacy level config)
+  - [x] add concept configs (operation, operand ranges, constraints, layout, answer formats, special rules) keyed by `concept_id`
+  - [x] update session engine to generate questions from concept config directly (not via legacy level config)
   - [ ] ensure constraints from this doc are enforced (no-remainder, multiples, fixed divisor, etc.)
 - [ ] **Unlock requirements fully concept-aware**
   - [ ] ensure unlock requirements support `quantity` + `metadata_filter` (especially `concept_id`)

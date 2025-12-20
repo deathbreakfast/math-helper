@@ -112,12 +112,12 @@ class LightningFastChecker(AchievementChecker):
                     if avg_speed_seconds <= champion_req.get("max_speed_seconds", 0.5):
                         # Champion tier can be checked during session completion
                         pass
-            
-        # Create metadata used by unlock requirements (level-specific).
-        metadata = {"level": session.level}
-        if session.concept_id:
-            metadata["concept_id"] = session.concept_id
-            
+
+            # Create metadata used by unlock requirements (level-specific).
+            metadata = {"level": session.level}
+            if session.concept_id:
+                metadata["concept_id"] = session.concept_id
+
             achievement = AchievementService.create_achievement(
                 user_id=user.id,
                 code=achievement_code,

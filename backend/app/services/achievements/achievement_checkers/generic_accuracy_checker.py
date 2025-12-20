@@ -36,7 +36,7 @@ class GenericAccuracyChecker(AchievementChecker):
         Returns:
             List of newly created achievements
         """
-        if not session.completed_at or session.is_test:
+        if not session.completed_at:
             return []
         
         new_achievements = []

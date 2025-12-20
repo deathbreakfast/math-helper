@@ -73,6 +73,17 @@ def get_batch_level_requirements():
                     achievement_code = req.get("achievement_code", "")
                     quantity = req.get("quantity", 1)
                     metadata_filter = req.get("metadata_filter")
+
+                    # Legacy compatibility: some requirements still use metadata_filter.test_type.
+                    # Translate those into an equivalent metadata_filter.level until configs are fully migrated.
+                    if isinstance(metadata_filter, dict) and metadata_filter.get("test_type"):
+                        from ..config.legacy_test_type_to_level import LEGACY_TEST_TYPE_TO_LEVEL
+
+                        test_type = str(metadata_filter.get("test_type"))
+                        mapped_level = LEGACY_TEST_TYPE_TO_LEVEL.get(test_type)
+                        if mapped_level is not None:
+                            metadata_filter = {**metadata_filter, "level": mapped_level}
+                            metadata_filter.pop("test_type", None)
                     
                     # Count achievements with metadata filter support
                     from ..services.achievement_service import AchievementService

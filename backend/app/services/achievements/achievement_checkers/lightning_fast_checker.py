@@ -113,11 +113,10 @@ class LightningFastChecker(AchievementChecker):
                         # Champion tier can be checked during session completion
                         pass
             
-            # Create metadata: use test_type for test sessions, level for practice sessions
-            if session.is_test and session.test_type:
-                metadata = {"test_type": session.test_type}
-            else:
-                metadata = {"level": session.level}
+        # Create metadata used by unlock requirements (level-specific).
+        metadata = {"level": session.level}
+        if session.concept_id:
+            metadata["concept_id"] = session.concept_id
             
             achievement = AchievementService.create_achievement(
                 user_id=user.id,

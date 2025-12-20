@@ -29,7 +29,6 @@ class User(db.Model):
     practice_sessions = db.relationship("PracticeSession", back_populates="user", cascade="all, delete")
     flagged_questions = db.relationship("FlaggedQuestion", back_populates="user", cascade="all, delete")
     daily_stats = db.relationship("DailyStat", back_populates="user", cascade="all, delete")
-    test_attempts = db.relationship("TestAttempt", back_populates="user", cascade="all, delete")
 
 
 class PracticeSession(db.Model):
@@ -40,8 +39,6 @@ class PracticeSession(db.Model):
     mode = db.Column(db.String(32), nullable=False)  # standard/multiplication/division
     level = db.Column(db.Integer, nullable=True)
     concept_id = db.Column(db.String(64), nullable=True, index=True)  # e.g., "c_concept_001", "c_add_1s"
-    is_test = db.Column(db.Boolean, default=False, nullable=False)
-    test_type = db.Column(db.String(64), nullable=True)  # e.g., "multiplication-by-1", "division-2digit"
     started_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     completed_at = db.Column(db.DateTime, nullable=True)
     total_questions = db.Column(db.Integer, default=0, nullable=False)
@@ -184,23 +181,6 @@ class LevelProblemConfig(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
 
     __table_args__ = (db.UniqueConstraint("level", "operation", name="uq_level_problem_config"),)
-
-
-class TestAttempt(db.Model):
-    __test__ = False  # Prevent pytest from collecting this as a test class
-    __tablename__ = "test_attempts"
-
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    level = db.Column(db.Integer, nullable=False, index=True)
-    test_type = db.Column(db.String(64), nullable=False, index=True)  # e.g., "addition-1digit", "multiplication-by-1"
-    score = db.Column(db.Float, nullable=False)  # Accuracy percentage (0.0 to 1.0)
-    avg_time_per_question_ms = db.Column(db.Integer, nullable=True)  # Average time per question in milliseconds
-    total_duration_ms = db.Column(db.Integer, nullable=True)  # Total test duration in milliseconds
-    passed = db.Column(db.Boolean, nullable=False, index=True)  # True if score >= passing threshold
-    attempted_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
-
-    user = db.relationship("User", back_populates="test_attempts")
 
 
 class ServerRecord(db.Model):

@@ -22,8 +22,6 @@ class PracticeService:
         mode: str = "standard",
         level: int | None = None,
         concept_id: str | None = None,
-        is_test: bool = False,
-        test_type: str | None = None,
     ) -> PracticeSession:
         """Create a new practice session."""
         with transaction():
@@ -32,8 +30,6 @@ class PracticeService:
                 mode=mode,
                 level=level,
                 concept_id=concept_id,
-                is_test=is_test,
-                test_type=test_type,
                 started_at=datetime.utcnow(),
             )
             db.session.add(session)

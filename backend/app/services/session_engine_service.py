@@ -213,8 +213,6 @@ class SessionEngineService:
             mode=mode,
             level=session_level,
             concept_id=concept_id,
-            is_test=False,
-            test_type=None,
         )
 
         # Store question IDs

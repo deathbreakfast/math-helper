@@ -92,8 +92,6 @@ def create_test_session_with_responses(
     responses_data: list[dict],
     mode: str = "standard",
     level: int = 1,
-    is_test: bool = False,
-    test_type: Optional[str] = None,
     completed_at: Optional[datetime] = None
 ) -> PracticeSession:
     """Create a practice session with responses for testing.
@@ -108,8 +106,6 @@ def create_test_session_with_responses(
             - answered_at: datetime (optional, defaults to now)
         mode: Session mode (default: "standard")
         level: Session level (default: 1)
-        is_test: Whether this is a test session (default: False)
-        test_type: Test type if is_test is True (optional)
         completed_at: When session was completed (optional, defaults to now)
         
     Returns:
@@ -119,8 +115,6 @@ def create_test_session_with_responses(
         user_id=user_id,
         mode=mode,
         level=level,
-        is_test=is_test,
-        test_type=test_type,
         started_at=datetime.utcnow()
     )
     db.session.add(session)

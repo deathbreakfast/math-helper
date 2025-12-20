@@ -103,48 +103,6 @@ def test_session(app, test_user, test_question):
             user_id=test_user.id,
             mode="standard",
             level=1,
-            is_test=False,
-            started_at=datetime.utcnow(),
-            completed_at=datetime.utcnow(),
-            total_questions=100,
-            correct_count=100,
-            accuracy=100.0,
-            total_duration_ms=150000,  # 1.5 seconds per question
-        )
-        db.session.add(session)
-        db.session.flush()
-        
-        # Add responses
-        for i in range(100):
-            response = Response(
-                session_id=session.id,
-                question_id=test_question.id,
-                user_id=test_user.id,
-                submitted_answer="8",
-                correct_answer="8",
-                is_correct=True,
-                duration_ms=1500,
-                answered_at=datetime.utcnow(),
-            )
-            db.session.add(response)
-        
-        db.session.commit()
-        db.session.refresh(session)
-        # Access id to ensure it's loaded before returning (prevents DetachedInstanceError)
-        _ = session.id
-        return session
-
-
-@pytest.fixture
-def test_test_session(app, test_user, test_question):
-    """Create a completed test session with responses."""
-    with app.app_context():
-        session = PracticeSession(
-            user_id=test_user.id,
-            mode="standard",
-            level=1,
-            is_test=True,
-            test_type="addition_1digit",
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=100,

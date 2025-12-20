@@ -41,7 +41,6 @@ def test_session(app, test_user):
             user_id=test_user.id,
             mode="standard",
             level=1,
-            is_test=False,
             started_at=datetime.utcnow(),
         )
         db.session.add(session)

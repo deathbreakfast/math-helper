@@ -70,24 +70,8 @@ class TestPracticeService:
             assert session.user_id == test_user.id
             assert session.mode == "standard"
             assert session.level == 1
-            assert session.is_test is False
-            assert session.test_type is None
             assert session.started_at is not None
             assert session.completed_at is None
-
-    def test_create_session_test_mode(self, app, test_user):
-        """Test create_session creates a test session."""
-        with app.app_context():
-            session = PracticeService.create_session(
-                user_id=test_user.id,
-                mode="standard",
-                level=1,
-                is_test=True,
-                test_type="addition-1digit"
-            )
-            
-            assert session.is_test is True
-            assert session.test_type == "addition-1digit"
 
     def test_complete_session(self, app, test_user):
         """Test complete_session marks session as completed with statistics."""

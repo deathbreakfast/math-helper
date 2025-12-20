@@ -151,43 +151,6 @@ def test_accuracy_ace_minimum_questions_requirement(app, test_user):
         assert achievement is None, "Accuracy Ace should NOT be awarded with less than 10 questions"
 
 
-def test_accuracy_ace_awarded_for_test_sessions(app, test_user):
-    """Test that Accuracy Ace IS awarded for test sessions with test_type metadata."""
-    with app.app_context():
-        # Create a test session with 100% accuracy
-        questions = create_test_questions(10, 1)
-        responses_data = [{
-            'question_id': q.id,
-            'answer': q.correct_answer,
-            'is_correct': True,
-            'duration_ms': 3000
-        } for q in questions]
-        
-        session = create_test_session_with_responses(
-            test_user.id, 
-            responses_data, 
-            is_test=True,
-            test_type="addition-1digit"
-        )
-        
-        # Check achievements
-        accuracy_ace_achievements = AchievementService.check_accuracy_ace_achievements(session)
-        
-        # Verify achievement was awarded with test_type metadata
-        achievement = Achievement.query.filter(
-            Achievement.user_id == test_user.id,
-            Achievement.code.like("accuracy-ace-%")
-        ).first()
-        
-        assert achievement is not None, "Accuracy Ace should be awarded for test sessions"
-        assert achievement.code == "accuracy-ace-gold", "Should award gold for 100% accuracy"
-        # Verify metadata contains test_type
-        import json
-        if achievement.achievement_metadata:
-            metadata = json.loads(achievement.achievement_metadata)
-            assert metadata.get("test_type") == "addition-1digit", "Metadata should contain test_type"
-
-
 def test_accuracy_ace_not_awarded_below_threshold(app, test_user):
     """Test that Accuracy Ace is NOT awarded for accuracy below 80%."""
     with app.app_context():

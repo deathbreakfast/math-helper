@@ -64,7 +64,6 @@ class TestAccuracyAceChecker:
         with app.app_context():
             session = PracticeSession(
                 user_id=test_user.id,
-                is_test=False,
                 mode="standard",
                 level=1,
                 total_questions=10,
@@ -78,38 +77,11 @@ class TestAccuracyAceChecker:
             result = accuracy_ace_checker.check(session, user=test_user)
             assert result == []
 
-    def test_check_test_session(self, app, test_user, accuracy_ace_checker):
-        """Test check awards for test sessions with test_type metadata."""
-        with app.app_context():
-            session = PracticeSession(
-                user_id=test_user.id,
-                is_test=True,
-                test_type="addition-1digit",
-                mode="standard",
-                level=1,
-                total_questions=10,
-                correct_count=10,
-                accuracy=100.0,
-                completed_at=datetime.utcnow()
-            )
-            db.session.add(session)
-            db.session.commit()
-            
-            result = accuracy_ace_checker.check(session, user=test_user)
-            # Should award achievement with test_type metadata
-            assert len(result) == 1
-            assert result[0].code == "accuracy-ace-gold"
-            # Verify metadata contains test_type
-            import json
-            metadata = json.loads(result[0].achievement_metadata) if result[0].achievement_metadata else {}
-            assert metadata.get("test_type") == "addition-1digit"
-
     def test_check_no_user_provided(self, app, test_user, accuracy_ace_checker):
         """Test check fetches user from session if not provided."""
         with app.app_context():
             session = PracticeSession(
                 user_id=test_user.id,
-                is_test=False,
                 mode="standard",
                 level=1,
                 total_questions=10,
@@ -134,7 +106,6 @@ class TestAccuracyAceChecker:
             # Create a mock session object
             session = PracticeSession(
                 user_id=1,
-                is_test=False,
                 mode="standard",
                 level=1,
                 total_questions=10,
@@ -158,7 +129,6 @@ class TestAccuracyAceChecker:
             
             session = PracticeSession(
                 user_id=test_user.id,
-                is_test=False,
                 mode="standard",
                 level=1,
                 total_questions=10,
@@ -177,7 +147,6 @@ class TestAccuracyAceChecker:
         with app.app_context():
             session = PracticeSession(
                 user_id=test_user.id,
-                is_test=False,
                 mode="standard",
                 level=1,
                 total_questions=5,  # Less than 10
@@ -197,7 +166,6 @@ class TestAccuracyAceChecker:
             # Create a session
             session = PracticeSession(
                 user_id=test_user.id,
-                is_test=False,
                 mode="standard",
                 level=1,
                 total_questions=10,
@@ -233,7 +201,6 @@ class TestAccuracyAceChecker:
         with app.app_context():
             session = PracticeSession(
                 user_id=test_user.id,
-                is_test=False,
                 mode="standard",
                 level=1,
                 total_questions=10,
@@ -256,7 +223,6 @@ class TestAccuracyAceChecker:
         with app.app_context():
             session = PracticeSession(
                 user_id=test_user.id,
-                is_test=False,
                 mode="standard",
                 level=1,
                 total_questions=10,
@@ -278,7 +244,6 @@ class TestAccuracyAceChecker:
         with app.app_context():
             session = PracticeSession(
                 user_id=test_user.id,
-                is_test=False,
                 mode="standard",
                 level=1,
                 total_questions=10,

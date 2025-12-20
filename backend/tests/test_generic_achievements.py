@@ -64,8 +64,6 @@ def test_practice_session_id(app, test_user_id, test_question_id):
             user_id=test_user_id,
             mode="standard",
             level=1,
-            is_test=False,
-            test_type="addition-1digit",  # Set test_type for achievement matching
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=100,
@@ -102,8 +100,6 @@ def test_test_session_id(app, test_user_id, test_question_id):
             user_id=test_user_id,
             mode="standard",
             level=1,
-            is_test=True,
-            test_type="addition-1digit",
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=100,

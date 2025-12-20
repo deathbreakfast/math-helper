@@ -40,6 +40,7 @@ def test_user(app):
 def get_level_requirements():
     """Get level requirements from actual config, converting to test format."""
     from app.config.level_progression_config import LEVEL_PROGRESSION_CONFIG
+    from app.config.legacy_test_type_to_level import LEGACY_TEST_TYPE_TO_LEVEL
     
     requirements = []
     for level, reqs in LEVEL_PROGRESSION_CONFIG.items():
@@ -49,6 +50,12 @@ def get_level_requirements():
             code = req["achievement_code"]
             quantity = req.get("quantity", 1)
             metadata = req.get("metadata_filter")
+            # Mirror production behavior: translate legacy test_type filters to level filters.
+            if isinstance(metadata, dict) and metadata.get("test_type"):
+                mapped_level = LEGACY_TEST_TYPE_TO_LEVEL.get(str(metadata.get("test_type")))
+                if mapped_level is not None:
+                    metadata = {**metadata, "level": mapped_level}
+                    metadata.pop("test_type", None)
             # Store as tuple: (code, quantity, metadata)
             req_list.append((code, quantity, metadata))
         requirements.append((level, req_list))
@@ -286,7 +293,7 @@ def test_level_up_api_endpoint_success(app, test_user):
             description="Test",
             icon="🎯",
             category="accuracy",
-            metadata={"test_type": "addition-1digit"},
+            metadata={"level": 1},
         )
         
         user = db.session.get(User, test_user.id)
@@ -348,7 +355,7 @@ def test_level_up_multiple_requirements(app, test_user):
             description="Test",
             icon="🎯",
             category="accuracy",
-            metadata={"test_type": "subtraction-1digit-zeros"},
+            metadata={"level": 3},
         )
         db.session.refresh(user)
         user = db.session.get(User, test_user.id)

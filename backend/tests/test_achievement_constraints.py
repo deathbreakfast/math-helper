@@ -354,14 +354,12 @@ def test_level_master_multiple_per_tier_multiple_per_session(app, test_user):
         from datetime import datetime
         session1 = PracticeSession(
             user_id=user.id,
-            is_test=False,
             mode="standard",
             level=1,
             started_at=datetime.utcnow()
         )
         session2 = PracticeSession(
             user_id=user.id,
-            is_test=False,
             mode="standard",
             level=2,
             started_at=datetime.utcnow()
@@ -409,44 +407,6 @@ def test_level_master_multiple_per_tier_multiple_per_session(app, test_user):
 # Lightning Fast Constraint Tests
 # ============================================================================
 
-def test_lightning_fast_test_metadata(app, test_user):
-    """Test: Lightning Fast uses test_type metadata for test sessions."""
-    with app.app_context():
-        # Get user safely (handles detached instances)
-        user = _get_user_safely(app, test_user)
-        
-        # Create test session
-        questions = create_test_questions(50, 1)
-        responses_data = [{
-            'question_id': q.id,
-            'answer': q.correct_answer,
-            'is_correct': True,
-            'duration_ms': 4000  # 4s per question
-        } for q in questions]
-        session = create_test_session_with_responses(
-            user.id,
-            responses_data,
-            is_test=True,
-            test_type="addition-1digit",
-            level=1
-        )
-        
-        # Check lightning fast achievements
-        AchievementService.check_lightning_fast_achievements(user, session.id)
-        db.session.commit()
-        
-        # Verify achievement has test_type metadata, not level
-        achievement = Achievement.query.filter_by(
-            user_id=user.id,
-            code="lightning-fast-bronze"
-        ).first()
-        
-        if achievement and achievement.achievement_metadata:
-            metadata = json.loads(achievement.achievement_metadata)
-            assert metadata.get("test_type") == "addition-1digit", "Should have test_type metadata"
-            assert "level" not in metadata or metadata.get("level") is None, "Should not have level metadata"
-
-
 def test_lightning_fast_practice_metadata(app, test_user):
     """Test: Lightning Fast uses level metadata for practice sessions."""
     with app.app_context():
@@ -464,7 +424,6 @@ def test_lightning_fast_practice_metadata(app, test_user):
         session = create_test_session_with_responses(
             user.id,
             responses_data,
-            is_test=False,
             level=1
         )
         
@@ -481,7 +440,7 @@ def test_lightning_fast_practice_metadata(app, test_user):
         if achievement and achievement.achievement_metadata:
             metadata = json.loads(achievement.achievement_metadata)
             assert metadata.get("level") == 1, "Should have level metadata"
-            assert "test_type" not in metadata or metadata.get("test_type") is None, "Should not have test_type metadata"
+            assert "test_type" not in metadata, "Should not include legacy test_type metadata"
 
 
 # ============================================================================
@@ -512,7 +471,6 @@ def test_so_wow_one_per_tier_multiple_per_session(app, test_user):
         from datetime import datetime
         session = PracticeSession(
             user_id=user.id,
-            is_test=False,
             mode="standard",
             level=1,
             started_at=datetime.utcnow()

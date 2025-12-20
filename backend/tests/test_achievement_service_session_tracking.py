@@ -40,8 +40,6 @@ def test_session_id(app, test_user_id):
             user_id=test_user_id,
             mode="standard",
             level=1,
-            is_test=True,
-            test_type="addition_1digit",
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=30,

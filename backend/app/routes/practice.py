@@ -371,9 +371,21 @@ def complete_session(session_id: int):
 
     # Award XP + update level (XP-based leveling)
     from ..services.xp_service import XPService
+    from ..services.concept_xp_service import ConceptXPService
+    from ..services.achievement_xp_service import AchievementXPService
 
-    BASE_XP_PER_CORRECT = 10  # TODO: vary by concept_id per MATH_CONCEPTS.md
-    earned_xp = int(correct_count) * BASE_XP_PER_CORRECT
+    xp_per_correct = ConceptXPService.xp_per_correct(session.concept_id)
+    base_xp = int(correct_count) * int(xp_per_correct)
+
+    # Only achievements earned during this session contribute to multiplier/bonus XP.
+    achievement_rewards = [AchievementXPService.reward_for_achievement_code(a.code) for a in new_achievements]
+    multipliers = [r.multiplier for r in achievement_rewards if r.multiplier and r.multiplier > 0]
+    bonus_xp = sum(r.bonus_xp for r in achievement_rewards)
+
+    total_multiplier = sum(multipliers) if multipliers else 1.0
+    multiplied_xp = float(base_xp) * float(total_multiplier)
+    total_awarded_xp_raw = multiplied_xp + float(bonus_xp)
+    earned_xp = int(round(total_awarded_xp_raw))
     prev_total_xp = int(getattr(user, "experience", 0) or 0)
     prev_level = int(user.level or 1)
 
@@ -387,6 +399,26 @@ def complete_session(session_id: int):
 
     level_up_result = {
         "earned_xp": earned_xp,
+        "xp_breakdown": {
+            "concept_id": session.concept_id,
+            "xp_per_correct": xp_per_correct,
+            "correct_count": int(correct_count),
+            "base_xp": base_xp,
+            "multipliers": [
+                {"achievement_code": a.code, "multiplier": r.multiplier}
+                for a, r in zip(new_achievements, achievement_rewards)
+                if r.multiplier and r.multiplier > 0
+            ],
+            "total_multiplier": total_multiplier,
+            "multiplied_xp": multiplied_xp,
+            "bonus_xp": bonus_xp,
+            "bonus_xp_sources": [
+                {"achievement_code": a.code, "bonus_xp": r.bonus_xp}
+                for a, r in zip(new_achievements, achievement_rewards)
+                if r.bonus_xp
+            ],
+            "total_awarded_xp_raw": total_awarded_xp_raw,
+        },
         "previous_total_xp": prev_total_xp,
         "total_xp": new_total_xp,
         "previous_level": prev_level,

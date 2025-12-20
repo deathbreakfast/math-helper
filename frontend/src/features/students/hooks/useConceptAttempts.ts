@@ -38,16 +38,10 @@ export async function getConceptAttempts(
   userId: number
 ): Promise<ConceptAttempt[]> {
   try {
-    // Extract level from conceptId (supports both old and new formats)
-    const level = legacyLevelFromConceptId(conceptId)
-    if (level === null) {
-      throw new Error(`Invalid conceptId: ${conceptId} - cannot extract legacy level`)
-    }
-
-    // Fetch practice sessions for this user and level
-    // For now, we'll use a simple endpoint that gets sessions by level
-    // In the future, this should filter by concept_id
-    const response = await fetch(`/api/practice/sessions?user_id=${userId}&level=${level}&completed=true`)
+    // Fetch practice sessions for this user and concept
+    const response = await fetch(
+      `/api/practice/sessions?user_id=${userId}&concept_id=${encodeURIComponent(conceptId)}&completed=true`
+    )
     
     if (!response.ok) {
       throw new Error(`Failed to fetch concept attempts: ${response.statusText}`)

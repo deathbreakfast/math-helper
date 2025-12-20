@@ -101,6 +101,28 @@ export const practiceHandlers = [
       achievements: [],
     })
   }),
+
+  // List practice sessions (used by concept attempt history)
+  http.get('/api/practice/sessions', async ({ request }) => {
+    const url = new URL(request.url)
+    const conceptId = url.searchParams.get('concept_id') || 'c_concept_001'
+    const completed = url.searchParams.get('completed') === 'true'
+
+    return HttpResponse.json({
+      sessions: completed
+        ? [
+            {
+              id: 123,
+              concept_id: conceptId,
+              completed_at: new Date().toISOString(),
+              total_questions: 10,
+              correct_count: 10,
+              accuracy: 100,
+            },
+          ]
+        : [],
+    })
+  }),
 ]
 
 // Users/Learners API handlers

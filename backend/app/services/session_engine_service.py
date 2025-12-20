@@ -7,27 +7,15 @@ import random
 import re
 from typing import Any
 
-from ..config.tests.test_definitions import NEW_TEST_DEFINITIONS
 from ..database import log_query, transaction
 from ..models import User, db
-from ..services.achievement_service import AchievementService
 from ..services.level_config_service import LevelConfigService
 from ..services.practice_service import PracticeService
 from ..services.question_service import QuestionService
-from ..services.test_eligibility_service import TestEligibilityService
 
 
 class SessionEngineService:
     """Service for session generation orchestration."""
-
-    # Test type definitions: (test_type, operation, level, question_count, constraints)
-    # Populated from NEW_TEST_DEFINITIONS
-    TEST_TYPES = {}
-    
-    # Add test types from NEW_TEST_DEFINITIONS
-    # Convert format: (operation, level, question_count, constraints, display_name) -> (operation, level, question_count, constraints)
-    for test_type, (operation, level, question_count, constraints, _) in NEW_TEST_DEFINITIONS.items():
-        TEST_TYPES[test_type] = (operation, level, question_count, constraints)
 
     @staticmethod
     def _extract_legacy_level_from_concept_id(concept_id: str | None) -> int | None:
@@ -65,62 +53,6 @@ class SessionEngineService:
         """Build a new-format concept ID from a legacy level number."""
         return f"c_concept_{level:03d}"
 
-
-    @staticmethod
-    @log_query
-    def check_test_eligibility(user: User, test_type: str) -> tuple[bool, str]:
-        """Check if a user is eligible to take a specific test.
-        
-        Returns:
-            Tuple of (is_eligible, error_message)
-        """
-        # Check if it's a valid test type
-        if test_type in SessionEngineService.TEST_TYPES:
-            _, required_level, _, _ = SessionEngineService.TEST_TYPES[test_type]
-            
-            # Check level restriction
-            if user.level < required_level:
-                return False, f"User level {user.level} is below required level {required_level}"
-            
-            # All test types only require level (no achievement requirement)
-            return True, ""
-        
-        return False, f"Unknown test type: {test_type}"
-
-    @staticmethod
-    def _get_test_achievement_code(test_type: str) -> str:
-        """Get the achievement code format for a test type (for backward compatibility).
-        
-        Note: This method is kept for backward compatibility but is no longer used
-        in the eligibility checking logic.
-        """
-        return f"{test_type}_mastery"
-
-    @staticmethod
-    @log_query
-    def get_eligible_tests(user: User) -> list[dict[str, Any]]:
-        """Get list of eligible test types for a user.
-        
-        Tests are eligible if the user's level meets the test's level requirement.
-        No achievement requirement is needed.
-        """
-        eligible_tests = []
-        
-        for test_type, (operation, required_level, question_count, constraints) in SessionEngineService.TEST_TYPES.items():
-            # Check level restriction
-            if user.level < required_level:
-                continue
-            
-            eligible_tests.append({
-                "test_type": test_type,
-                "operation": operation,
-                "level": required_level,
-                "question_count": question_count,
-                "description": f"{operation.capitalize()} test - {test_type.replace('_', ' ')}",
-            })
-        
-        return eligible_tests
-
     @staticmethod
     def _transform_session_questions_to_generate_format(questions_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
         """Transform questions from get_session_with_details format to generate_session format."""
@@ -152,13 +84,11 @@ class SessionEngineService:
     def generate_session(
         user_id: int,
         mode: str = "standard",
-        is_test: bool = False,
-        test_type: str | None = None,
         level: int | None = None,
         concept_id: str | None = None,
         resume_oldest: bool = False,
     ) -> dict[str, Any]:
-        """Generate a practice or test session with questions.
+        """Generate a practice session with questions.
         
         Checks for incomplete session first. If found, returns existing session.
         Otherwise creates a new session.
@@ -166,14 +96,12 @@ class SessionEngineService:
         Args:
             user_id: The user ID
             mode: Session mode (standard/multiplication/division)
-            is_test: Whether this is a test session
-            test_type: Test type identifier (required if is_test=True)
             level: Optional level override (defaults to user's level)
             concept_id: Optional concept identifier (e.g., "c_concept_001", "c_add_1s")
             resume_oldest: If True, resume the oldest incomplete session (for dashboard)
         
         Returns:
-            Dictionary with session_id, is_test, test_type, and questions list
+            Dictionary with session_id, mode, level, concept_id, and questions list
         """
         user = db.session.get(User, user_id)
         if not user:
@@ -193,9 +121,8 @@ class SessionEngineService:
             )
         
         if incomplete_session:
-            # Check if it matches the requested type (test vs practice)
-            # For concept-specific practice, concept_id must match
-            # For dashboard resume (resume_oldest), we resume any incomplete session
+            # For concept-specific practice, concept_id must match.
+            # For dashboard resume (resume_oldest) and general practice (no concept_id), allow resume.
             concept_matches = (
                 incomplete_session.concept_id == concept_id
                 if concept_id is not None
@@ -206,7 +133,7 @@ class SessionEngineService:
                 if session_level is not None and incomplete_session.level is not None
                 else True  # If either is None, allow resume (backward compatibility)
             )
-            if incomplete_session.is_test == is_test and level_matches and concept_matches:
+            if level_matches and concept_matches:
                 # Get full session details with all questions
                 session_data = PracticeService.get_session_with_details(incomplete_session.id)
                 if session_data and session_data.get("questions"):
@@ -230,8 +157,6 @@ class SessionEngineService:
                         )
                         return {
                             "session_id": incomplete_session.id,
-                            "is_test": incomplete_session.is_test,
-                            "test_type": incomplete_session.test_type,
                             "mode": incomplete_session.mode,
                             "level": incomplete_session.level,
                             "concept_id": incomplete_session.concept_id,
@@ -239,128 +164,70 @@ class SessionEngineService:
                         }
         
         # No incomplete session found, create new one
-        # Handle test sessions
-        if is_test:
-            if not test_type:
-                raise ValueError("test_type is required for test sessions")
-            
-            # Check eligibility
-            is_eligible, error_msg = SessionEngineService.check_test_eligibility(user, test_type)
-            if not is_eligible:
-                raise ValueError(f"Test eligibility check failed: {error_msg}")
-            
-            # Get test configuration
-            if test_type in SessionEngineService.TEST_TYPES:
-                operation, required_level, question_count, constraints = SessionEngineService.TEST_TYPES[test_type]
-            else:
-                raise ValueError(f"Unknown test type: {test_type}")
-            
-            # Generate questions for test (all same type/level)
-            questions = []
-            for i in range(question_count):
-                question_data = QuestionService.generate_question(
-                    operation=operation,
-                    level=required_level,
-                    test_constraints=constraints,
-                )
+        # Default question count for practice
+        question_count = 10
+
+        # Concept-based default practice selection.
+        # IMPORTANT: do this *after* checking for incomplete sessions above so that
+        # general practice (no concept_id provided) can still resume any incomplete session.
+        if concept_id is None:
+            max_level = min(max(user.level or 1, 1), 45)
+            selected_level = random.randint(1, max_level)
+            concept_id = SessionEngineService._concept_id_from_legacy_level(selected_level)
+            session_level = selected_level
+
+        concept_level = SessionEngineService._extract_legacy_level_from_concept_id(concept_id)
+        if concept_level is None:
+            raise ValueError(f"Unsupported concept_id for practice session: {concept_id}")
+
+        # Generate all questions from the concept's level config
+        config = LevelConfigService.get_level_config(concept_level)
+        if not config:
+            raise ValueError(f"Concept {concept_id} (level {concept_level}) configuration not found")
+
+        operation = config["operation"]
+        questions: list[dict[str, Any]] = []
+
+        for i in range(question_count):
+            max_retries = 3
+            question_data = None
+            for retry in range(max_retries):
+                try:
+                    question_data = QuestionService.generate_question(
+                        operation=operation,
+                        level=concept_level,
+                        test_constraints=None,
+                    )
+                    break  # Success, exit retry loop
+                except ValueError:
+                    # Invalid level configuration (e.g., division by zero)
+                    if retry >= max_retries - 1:
+                        raise
+
+            if question_data:
                 questions.append(question_data)
             
-            # Create session (concept_id should already be passed from caller)
-            session = PracticeService.create_session(
-                user_id=user_id,
-                mode=mode,
-                level=required_level,
-                concept_id=concept_id,
-                is_test=True,
-                test_type=test_type,
-            )
-            
-            # Store question IDs
-            question_ids = [q.get("question_id") for q in questions if q.get("question_id")]
-            if question_ids:
-                with transaction():
-                    session.question_ids = json.dumps(question_ids)
-                    db.session.add(session)
-            
-            return {
-                "session_id": session.id,
-                "is_test": True,
-                "test_type": test_type,
-                "mode": mode,
-                "level": required_level,
-                "concept_id": concept_id,
-                "questions": questions,
-            }
-        
-        # Handle practice sessions (mixed levels)
-        else:
-            # Default question count for practice
-            question_count = 10
+        # Create session (pass concept_id if provided)
+        session = PracticeService.create_session(
+            user_id=user_id,
+            mode=mode,
+            level=session_level,
+            concept_id=concept_id,
+            is_test=False,
+            test_type=None,
+        )
 
-            # Concept-based default practice selection.
-            # IMPORTANT: do this *after* checking for incomplete sessions above so that
-            # general practice (no concept_id provided) can still resume any incomplete session.
-            if concept_id is None:
-                max_level = min(max(user.level or 1, 1), 45)
-                selected_level = random.randint(1, max_level)
-                concept_id = SessionEngineService._concept_id_from_legacy_level(selected_level)
-                session_level = selected_level
+        # Store question IDs
+        question_ids = [q.get("question_id") for q in questions if q.get("question_id")]
+        if question_ids:
+            with transaction():
+                session.question_ids = json.dumps(question_ids)
+                db.session.add(session)
 
-            concept_level = SessionEngineService._extract_legacy_level_from_concept_id(concept_id)
-            if concept_level is None:
-                raise ValueError(f"Unsupported concept_id for practice session: {concept_id}")
-
-            # Generate all questions from the concept's level config
-            config = LevelConfigService.get_level_config(concept_level)
-            if not config:
-                raise ValueError(f"Concept {concept_id} (level {concept_level}) configuration not found")
-
-            operation = config["operation"]
-            questions: list[dict[str, Any]] = []
-
-            for i in range(question_count):
-                max_retries = 3
-                question_data = None
-                for retry in range(max_retries):
-                    try:
-                        question_data = QuestionService.generate_question(
-                            operation=operation,
-                            level=concept_level,
-                            test_constraints=None,
-                        )
-                        break  # Success, exit retry loop
-                    except ValueError:
-                        # Invalid level configuration (e.g., division by zero)
-                        if retry >= max_retries - 1:
-                            raise
-
-                if question_data:
-                    questions.append(question_data)
-            
-            # Create session (pass concept_id if provided)
-            # Note: questions should already be populated from either concept-based or adaptive generation above
-            session = PracticeService.create_session(
-                user_id=user_id,
-                mode=mode,
-                level=session_level,
-                concept_id=concept_id,
-                is_test=False,
-                test_type=None,
-            )
-            
-            # Store question IDs
-            question_ids = [q.get("question_id") for q in questions if q.get("question_id")]
-            if question_ids:
-                with transaction():
-                    session.question_ids = json.dumps(question_ids)
-                    db.session.add(session)
-            
-            return {
-                "session_id": session.id,
-                "is_test": False,
-                "test_type": None,
-                "mode": mode,
-                "level": session_level,
-                "concept_id": concept_id,
-                "questions": questions,
-            }
+        return {
+            "session_id": session.id,
+            "mode": mode,
+            "level": session_level,
+            "concept_id": concept_id,
+            "questions": questions,
+        }

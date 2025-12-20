@@ -12,10 +12,8 @@ from ..services.achievement_service import AchievementService
 from ..services.analytics_service import AnalyticsService
 from ..services.practice_service import PracticeService
 from ..services.session_engine_service import SessionEngineService
-from ..services.test_eligibility_service import TestEligibilityService
 from ..services.user_service import UserService
 from .common import invalidate_user_cache
-from ..config.test_requirements import get_all_test_requirements, get_test_requirements
 from .route_helpers import (
     create_error_response,
     create_success_response,
@@ -156,8 +154,7 @@ def get_incomplete_session():
             "user_id": incomplete_session.user_id,
             "mode": incomplete_session.mode,
             "level": incomplete_session.level,
-            "is_test": incomplete_session.is_test,
-            "test_type": incomplete_session.test_type,
+            "concept_id": incomplete_session.concept_id,
             "started_at": incomplete_session.started_at.isoformat() if incomplete_session.started_at else None,
         },
         "response_count": response_count,
@@ -211,12 +208,10 @@ def get_session_answers(session_id: int):
 
 @practice_bp.post("/practice/sessions/start")
 def start_practice_session():
-    """Start a new practice or test session with generated questions."""
+    """Start a new practice session with generated questions."""
     payload = get_json_payload()
     user_id = get_user_id_from_payload(payload)
     mode = payload.get("mode", "standard")
-    is_test = payload.get("is_test", False) or payload.get("isTest", False)
-    test_type = payload.get("test_type") or payload.get("testType")
     level = payload.get("level")
     concept_id = payload.get("concept_id")
     resume_oldest = payload.get("resume_oldest", False)
@@ -228,8 +223,6 @@ def start_practice_session():
         session_data = SessionEngineService.generate_session(
             user_id=user_id,
             mode=mode,
-            is_test=is_test,
-            test_type=test_type,
             level=level,
             concept_id=concept_id,
             resume_oldest=resume_oldest,
@@ -239,65 +232,6 @@ def start_practice_session():
         return create_error_response(str(e), 400)
     except Exception as e:
         return create_error_response(f"Failed to create session: {str(e)}", 500)
-
-
-@practice_bp.get("/practice/sessions/eligible-tests")
-def get_eligible_tests():
-    """Get list of eligible test types for a user."""
-    user_id = request.args.get("user_id", type=int) or request.args.get("userId", type=int)
-
-    if not user_id:
-        return create_error_response("user_id is required", 400)
-
-    user = UserService.get_user(user_id)
-    if not user:
-        return create_error_response("User not found", 404)
-
-    eligible_tests = SessionEngineService.get_eligible_tests(user)
-    return create_success_response({"eligible_tests": eligible_tests})
-
-
-@practice_bp.get("/practice/test-requirements")
-def get_test_requirements_endpoint():
-    """Get test requirements for all levels or a specific level."""
-    level = request.args.get("level", type=int)
-    
-    if level:
-        requirements = get_test_requirements(level)
-        if not requirements:
-            return create_error_response(f"No test requirements found for level {level}", 404)
-        return create_success_response({"level": level, "requirements": requirements})
-    else:
-        all_requirements = get_all_test_requirements()
-        return create_success_response({"requirements": all_requirements})
-
-
-@practice_bp.get("/practice/test-eligibility")
-def get_test_eligibility():
-    """Check if user is eligible for any test or a specific level test."""
-    user_id = request.args.get("user_id", type=int) or request.args.get("userId", type=int)
-    level = request.args.get("level", type=int)
-
-    if not user_id:
-        return create_error_response("user_id is required", 400)
-
-    user = UserService.get_user(user_id)
-    if not user:
-        return create_error_response("User not found", 404)
-
-    if level:
-        # Check eligibility for specific level
-        is_eligible, reason, details = TestEligibilityService.check_test_eligibility(user, level)
-        return create_success_response({
-            "level": level,
-            "is_eligible": is_eligible,
-            "reason": reason,
-            "details": details,
-        })
-    else:
-        # Get all available tests
-        available_tests = TestEligibilityService.get_available_tests(user)
-        return create_success_response({"available_tests": available_tests})
 
 
 @practice_bp.post("/practice/questions/check")
@@ -390,43 +324,6 @@ def complete_session(session_id: int):
     if not user:
         return create_error_response("User not found", 404)
 
-    # Record test attempt if this is a test session.
-    #
-    # NOTE: Test attempts should always be recorded for completed test sessions so the
-    # Tests tab can show history. Previously this was gated on `get_test_requirements()`
-    # returning a config entry, but the current test requirements config may be empty.
-    # In that case, fall back to the default passing score of 80%.
-    if session.is_test and session.test_type and session.level:
-        from ..models import TestAttempt, db
-        
-        test_requirements = get_test_requirements(session.level)
-        passing_score = None
-        if test_requirements:
-            passing_score = test_requirements.get("passing_score")
-        if passing_score is None:
-            passing_score = 0.8
-
-        score = session.accuracy / 100.0  # Convert percentage to decimal
-        passed = score >= passing_score
-        
-        # Calculate average time per question
-        avg_time_per_question_ms = None
-        if total_questions > 0 and calculated_duration > 0:
-            avg_time_per_question_ms = calculated_duration // total_questions
-        
-        # Create test attempt record
-        test_attempt = TestAttempt(
-            user_id=user.id,
-            level=session.level,
-            test_type=session.test_type,
-            score=score,
-            avg_time_per_question_ms=avg_time_per_question_ms,
-            total_duration_ms=total_duration_ms or calculated_duration,
-            passed=passed,
-        )
-        db.session.add(test_attempt)
-        db.session.commit()
-
     # Aggregate daily stats
     AnalyticsService.aggregate_daily_stats(user.id)
 
@@ -440,13 +337,6 @@ def complete_session(session_id: int):
         import traceback
         traceback.print_exc()
         return create_error_response(f"Failed to award achievements: {str(e)}", 500)
-    
-    # Check for consecutive correct achievements (30 in a row)
-    consecutive_achievements = AchievementService.check_consecutive_correct_achievements(
-        user, session.test_type
-    )
-    
-    # Test achievements removed - no longer checking for test achievements
     
     # Check for generic accuracy achievements (new metal/prestige tier system)
     generic_accuracy_achievements = AchievementService.check_generic_accuracy_achievements(session)
@@ -502,12 +392,13 @@ def complete_session(session_id: int):
     return create_success_response({
         "session": {
             "id": session.id,
-            "is_test": session.is_test,
-            "test_type": session.test_type,
             "total_questions": total_questions,
             "correct_count": correct_count,
             "accuracy": session.accuracy,
             "completed_at": session.completed_at.isoformat() if session.completed_at else None,
+            "mode": session.mode,
+            "level": session.level,
+            "concept_id": session.concept_id,
         },
         "achievements": [AchievementService.serialize_achievement(a) for a in new_achievements],
         "level_up": level_up_result,

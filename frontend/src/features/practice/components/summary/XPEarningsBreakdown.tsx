@@ -1,6 +1,8 @@
 import { motion } from 'framer-motion'
 import { Sparkles } from 'lucide-react'
 import type { LevelUpResult } from '../../types'
+import { useAchievementDefinitions } from '../../../../lib/levels/hooks'
+import { getConceptDisplayNameByConceptId } from '../../../students/data/mathConcepts'
 
 type XPEarningsBreakdownProps = {
   levelUp: LevelUpResult | null
@@ -10,8 +12,16 @@ export const XPEarningsBreakdown = ({ levelUp }: XPEarningsBreakdownProps) => {
   const breakdown = levelUp?.xp_breakdown
   if (!breakdown || levelUp?.earned_xp === undefined) return null
 
+  const { definitions: achievementDefinitions } = useAchievementDefinitions()
+  const conceptName = getConceptDisplayNameByConceptId(breakdown.concept_id) || breakdown.concept_id || '—'
+
   const multipliers = breakdown.multipliers || []
   const bonusSources = breakdown.bonus_xp_sources || []
+
+  const getAchievementLabel = (code: string | null | undefined) => {
+    if (!code) return 'Achievement'
+    return achievementDefinitions[code]?.title || code
+  }
 
   return (
     <motion.div
@@ -30,7 +40,7 @@ export const XPEarningsBreakdown = ({ levelUp }: XPEarningsBreakdownProps) => {
           <div>
             <div className="font-semibold">Base XP</div>
             <div className="text-xs text-gray-500">
-              {breakdown.xp_per_correct ?? 0} × {breakdown.correct_count ?? 0} (concept {breakdown.concept_id || '—'})
+              {breakdown.xp_per_correct ?? 0} × {breakdown.correct_count ?? 0} ({conceptName})
             </div>
           </div>
           <div className="font-bold">{(breakdown.base_xp ?? 0).toLocaleString()}xp</div>
@@ -52,7 +62,7 @@ export const XPEarningsBreakdown = ({ levelUp }: XPEarningsBreakdownProps) => {
             <div className="space-y-1">
               {multipliers.map((m, idx) => (
                 <div key={`${m.achievement_code || 'ach'}-${idx}`} className="flex justify-between gap-3">
-                  <div className="truncate text-gray-600">{m.achievement_code || 'Achievement'}</div>
+                  <div className="truncate text-gray-600">{getAchievementLabel(m.achievement_code)}</div>
                   <div className="font-semibold text-gray-800">x{(m.multiplier ?? 0).toFixed(2)}</div>
                 </div>
               ))}
@@ -76,7 +86,7 @@ export const XPEarningsBreakdown = ({ levelUp }: XPEarningsBreakdownProps) => {
             <div className="space-y-1">
               {bonusSources.map((b, idx) => (
                 <div key={`${b.achievement_code || 'ach'}-${idx}`} className="flex justify-between gap-3">
-                  <div className="truncate text-gray-600">{b.achievement_code || 'Achievement'}</div>
+                  <div className="truncate text-gray-600">{getAchievementLabel(b.achievement_code)}</div>
                   <div className="font-semibold text-gray-800">{(b.bonus_xp ?? 0).toLocaleString()}xp</div>
                 </div>
               ))}

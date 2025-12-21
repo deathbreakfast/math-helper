@@ -50,7 +50,7 @@ These are the remaining phases/stages of work, tracked as a checklist. Keep this
   - [x] Summary: show Concept Name and Achievement Name + Tier in the XP breakdown (not just raw codes/ids)
   - [x] ensure tier naming/casing is consistent across the app
 - [ ] **Legacy cleanup**
-  - [ ] remove remaining `legacyLevel` plumbing once concept configs and descriptive IDs are fully supported
+  - [x] remove remaining `legacyLevel` plumbing once concept configs and descriptive IDs are fully supported
   - [ ] migration strategy for existing persisted data (if not using full DB resets)
 
 ---

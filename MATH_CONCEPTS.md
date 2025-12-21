@@ -35,21 +35,21 @@ These are the remaining phases/stages of work, tracked as a checklist. Keep this
   - [x] stop generating concepts via placeholder `getAllMathConcepts()` level mapping
   - [x] create a real concept list in code/config including: id, name, category, operation, layout, answer formats, unlock requirements
   - [x] ensure the Math Concepts tab uses this catalog (sorting/filtering/search)
-- [ ] **Backend concept configuration as source of truth for question generation**
+- [x] **Backend concept configuration as source of truth for question generation**
   - [x] add concept configs (operation, operand ranges, constraints, layout, answer formats, special rules) keyed by `concept_id`
   - [x] update session engine to generate questions from concept config directly (not via legacy level config)
   - [x] ensure constraints from this doc are enforced (no-remainder, multiples, fixed divisor, etc.)
-- [ ] **Unlock requirements fully concept-aware**
+- [x] **Unlock requirements fully concept-aware**
   - [x] ensure unlock requirements support `quantity` + `metadata_filter` (especially `concept_id`)
   - [x] verify/expand backend endpoints so frontend can show `progress` + `completed` reliably
   - [x] ensure requirement descriptions render correctly in UI (no legacy “test_type” phrasing)
 - [x] **Descriptive concept IDs end-to-end**
   - [x] support non-legacy ids (e.g. `c_add_1s`) through: catalog → practice start → session engine → XP lookup → attempt history
   - [x] remove remaining assumptions that `concept_id` implies a legacy `level`
-- [ ] **Doc-format parity / UI polish**
+- [x] **Doc-format parity / UI polish**
   - [x] Summary: show Concept Name and Achievement Name + Tier in the XP breakdown (not just raw codes/ids)
   - [x] ensure tier naming/casing is consistent across the app
-- [ ] **Legacy cleanup**
+- [x] **Legacy cleanup**
   - [x] remove remaining `legacyLevel` plumbing once concept configs and descriptive IDs are fully supported
   - [x] migration strategy for existing persisted data (if not using full DB resets)
 
@@ -295,7 +295,7 @@ Ensure all new math concepts are properly added to the system and their unlock r
 ### Checklist for Adding a New Concept
 
 #### 1. Documentation (`MATH_CONCEPTS.md`)
-- [ ] Add concept entry with all required sections:
+- Add concept entry with all required sections:
   - Name
   - Category
   - Unlock Requirements (achievements with quantities and metadata filters)
@@ -305,34 +305,34 @@ Ensure all new math concepts are properly added to the system and their unlock r
   - Example Problems
 
 #### 2. Frontend Data (`frontend/src/features/students/data/mathConcepts.ts`)
-- [ ] Add concept to `getAllMathConcepts()` function
-- [ ] If using display name mapping, add to `CONCEPT_DISPLAY_NAMES`
-- [ ] Ensure `createConceptFromLevel()` or equivalent creates concept with correct:
+- Add concept to `getAllMathConcepts()` function
+- If using display name mapping, add to `CONCEPT_DISPLAY_NAMES`
+- Ensure `createConceptFromLevel()` or equivalent creates concept with correct:
   - `conceptId` (matches Concept ID in doc)
   - `displayName` (matches Name in doc)
   - `operation` (matches Category/Operation in doc)
 
 #### 3. Backend Configuration (`backend/app/config/levels_config.py`)
-- [ ] Add level config entry (if concept maps to a level number)
-- [ ] Ensure operation, ranges, constraints match documentation
-- [ ] Verify layout_type and answer_format match metadata
+- Add level config entry (if concept maps to a level number)
+- Ensure operation, ranges, constraints match documentation
+- Verify layout_type and answer_format match metadata
 
 #### 4. Unlock Requirements (`backend/app/config/level_progression_config.py`)
-- [ ] Add unlock requirements entry
-- [ ] Map achievement codes to concept unlock requirements
-- [ ] Ensure quantities and metadata filters match documentation
-- [ ] Verify order of requirements matches documentation
+- Add unlock requirements entry
+- Map achievement codes to concept unlock requirements
+- Ensure quantities and metadata filters match documentation
+- Verify order of requirements matches documentation
 
 #### 5. Frontend Unlock Logic (`frontend/src/features/students/utils/conceptUnlock.ts`)
-- [ ] Verify `evaluateConceptUnlock()` handles all achievement types used
-- [ ] Ensure metadata filters are properly evaluated
-- [ ] Verify unlock status calculation
+- Verify `evaluateConceptUnlock()` handles all achievement types used
+- Ensure metadata filters are properly evaluated
+- Verify unlock status calculation
 
 #### 6. Testing
-- [ ] Add test for concept creation
-- [ ] Add test for unlock requirement evaluation
-- [ ] Add test for concept practice session generation
-- [ ] Verify concept appears in Math Concepts tab when unlocked
+- Add test for concept creation
+- Add test for unlock requirement evaluation
+- Add test for concept practice session generation
+- Verify concept appears in Math Concepts tab when unlocked
 
 ### Unlock Requirements Format
 

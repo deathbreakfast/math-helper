@@ -5,7 +5,6 @@
 
 import { useState, useEffect } from 'react'
 import { logError } from '../../../utils/logger'
-import { legacyLevelFromConceptId } from '../utils/conceptIdUtils'
 
 export type ConceptAttempt = {
   attempt_id: number

@@ -22,7 +22,6 @@ export type MathConcept = {
   id: string
   conceptId: string // Stable identifier like "c_concept_001" (new format) or "c_add_1s" (descriptive)
   displayName: string // User-friendly name like "Basic Single Digit Addition"
-  legacyLevel: number // The level number this concept maps to (1:1 for now) - internal use only
   category: string // Addition, Subtraction, Multiplication, Division
   operation: string // addition, subtraction, multiplication, division
   layoutType?: string // vertical, longDivision, partialProducts, etc.
@@ -286,7 +285,6 @@ export function createConceptFromLevel(
     id: `concept-${level}`,
     conceptId: conceptIdFromLegacyLevel(level), // Use new format: c_concept_001, c_concept_002, etc.
     displayName: generateDisplayName(level, operation),
-    legacyLevel: level, // Keep for internal mapping/backward compatibility
     category,
     operation,
     layoutType: CONCEPT_LAYOUT_BY_LEVEL[level],
@@ -329,7 +327,6 @@ export function getAllMathConcepts(): MathConcept[] {
       id: `concept-${c.id}`,
       conceptId: c.id,
       displayName: c.name,
-      legacyLevel: 0,
       category: 'Addition',
       operation: 'addition',
       layoutType: 'vertical',
@@ -359,7 +356,6 @@ export function getAllMathConcepts(): MathConcept[] {
       id: `concept-${c.id}`,
       conceptId: c.id,
       displayName: c.name,
-      legacyLevel: 0,
       category: 'Subtraction',
       operation: 'subtraction',
       layoutType: 'vertical',
@@ -380,7 +376,6 @@ export function getAllMathConcepts(): MathConcept[] {
       id: `concept-${c.id}`,
       conceptId: c.id,
       displayName: c.name,
-      legacyLevel: 0,
       category: 'Multiplication',
       operation: 'multiplication',
       layoutType: 'vertical',

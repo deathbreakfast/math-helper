@@ -2,7 +2,6 @@ import { logError } from '../../../utils/logger'
 import type { User, PracticeAttempt, PracticeSessionSummary, LevelUpResult } from '../types'
 import { reconstructSessionStateFromResponse } from '../utils/sessionReconstruction'
 import type { ReconstructedSessionState } from '../utils/sessionReconstruction'
-import { legacyLevelFromConceptId } from '../../students/utils/conceptIdUtils'
 
 export type PracticeMode = 'standard' | 'multiplication' | 'division'
 

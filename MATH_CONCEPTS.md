@@ -216,16 +216,29 @@ This section captures bugs discovered during live testing so we don’t lose con
 **RCA / investigation notes:**
 - This is primarily a **spec mismatch** between how multipliers were encoded vs how they were intended to be applied/presented.
 
+**Resolution:**
+- ✅ Multipliers are stored as factors (1.03, 1.32) in config but treated as bonus deltas in calculation
+- ✅ Backend converts factors to deltas: `delta = factor - 1.0`
+- ✅ Backend calculates total multiplier as: `total_multiplier = 1.0 + sum(deltas)` instead of `sum(factors)`
+- ✅ Backend returns deltas (0.03, 0.32) in API response instead of factors (1.03, 1.32)
+- ✅ Frontend displays deltas correctly (x0.03, x0.32) and total as x1.35
+- ✅ Added backend test to verify multiplier delta calculation
+
+**Files changed:**
+- `backend/app/routes/practice.py` - Updated multiplier calculation to use deltas
+- `backend/tests/test_complete_session_xp_breakdown.py` - Added test for multiplier delta calculation
+
 **TODOs / next steps:**
-- [ ] Decide canonical model:
-  - store multipliers as **delta** (0.03) or **factor** (1.03)
-  - keep API stable but adjust presentation, or adjust both calculation + presentation
-- [ ] Update backend XP calculation to:
+- [x] Decide canonical model:
+  - store multipliers as **factor** (1.03) in config, but treat as **delta** (0.03) in calculation/display
+  - adjust both calculation + presentation
+- [x] Update backend XP calculation to:
+  - convert factors to deltas: `delta = factor - 1.0`
   - sum deltas → `1 + sum(delta)`
   - apply that multiplier to base XP
-- [ ] Update frontend XP breakdown rendering to show:
-  - per-achievement delta as `x0.03` (or “+0.03x”) and total as `x1.35`
-- [ ] Add backend tests for multiplier math.
+- [x] Update backend API to return deltas instead of factors
+- [x] Frontend already displays multiplier values correctly (shows deltas as x0.03, total as x1.35)
+- [x] Add backend tests for multiplier math.
 - [ ] Update doc section(s) that define multiplier semantics to remove ambiguity.
 
 ---
@@ -973,14 +986,16 @@ grep -r "test.*tab\|Test.*Tab\|TestsTab" --include="*.tsx" --include="*.ts" fron
 ## XP Multipliers
 
 ### Overview
-Achievements provide XP multipliers that are applied to the base XP earned from correct answers. Each achievement tier has its own multiplier value that is added to the total multiplier for the session.
+Achievements provide XP multipliers that are applied to the base XP earned from correct answers. Each achievement tier has its own multiplier value that contributes to the total multiplier for the session.
 
 ### How It Works
 - Each achievement tier has an **XP Multiplier** value stored in an array matching the EXP array size
-- Multipliers are **additive** - all multipliers from achievements earned during a session are added together
+- Multipliers are stored as **factors** (e.g., 1.01, 1.03, 1.32) but treated as **bonus deltas** in calculation
+- Multipliers are **additive as deltas** - all multipliers from achievements earned during a session are converted to deltas (factor - 1.0) and summed
+- Total multiplier calculation: `total_multiplier = 1.0 + sum(deltas)`
+  - Example: factors 1.03 and 1.32 → deltas 0.03 and 0.32 → total = 1.0 + 0.03 + 0.32 = 1.35
 - The total multiplier is then applied to the base XP from correct answers
-- The last tier (divine/champion) always has a multiplier of **4.50**
-- Other tiers increment by 0.01 starting from 1.01 (e.g., 1.01, 1.02, 1.03, ..., 1.10, 4.50)
+- Display: Individual multipliers shown as deltas (x0.03, x0.32), total shown as full multiplier (x1.35)
 
 ### Achievement XP Multiplier Format
 - Stored as an array matching the EXP array size

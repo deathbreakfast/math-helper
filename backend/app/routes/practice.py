@@ -441,10 +441,14 @@ def complete_session(session_id: int):
 
     # Only achievements earned during this session contribute to multiplier/bonus XP.
     achievement_rewards = [AchievementXPService.reward_for_achievement_code(a.code) for a in new_achievements]
-    multipliers = [r.multiplier for r in achievement_rewards if r.multiplier and r.multiplier > 0]
+    # Convert multiplier factors to deltas (e.g., 1.03 -> 0.03, 1.32 -> 0.32)
+    # Multipliers are stored as factors but should be treated as bonus deltas
+    multiplier_factors = [r.multiplier for r in achievement_rewards if r.multiplier and r.multiplier > 0]
+    multiplier_deltas = [factor - 1.0 for factor in multiplier_factors]
     bonus_xp = sum(r.bonus_xp for r in achievement_rewards)
 
-    total_multiplier = sum(multipliers) if multipliers else 1.0
+    # Calculate total multiplier as 1.0 + sum of deltas (e.g., 1.0 + 0.03 + 0.32 = 1.35)
+    total_multiplier = 1.0 + sum(multiplier_deltas) if multiplier_deltas else 1.0
     multiplied_xp = float(base_xp) * float(total_multiplier)
     total_awarded_xp_raw = multiplied_xp + float(bonus_xp)
     earned_xp = int(round(total_awarded_xp_raw))
@@ -467,7 +471,7 @@ def complete_session(session_id: int):
             "correct_count": int(correct_count),
             "base_xp": base_xp,
             "multipliers": [
-                {"achievement_code": a.code, "multiplier": r.multiplier}
+                {"achievement_code": a.code, "multiplier": r.multiplier - 1.0}  # Return delta, not factor
                 for a, r in zip(new_achievements, achievement_rewards)
                 if r.multiplier and r.multiplier > 0
             ],

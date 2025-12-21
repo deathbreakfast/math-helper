@@ -363,3 +363,104 @@ def test_xp_breakdown_uses_latest_response_per_question(app, test_user):
             assert session_data['total_questions'] == 10
             assert session_data['correct_count'] == 9
 
+
+def test_xp_breakdown_multiplier_delta_calculation(app, test_user):
+    """Test that multipliers are calculated as deltas (0.03 + 0.32 = 0.35, total = 1.35).
+    
+    Verify that multipliers are treated as bonus deltas over 1.0:
+    - Individual multipliers stored as factors (1.03, 1.32) but returned as deltas (0.03, 0.32)
+    - Total multiplier = 1.0 + sum(deltas) = 1.0 + 0.03 + 0.32 = 1.35
+    - Not sum(factors) = 1.03 + 1.32 = 2.35
+    """
+    with app.app_context():
+        from app.routes.practice import practice_bp
+        app.register_blueprint(practice_bp)
+        
+        # Create questions
+        questions = create_test_questions(10, 1, "addition")
+        db.session.add_all(questions)
+        db.session.commit()
+        
+        # Create session with 10 correct responses
+        responses_data = [
+            {'question_id': q.id, 'answer': q.correct_answer, 'is_correct': True, 'duration_ms': 1500}
+            for q in questions
+        ]
+        session = create_test_session_with_responses(
+            test_user.id, responses_data, completed_at=None
+        )
+        session.concept_id = "c_add_1s"
+        session.completed_at = None
+        db.session.add(session)
+        db.session.commit()
+        
+        # Award achievements that have multipliers
+        # Using first-steps (1.01 factor -> 0.01 delta) and accuracy-ace-gold (1.03 factor -> 0.03 delta)
+        # These are small multipliers that are easy to verify
+        from app.models import Achievement
+        from app.services.achievement_service import AchievementService
+        
+        # Create first-steps achievement (multiplier factor 1.01 -> delta 0.01)
+        from tests.helpers.data_helpers import award_achievement_directly
+        award_achievement_directly(test_user.id, "first-steps", session_id=session.id)
+        
+        # For accuracy-ace-gold, we need a session with 100% accuracy and 10+ questions
+        # Since we have 10 correct out of 10, this should qualify
+        from app.services.achievement_service import AchievementService
+        from app.services.analytics_service import AnalyticsService
+        
+        # Check for accuracy-ace achievements
+        user = db.session.get(User, test_user.id)
+        metrics = AnalyticsService.compute_user_metrics(user.id)
+        AchievementService.ensure_achievements(user, metrics, session_id=session.id)
+        
+        # Manually award accuracy-ace-gold if not already awarded (for test simplicity)
+        existing_ace = Achievement.query.filter_by(
+            user_id=test_user.id, code="accuracy-ace-gold", session_id=session.id
+        ).first()
+        if not existing_ace:
+            award_achievement_directly(test_user.id, "accuracy-ace-gold", session_id=session.id)
+        
+        db.session.commit()
+        
+        # Call complete endpoint
+        with app.test_client() as client:
+            response = client.post(
+                f'/api/practice/sessions/{session.id}/complete',
+                json={'total_duration_ms': 15000}
+            )
+            assert response.status_code == 200
+            
+            data = response.get_json()
+            
+            level_up = data['level_up']
+            assert level_up is not None
+            xp_breakdown = level_up['xp_breakdown']
+            
+            # Verify multipliers are returned as deltas (not factors)
+            multipliers = xp_breakdown.get('multipliers', [])
+            assert len(multipliers) >= 1, "Should have at least one multiplier"
+            
+            # Check that multipliers are deltas (should be < 1.0 for typical multipliers)
+            # first-steps: 1.01 factor -> 0.01 delta
+            # accuracy-ace-gold: 1.03 factor -> 0.03 delta
+            for mult in multipliers:
+                assert mult['multiplier'] < 1.0, f"Multiplier should be delta (< 1.0), got {mult['multiplier']}"
+            
+            # Verify total_multiplier calculation
+            # Should be 1.0 + sum(deltas), not sum(factors)
+            total_multiplier = xp_breakdown.get('total_multiplier', 1.0)
+            
+            # Calculate expected: sum of deltas
+            expected_deltas_sum = sum(m['multiplier'] for m in multipliers)
+            expected_total = 1.0 + expected_deltas_sum
+            
+            # Total should be close to expected (allowing for floating point precision)
+            assert abs(total_multiplier - expected_total) < 0.001, \
+                f"Total multiplier should be 1.0 + sum(deltas) = {expected_total}, got {total_multiplier}"
+            
+            # Verify it's NOT the sum of factors (which would be much larger)
+            # If we had factors 1.01 and 1.03, sum would be 2.04, but we expect 1.04
+            assert total_multiplier < 2.0, \
+                f"Total multiplier should be < 2.0 (sum of factors would be >= 2.0), got {total_multiplier}"
+

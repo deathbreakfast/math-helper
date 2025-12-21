@@ -18,7 +18,8 @@ type MathConceptsTabProps = {
 
 export const MathConceptsTab = ({ userData, isActive, user }: MathConceptsTabProps) => {
   const [textFilter, setTextFilter] = useState('')
-  const [statusFilter, setStatusFilter] = useState<'all' | 'locked' | 'unlocked' | 'attempted'>('all')
+  // Default to unlocked concepts for a better first-time experience
+  const [statusFilter, setStatusFilter] = useState<'all' | 'locked' | 'unlocked' | 'attempted'>('unlocked')
   const [selectedConcept, setSelectedConcept] = useState<MathConcept | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPinModalOpen, setIsPinModalOpen] = useState(false)
@@ -67,7 +68,7 @@ export const MathConceptsTab = ({ userData, isActive, user }: MathConceptsTabPro
   // Filter concepts
   const filteredConcepts = useMemo(() => {
     const lowerTextFilter = textFilter.toLowerCase()
-    return concepts.map((concept) => {
+    const visible = concepts.filter((concept) => {
       // Status filter
       let statusMatch = true
       if (statusFilter !== 'all') {
@@ -86,11 +87,23 @@ export const MathConceptsTab = ({ userData, isActive, user }: MathConceptsTabPro
         concept.displayName.toLowerCase().includes(lowerTextFilter) ||
         concept.conceptId.toLowerCase().includes(lowerTextFilter)
 
-      return {
-        concept,
-        matchesFilter: statusMatch && textMatch,
-      }
+      return statusMatch && textMatch
     })
+
+    // Sort: unlocked (including attempted) first, locked last; within each bucket keep attempted first then alphabetical.
+    const sorted = [...visible].sort((a, b) => {
+      const aLocked = a.isLocked ? 1 : 0
+      const bLocked = b.isLocked ? 1 : 0
+      if (aLocked !== bLocked) return aLocked - bLocked
+
+      const aAttempted = a.attemptCount > 0 ? 0 : 1
+      const bAttempted = b.attemptCount > 0 ? 0 : 1
+      if (aAttempted !== bAttempted) return aAttempted - bAttempted
+
+      return a.displayName.localeCompare(b.displayName)
+    })
+
+    return sorted.map((concept) => ({ concept, matchesFilter: true }))
   }, [concepts, statusFilter, textFilter])
 
   return (

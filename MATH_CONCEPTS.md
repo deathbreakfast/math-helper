@@ -154,21 +154,37 @@ This section captures bugs discovered during live testing so we don’t lose con
 - `correct_count` in XP breakdown should match the completed session’s correct count.
 
 **RCA / investigation notes (hypotheses):**
-- We may be using the user’s “daily stats” correct count, or aggregating across more than the session (e.g. resumed session + new session combined).
+- We may be using the user's "daily stats" correct count, or aggregating across more than the session (e.g. resumed session + new session combined).
 - The backend XP breakdown may be populated from a different count than the session completion payload.
 - The frontend may be displaying a field not scoped to the session (e.g. `breakdown.correct_count` vs `session.correct_count`).
 
+**Root cause:**
+- The `/complete` endpoint was counting all Response records for the session, not unique questions.
+- When a user answered the same question multiple times (e.g., by checking their answer multiple times via `/api/practice/questions/check`), multiple Response records were created.
+- The code counted all correct responses, not unique questions answered correctly, inflating the correct_count (e.g., 15 responses for 10 unique questions would show 15 instead of 10).
+
+**Resolution:**
+- ✅ Fixed XP breakdown to count unique questions instead of all responses
+- ✅ When multiple responses exist for the same question, use the latest response per question
+- ✅ Added tests to verify correct_count matches session responses (unique questions)
+- ✅ Added test for cross-session isolation (Session B not inflated by Session A)
+- ✅ Added test to verify latest response per question is used when multiple responses exist
+
+**Files changed:**
+- `backend/app/routes/practice.py` - Updated `complete_session` endpoint to group responses by question_id and use latest response per question
+- `backend/tests/test_complete_session_xp_breakdown.py` - New test file with comprehensive tests for XP breakdown correct_count
+
 **TODOs / next steps:**
-- [ ] Compare backend `/complete` response fields:
+- [x] Compare backend `/complete` response fields:
   - `session.correct_count`
   - `level_up.xp_breakdown.correct_count`
   - `level_up.earned_xp` inputs
-- [ ] Add a backend test: completing a 10-question session with 10 correct returns `xp_breakdown.correct_count == 10`.
-- [ ] Add a backend test to cover cross-session aggregation bugs:
+- [x] Add a backend test: completing a 10-question session with 10 correct returns `xp_breakdown.correct_count == 10`.
+- [x] Add a backend test to cover cross-session aggregation bugs:
   - create Session A in concept X, answer some questions, **do not complete**
   - create Session B in concept Y, complete with exactly 10/10 correct
   - assert Session B returns `xp_breakdown.correct_count == 10` (not inflated by Session A or daily stats)
-- [ ] Ensure XP breakdown calculation uses **session-local** correct count, not global/aggregate stats.
+- [x] Ensure XP breakdown calculation uses **session-local** correct count, not global/aggregate stats.
 
 ---
 

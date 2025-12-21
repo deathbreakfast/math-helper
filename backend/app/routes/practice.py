@@ -353,10 +353,26 @@ def complete_session(session_id: int):
         select(Response).where(Response.session_id == session_id)
     ))
 
-    # Calculate statistics
-    total_questions = len(responses)
-    correct_count = sum(1 for r in responses if r.is_correct)
-    calculated_duration = sum(r.duration_ms or 0 for r in responses if r.duration_ms)
+    # Calculate statistics based on unique questions (not all responses)
+    # Group responses by question_id and get the latest response per question
+    # This handles cases where a user may have answered the same question multiple times
+    from collections import defaultdict
+    latest_responses_by_question: dict[int, Response] = {}
+    for response in responses:
+        question_id = response.question_id
+        if question_id not in latest_responses_by_question:
+            latest_responses_by_question[question_id] = response
+        else:
+            # Keep the response with the latest answered_at timestamp
+            if response.answered_at > latest_responses_by_question[question_id].answered_at:
+                latest_responses_by_question[question_id] = response
+    
+    # Count unique questions and correct answers
+    total_questions = len(latest_responses_by_question)
+    correct_count = sum(1 for r in latest_responses_by_question.values() if r.is_correct)
+    
+    # Calculate duration from latest responses (one per question)
+    calculated_duration = sum(r.duration_ms or 0 for r in latest_responses_by_question.values() if r.duration_ms)
 
     # Complete the session
     PracticeService.complete_session(

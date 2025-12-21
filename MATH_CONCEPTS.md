@@ -68,6 +68,176 @@ These are the remaining phases/stages of work, tracked as a checklist. Keep this
 
 ---
 
+## Bugs / RCA / Next Steps (log)
+
+This section captures bugs discovered during live testing so we don’t lose context. Each entry includes:
+- a **verbatim quote** from the original report
+- **current behavior**
+- **expected behavior**
+- **RCA / investigation notes**
+- a **TODO checklist** for follow-up work
+
+---
+
+### Bug 1 — “First Victory” awarded before session completion (and verify session-summary attribution)
+
+**User report (verbatim):**
+> I was awarded First Victory and First Stepts when I exited out of the session. This should only be awared after the session is completed. Do we have tests to verify this?
+
+**Current behavior (observed):**
+- `first-victory` was awarded before the first session was completed (observed when exiting the session).
+- `first-steps` may award during a session (this is acceptable), but we need to ensure it is attributed to the session where it was earned for accurate XP display.
+
+**Expected behavior:**
+- `first-victory` should only award when the session is **completed** (e.g. on `/api/practice/sessions/<id>/complete`).
+- `first-steps` can award as soon as it happens, but it must:
+  - appear in the **session summary** for the session it was earned in, and
+  - contribute the correct XP reward in that session’s XP breakdown.
+
+**RCA / investigation notes (hypotheses):**
+- There may be a code path that calls `AchievementService.ensure_achievements(...)` on actions that occur during/while leaving a session (e.g. submission capture / partial persistence / UI exit flow).
+- Some endpoints may be recording responses and triggering achievement recomputation even when the session is not complete.
+
+**TODOs / next steps:**
+- [ ] Identify which backend endpoint is hit when “exiting out of the session” (network trace).
+- [ ] Confirm whether achievements are awarded from:
+  - `/api/practice/questions/check` (per-answer),
+  - `/api/practice/submissions` (bulk),
+  - `/api/practice/sessions/<id>/complete` (completion),
+  - or a resume/incomplete-session endpoint.
+- [ ] Add/extend backend tests that assert:
+  - `first-victory` **does not** award on non-complete flows
+  - `first-victory` is **not** awarded mid-session even if the learner backs out (e.g. exit to home) without completing
+  - `first-victory` **does** award on the complete flow
+  - `first-steps` **can** award mid-session, and the session completion payload includes it in the returned `achievements` list for that same session.
+- [ ] Ensure session-summary attribution for mid-session awards:
+  - verify `Achievement.session_id` is set correctly when awarded mid-session
+  - verify `/api/practice/sessions/<id>/complete` returns those achievements in the summary response
+- [ ] Enforce “completion-only” achievements (like `first-victory`) by gating award logic on `session.completed_at != NULL` (or equivalent completion signal).
+
+---
+
+### Bug 2 — Concept selection: only c_add_1s unlocked but session starts a different concept
+
+**User report (verbatim):**
+> The only math concept I have unlocked is addition (1s). But it started some other addition.
+
+**Current behavior (observed):**
+- Starting practice can yield a concept that is not currently unlocked.
+
+**Expected behavior:**
+- visit "/" and page should load
+- I should be able to select a user
+- Then start practice
+- Enter Pin & continue
+- Start a session with an unlocked math concept
+
+**RCA / investigation notes (hypotheses):**
+- The session engine currently chooses a random concept for “general practice” based on a random legacy level (not unlock state). We should deprecated anything level related as requirements in this doc. 
+- Frontend routing might not always be sending `concept_id` (or sends it but backend resumes a different incomplete session).
+
+**TODOs / next steps:**
+- [ ] Confirm the exact flow + endpoints involved for Home-started practice:
+  - `/` (user select) → practice start → PIN verify → `/api/practice/sessions/start`
+- [ ] Ensure Home-started practice selects only from unlocked concepts:
+  - if backend is picking randomly, it must filter to unlocked-only
+  - or frontend must pass an explicit `concept_id` that is unlocked
+- [ ] Add an e2e/integration test for the exact expected flow above.
+
+---
+
+### Bug 3 — XP breakdown count mismatch (shows 15 instead of 10)
+
+**User report (verbatim):**
+> Looking at XP earned `37 × 15 (Single Digit Addition (1s))` But there was only 10 of 10 correct. Shouldn't this be `37 x 10 (Single Digit Addition (1s))` ?
+
+**Current behavior (observed):**
+- XP breakdown displays `xp_per_correct × correct_count`, but `correct_count` is not matching the session’s “10 of 10 correct”.
+
+**Expected behavior:**
+- `correct_count` in XP breakdown should match the completed session’s correct count.
+
+**RCA / investigation notes (hypotheses):**
+- We may be using the user’s “daily stats” correct count, or aggregating across more than the session (e.g. resumed session + new session combined).
+- The backend XP breakdown may be populated from a different count than the session completion payload.
+- The frontend may be displaying a field not scoped to the session (e.g. `breakdown.correct_count` vs `session.correct_count`).
+
+**TODOs / next steps:**
+- [ ] Compare backend `/complete` response fields:
+  - `session.correct_count`
+  - `level_up.xp_breakdown.correct_count`
+  - `level_up.earned_xp` inputs
+- [ ] Add a backend test: completing a 10-question session with 10 correct returns `xp_breakdown.correct_count == 10`.
+- [ ] Add a backend test to cover cross-session aggregation bugs:
+  - create Session A in concept X, answer some questions, **do not complete**
+  - create Session B in concept Y, complete with exactly 10/10 correct
+  - assert Session B returns `xp_breakdown.correct_count == 10` (not inflated by Session A or daily stats)
+- [ ] Ensure XP breakdown calculation uses **session-local** correct count, not global/aggregate stats.
+
+---
+
+### Bug 4 — XP multipliers: representation and math mismatch (additive “bonus multipliers”)
+
+**User report (verbatim):**
+> This is not how I wanted these added or it needs to be represented differently. `1.03 + 1.32` in my mind was 1.35 when added together. I suppose this is the behavior I envisoned, but captured in the requirements incorrectly.
+>
+> Should have been: `0.03 + 0.32 = 0.35` as a subtotal. So
+>
+> ```
+> 2 achievement(s)            x1.35
+>
+> Multipliers
+> Accuracy Ace (Gold)        x0.03
+> Speed Demon (Master)    x0.32
+> ```
+> NOTE: We need to figure out what we need to change to get to this behavior.
+
+**Current behavior (observed):**
+- We display multipliers as `x1.03`, `x1.32` and sum them to get a `total_multiplier` (e.g. `1.03 + 1.32 = 2.35`).
+
+**Expected behavior:**
+- Treat each achievement multiplier as a **bonus delta** over 1.0:
+  - store/display as `0.03`, `0.32`
+  - compute `total_multiplier = 1.0 + sum(deltas)`
+  - display overall as `x1.35`
+
+**RCA / investigation notes:**
+- This is primarily a **spec mismatch** between how multipliers were encoded vs how they were intended to be applied/presented.
+
+**TODOs / next steps:**
+- [ ] Decide canonical model:
+  - store multipliers as **delta** (0.03) or **factor** (1.03)
+  - keep API stable but adjust presentation, or adjust both calculation + presentation
+- [ ] Update backend XP calculation to:
+  - sum deltas → `1 + sum(delta)`
+  - apply that multiplier to base XP
+- [ ] Update frontend XP breakdown rendering to show:
+  - per-achievement delta as `x0.03` (or “+0.03x”) and total as `x1.35`
+- [ ] Add backend tests for multiplier math.
+- [ ] Update doc section(s) that define multiplier semantics to remove ambiguity.
+
+---
+
+### Bug 6 — Summary CTA “Try Next Level” should route to Journey unlocked concepts
+
+**User report (verbatim):**
+> Summary page shows `Try Next Level`. Let's change it's behavior. It should say "Try something else". Once clicked it will take them to the journey page with the math concepts tab selected and searched for unlocked concepts.
+
+**Current behavior (observed):**
+- Summary CTA says “Try Next Level” and routes to a next-level flow.
+
+**Expected behavior:**
+- CTA label: **“Try something else”**
+- On click: navigate to **Journey** page, **Math Concepts tab selected**, filter/search set to show unlocked concepts.
+
+**TODOs / next steps:**
+- [ ] Update Summary CTA label and destination route.
+- [ ] Implement a Journey route param (or query param) to select tab + preset filters:
+  - `tab=concepts`
+  - `status=unlocked`
+  - optionally `q=` (empty) or `q=unlocked`
+- [ ] Add a frontend test for the Summary CTA routing behavior.
+
 ## 1. Concept ID Migration
 
 ### Overview

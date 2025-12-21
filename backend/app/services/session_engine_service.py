@@ -108,8 +108,10 @@ class SessionEngineService:
         if not user:
             raise ValueError(f"User {user_id} not found")
         
-        # Determine level
-        session_level = level if level is not None else user.level
+        # Determine legacy "level" field for PracticeSession.
+        # - For concept-based practice, level is optional and should not be derived from the user's current level.
+        # - For non-concept practice, default to the user's current level.
+        session_level = level if level is not None else (user.level if concept_id is None else None)
         
         # Check for incomplete session first
         # If resume_oldest is True (dashboard), get oldest session
@@ -156,10 +158,15 @@ class SessionEngineService:
                         questions = SessionEngineService._transform_session_questions_to_generate_format(
                             session_data["questions"]
                         )
+                        response_level = (
+                            incomplete_session.level
+                            if incomplete_session.level is not None
+                            else (user.level if user.level is not None else 1)
+                        )
                         return {
                             "session_id": incomplete_session.id,
                             "mode": incomplete_session.mode,
-                            "level": incomplete_session.level,
+                            "level": response_level,
                             "concept_id": incomplete_session.concept_id,
                             "questions": questions,
                         }
@@ -224,10 +231,11 @@ class SessionEngineService:
                 session.question_ids = json.dumps(question_ids)
                 db.session.add(session)
 
+        response_level = session_level if session_level is not None else (concept_level if concept_level is not None else user.level)
         return {
             "session_id": session.id,
             "mode": mode,
-            "level": session_level,
+            "level": response_level,
             "concept_id": concept_id,
             "questions": questions,
         }

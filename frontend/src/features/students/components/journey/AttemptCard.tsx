@@ -6,26 +6,46 @@ import { QuestionResponseCard } from './QuestionResponseCard'
 import { logError } from '../../../../utils/logger'
 
 type AttemptCardProps = {
-  attempt: FrontendTestAttempt | FrontendTestAttemptDetail
+  attempt: FrontendTestAttempt | FrontendTestAttemptDetail | {
+    attempt_id: number
+    accuracy: number
+    avg_time_per_question_ms?: number | null
+    tier: 'B' | 'A' | 'S' | 'SS' | 'SSS' | 'bronze' | 'silver' | 'gold'
+    passed: boolean
+    attempted_at: string | null
+    question_count?: number
+    correct_count?: number
+    total_questions?: number
+    total_duration_ms?: number
+    questions?: Array<any>
+  }
   index: number
-  onExpand?: (attemptId: number) => Promise<FrontendTestAttemptDetail | null>
+  onExpand?: (attemptId: number) => Promise<any>
 }
 
-const getTierColor = (tier: 'B' | 'A' | 'S' | 'SS' | 'SSS'): string => {
+const getTierColor = (tier: 'B' | 'A' | 'S' | 'SS' | 'SSS' | 'bronze' | 'silver' | 'gold'): string => {
   switch (tier) {
     case 'SSS':
+    case 'gold':
       return 'from-purple-600 to-pink-600'
     case 'SS':
+    case 'silver':
       return 'from-blue-600 to-purple-600'
     case 'S':
       return 'from-green-500 to-emerald-600'
     case 'A':
       return 'from-yellow-500 to-orange-500'
     case 'B':
+    case 'bronze':
       return 'from-gray-500 to-gray-600'
     default:
       return 'from-gray-500 to-gray-600'
   }
+}
+
+const formatTierLabel = (tier: 'B' | 'A' | 'S' | 'SS' | 'SSS' | 'bronze' | 'silver' | 'gold'): string => {
+  // Capitalize first letter for display
+  return tier.charAt(0).toUpperCase() + tier.slice(1)
 }
 
 const formatDate = (dateString: string | null): string => {
@@ -121,7 +141,7 @@ export const AttemptCard: React.FC<AttemptCardProps> = ({ attempt, index, onExpa
           className={`rounded-full bg-gradient-to-r px-3 py-1 text-xs font-bold text-white ${getTierColor(attempt.tier)}`}
           data-testid="testid-attempt-tier-badge"
         >
-          {attempt.tier} Rank
+          {formatTierLabel(attempt.tier)} Rank
         </div>
       </div>
 

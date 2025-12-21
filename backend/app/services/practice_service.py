@@ -486,6 +486,10 @@ class PracticeService:
                 "concept_id": session.concept_id,
                 "started_at": session.started_at.isoformat() if session.started_at else None,
                 "completed_at": session.completed_at.isoformat() if session.completed_at else None,
+                "total_questions": session.total_questions,
+                "correct_count": session.correct_count,
+                "accuracy": session.accuracy,
+                "total_duration_ms": session.total_duration_ms,
             },
             "questions": questions_data,
         }

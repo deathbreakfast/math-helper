@@ -81,20 +81,16 @@ export async function getConceptAttemptDetail(
     }
 
     const data = await response.json()
+    
+    // Extract session and questions from response
+    // Backend returns: { session: {...}, questions: [...] }
     const session = data.session || data
+    const questionsData = data.questions || []
     
-    // Fetch question responses for this session
-    const questionsResponse = await fetch(`/api/practice/sessions/${attemptId}/questions`)
-    let questions: any[] = []
-    
-    if (questionsResponse.ok) {
-      const questionsData = await questionsResponse.json()
-      questions = questionsData.questions || []
-    }
-
     // Use concept_id from session if available, otherwise infer from level
     const inferredConceptId = session.concept_id || (session.level ? `c_concept_${String(session.level).padStart(3, '0')}` : 'c_concept_001')
     
+    // Preserve original attempt data - ensure we use session data correctly
     return {
       attempt_id: attemptId,
       session_id: attemptId,
@@ -104,7 +100,7 @@ export async function getConceptAttemptDetail(
       correct_count: session.correct_count || 0,
       attempted_at: new Date(session.completed_at || session.started_at),
       total_duration_ms: session.total_duration_ms,
-      questions: questions.map((q: any) => ({
+      questions: questionsData.map((q: any) => ({
         question_id: q.question_id || q.id,
         prompt: q.prompt,
         submitted_answer: q.response?.submitted_answer || '',

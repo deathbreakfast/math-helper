@@ -64,9 +64,24 @@ export const MathConceptDetailModal: React.FC<MathConceptDetailModalProps> = ({
     try {
       const detail = await getConceptAttemptDetail(attemptId)
       if (detail) {
-        // Update the attempt in the list with detailed data
+        // Update the attempt in the list with detailed data, preserving original attempt data
         setAttempts((prev) =>
-          prev.map((attempt) => (attempt.attempt_id === attemptId ? detail : attempt))
+          prev.map((attempt) => {
+            if (attempt.attempt_id === attemptId) {
+              // Merge detail with original attempt to preserve all fields
+              return {
+                ...attempt,
+                ...detail,
+                // Ensure we preserve the original attempt's data if detail is missing fields
+                accuracy: detail.accuracy ?? attempt.accuracy,
+                total_questions: detail.total_questions ?? attempt.total_questions,
+                correct_count: detail.correct_count ?? attempt.correct_count,
+                attempted_at: detail.attempted_at ?? attempt.attempted_at,
+                total_duration_ms: detail.total_duration_ms ?? attempt.total_duration_ms,
+              }
+            }
+            return attempt
+          })
         )
       }
       return detail
@@ -216,13 +231,12 @@ export const MathConceptDetailModal: React.FC<MathConceptDetailModalProps> = ({
                   ) : (
                     <div className="space-y-3">
                       {attempts.map((attempt, index) => {
-                        // Calculate tier based on accuracy (similar to test attempts)
-                        const getTier = (accuracy: number): 'B' | 'A' | 'S' | 'SS' | 'SSS' => {
-                          if (accuracy >= 95) return 'SSS'
-                          if (accuracy >= 90) return 'SS'
-                          if (accuracy >= 85) return 'S'
-                          if (accuracy >= 80) return 'A'
-                          return 'B'
+                        // Calculate tier based on accuracy ace logic (Bronze, Silver, Gold)
+                        const getTier = (accuracy: number): 'bronze' | 'silver' | 'gold' => {
+                          if (accuracy >= 100) return 'gold'   // 100% = Gold
+                          if (accuracy >= 90) return 'silver'  // 90-99% = Silver
+                          if (accuracy >= 80) return 'bronze' // 80-89% = Bronze
+                          return 'bronze' // Below 80% still shows bronze (but marked as failed)
                         }
 
                         return (

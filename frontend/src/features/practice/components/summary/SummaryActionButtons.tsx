@@ -56,7 +56,7 @@ export const SummaryActionButtons = ({
           data-testid="testid-try-next-level-button"
           className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl font-semibold"
         >
-          Try Next Level
+          Try something else
           <ChevronRight className="w-5 h-5" />
         </motion.button>
       )}

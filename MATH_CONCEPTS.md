@@ -255,12 +255,22 @@ This section captures bugs discovered during live testing so we don’t lose con
 - CTA label: **“Try something else”**
 - On click: navigate to **Journey** page, **Math Concepts tab selected**, filter/search set to show unlocked concepts.
 
+**Resolution:**
+- ✅ Updated Summary CTA label from "Try Next Level" to "Try something else"
+- ✅ Updated CTA navigation to route to Journey page with Math Concepts tab selected
+- ✅ Implemented query param support for status filter in MathConceptsTab
+- ✅ Navigation uses `/journey/:userId/concepts?status=unlocked` to show unlocked concepts
+
+**Files changed:**
+- `frontend/src/features/practice/components/summary/SummaryActionButtons.tsx` - Updated button label
+- `frontend/src/features/practice/SummaryPage.tsx` - Updated navigation route
+- `frontend/src/features/students/components/journey/MathConceptsTab.tsx` - Added query param support for status filter
+
 **TODOs / next steps:**
-- [ ] Update Summary CTA label and destination route.
-- [ ] Implement a Journey route param (or query param) to select tab + preset filters:
-  - `tab=concepts`
-  - `status=unlocked`
-  - optionally `q=` (empty) or `q=unlocked`
+- [x] Update Summary CTA label and destination route.
+- [x] Implement a Journey route param (or query param) to select tab + preset filters:
+  - `tab=concepts` (via route param)
+  - `status=unlocked` (via query param)
 - [ ] Add a frontend test for the Summary CTA routing behavior.
 
 ## 1. Concept ID Migration

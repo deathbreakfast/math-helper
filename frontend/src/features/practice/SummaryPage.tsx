@@ -56,11 +56,8 @@ const SummaryPage = () => {
 
   const handleTryNextLevel = () => {
     if (sessionSummary?.user) {
-      router.navigate('/practice', {
-        user: sessionSummary.user.name,
-        userId: String(sessionSummary.user.id),
-        avatar: sessionSummary.user.avatar || '',
-      })
+      // Navigate to Journey page with Math Concepts tab selected and unlocked concepts filter
+      router.navigate(`/journey/${sessionSummary.user.id}/concepts?status=unlocked`)
     }
   }
 

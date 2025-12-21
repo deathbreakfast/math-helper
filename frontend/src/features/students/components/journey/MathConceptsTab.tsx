@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { AlertCircle, Search, Loader2 } from 'lucide-react'
 import type { UserProgressData } from '../../utils/progressMapping'
@@ -17,9 +18,34 @@ type MathConceptsTabProps = {
 }
 
 export const MathConceptsTab = ({ userData, isActive, user }: MathConceptsTabProps) => {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [textFilter, setTextFilter] = useState('')
-  // Default to unlocked concepts for a better first-time experience
-  const [statusFilter, setStatusFilter] = useState<'all' | 'locked' | 'unlocked' | 'attempted'>('unlocked')
+  
+  // Read status filter from URL query params, default to 'unlocked' for better first-time experience
+  const statusParam = searchParams.get('status') as 'all' | 'locked' | 'unlocked' | 'attempted' | null
+  const [statusFilter, setStatusFilter] = useState<'all' | 'locked' | 'unlocked' | 'attempted'>(
+    statusParam || 'unlocked'
+  )
+  
+  // Sync status filter with URL query params when component mounts or URL changes
+  useEffect(() => {
+    if (statusParam && statusParam !== statusFilter) {
+      setStatusFilter(statusParam)
+    }
+  }, [statusParam])
+  
+  // Update URL when status filter changes
+  const handleStatusFilterChange = (newStatus: 'all' | 'locked' | 'unlocked' | 'attempted') => {
+    setStatusFilter(newStatus)
+    const newParams = new URLSearchParams(searchParams)
+    if (newStatus !== 'unlocked') {
+      // Only set param if not default 'unlocked' to keep URLs clean
+      newParams.set('status', newStatus)
+    } else {
+      newParams.delete('status')
+    }
+    setSearchParams(newParams, { replace: true })
+  }
   const [selectedConcept, setSelectedConcept] = useState<MathConcept | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPinModalOpen, setIsPinModalOpen] = useState(false)
@@ -139,7 +165,7 @@ export const MathConceptsTab = ({ userData, isActive, user }: MathConceptsTabPro
             <select
               data-testid="testid-concept-filter-status"
               value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
+              onChange={(e) => handleStatusFilterChange(e.target.value as any)}
               className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-900 outline-none focus:border-transparent focus:ring-2 focus:ring-blue-500"
             >
               <option value="all">All Status</option>

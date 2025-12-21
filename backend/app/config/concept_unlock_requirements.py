@@ -13,6 +13,13 @@ ConceptRequirement = dict[str, Any]
 
 
 CONCEPT_UNLOCK_REQUIREMENTS: dict[str, list[ConceptRequirement]] = {
+    # Legacy concept overrides (from MATH_CONCEPTS.md)
+    # Basic Single Digit Addition (c_concept_001) should not be the starter concept in the new system.
+    "c_concept_001": [
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_add_9s"}, "order": 1},
+        {"achievement_code": "master-of-basic-addition-bronze", "quantity": 1, "order": 2},
+    ],
+
     # Single Digit Addition (1s): starter concept
     "c_add_1s": [],
     "c_add_2s": [

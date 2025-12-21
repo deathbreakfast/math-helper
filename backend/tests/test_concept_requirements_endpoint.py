@@ -61,3 +61,19 @@ def test_concepts_requirements_enriches_counts_for_descriptive_concepts(app, use
         # Should include enriched fields
         assert any(r.get("achievement_code") == "level-master-bronze" and r.get("user_count") == 1 for r in reqs)
 
+
+def test_concepts_requirements_uses_explicit_overrides_for_legacy_concepts(app, user):
+    """Legacy concepts can have explicit unlock requirements that override level-progression defaults."""
+    with app.test_client() as client:
+        resp = client.get(f"/api/concepts/requirements?concept_ids=c_concept_001&user_id={user.id}")
+        assert resp.status_code == 200
+        data = resp.get_json()
+        reqs = data["requirements"]["c_concept_001"]
+        # From MATH_CONCEPTS.md: requires level-master-bronze with concept_id c_add_9s, plus master-of-basic-addition-bronze
+        assert any(
+            r.get("achievement_code") == "level-master-bronze"
+            and (r.get("metadata_filter") or {}).get("concept_id") == "c_add_9s"
+            for r in reqs
+        )
+        assert any(r.get("achievement_code") == "master-of-basic-addition-bronze" for r in reqs)
+

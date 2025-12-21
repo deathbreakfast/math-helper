@@ -38,8 +38,11 @@ def get_concept_requirements():
     for concept_id in concept_ids:
         reqs: list[dict] = []
 
-        # Legacy concepts use level progression configs as their unlock source (1:1)
-        if concept_id.startswith("c_concept_"):
+        # Prefer explicit concept unlock requirements (supports both descriptive and legacy ids).
+        if concept_id in CONCEPT_UNLOCK_REQUIREMENTS:
+            reqs = list(CONCEPT_UNLOCK_REQUIREMENTS.get(concept_id, []))
+        # Fallback: legacy concepts use level progression configs as their unlock source (1:1)
+        elif concept_id.startswith("c_concept_"):
             try:
                 level_num = int(concept_id.split("_")[-1])
             except ValueError:
@@ -48,7 +51,7 @@ def get_concept_requirements():
             if level_num is not None:
                 reqs = list(LevelConfigService.get_level_progression_config(level_num) or [])
         else:
-            reqs = list(CONCEPT_UNLOCK_REQUIREMENTS.get(concept_id, []))
+            reqs = []
 
         # Enrich with counts if user_id provided
         if user_id:

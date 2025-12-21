@@ -125,7 +125,7 @@ export const TestCard: React.FC<TestCardProps> = ({ test, index, onClick, onStar
             {isLocked ? 'Unlock Requirements:' : 'Unlocked'}
             <Info 
               className="h-3 w-3 text-gray-400 hover:text-gray-600 cursor-help" 
-              title="Higher tier achievements can substitute for lower tier requirements (e.g., 4 bronze = 2 silver = 1 gold)"
+              title="Higher tier achievements can substitute for lower tier requirements (e.g., 4 Bronze = 2 Silver = 1 Gold)"
             />
           </div>
           {test.unlockProgress && (

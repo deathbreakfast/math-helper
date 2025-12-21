@@ -145,7 +145,7 @@ describe('levelRequirementConverters', () => {
 
       const result = convertBackendRequirementsToFrontend(backendRequirements, [], 1, 2)
 
-      expect(result.requirements[0].description).toContain('Complete achievement: test achievement code')
+      expect(result.requirements[0].description).toContain('Complete: Test Achievement Code')
     })
 
     it('should add test type to description from metadata filter', () => {

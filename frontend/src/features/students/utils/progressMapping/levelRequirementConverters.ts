@@ -1,6 +1,21 @@
 import type { LevelRequirement } from '../../data/levelRequirements'
 import { ACHIEVEMENT_CODE_TO_FRONTEND_ID } from '../../../../lib/levels/achievementMapping'
 import { getConceptDisplayNameByConceptId } from '../../data/mathConcepts'
+import { extractTierFromCode } from '../achievementUtils'
+
+function _titleizeWords(text: string): string {
+  return text
+    .split(/\s+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(' ')
+}
+
+function _formatAchievementCodeForDisplay(code: string): string {
+  const { baseCode, tier } = extractTierFromCode(code)
+  const baseTitle = _titleizeWords(baseCode.replace(/-/g, ' '))
+  return tier ? `${baseTitle} (${tier})` : baseTitle
+}
 
 /**
  * Convert backend level requirements to frontend level requirements format
@@ -79,9 +94,8 @@ export function convertBackendRequirementsToFrontend(
     
     // Try to get a friendly description from the user's achievements or use the code
     const userAchievement = userAchievements.find((a) => a.code === req.achievement_code)
-    let baseDescription = userAchievement?.title 
-      ? `Complete: ${userAchievement.title}`
-      : `Complete achievement: ${req.achievement_code.replace(/-/g, ' ')}`
+    const achievementTitle = userAchievement?.title || _formatAchievementCodeForDisplay(req.achievement_code)
+    let baseDescription = `Complete: ${achievementTitle}`
     
     // Add metadata to description if present (concept_id or level)
     if (req.metadata_filter) {

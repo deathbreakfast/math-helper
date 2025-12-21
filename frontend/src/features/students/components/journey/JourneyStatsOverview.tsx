@@ -1,13 +1,13 @@
 import { motion } from 'framer-motion'
-import { Trophy, Calculator, Flame, Target } from 'lucide-react'
+import { Trophy, BookOpen, Flame, Target } from 'lucide-react'
 import type { UserProgressData } from '../../utils/progressMapping'
 
 type JourneyStatsOverviewProps = {
   userData: UserProgressData
   unlockedAchievements: number
   totalAchievements: number
-  unlockedTestAchievements: number
-  sssRankAchievements: number
+  unlockedConceptsCount: number
+  totalConceptsCount: number
   inProgressAchievements: number
 }
 
@@ -15,8 +15,8 @@ export const JourneyStatsOverview = ({
   userData,
   unlockedAchievements,
   totalAchievements,
-  unlockedTestAchievements,
-  sssRankAchievements,
+  unlockedConceptsCount,
+  totalConceptsCount,
   inProgressAchievements,
 }: JourneyStatsOverviewProps) => {
   return (
@@ -61,12 +61,12 @@ export const JourneyStatsOverview = ({
       >
         <div className="mb-3 flex items-center gap-3">
           <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-purple-100">
-            <Calculator className="h-6 w-6 text-purple-600" />
+            <BookOpen className="h-6 w-6 text-purple-600" />
           </div>
-          <div className="text-sm font-medium text-gray-600">Test Achievements</div>
+          <div className="text-sm font-medium text-gray-600">Math Concepts Unlocked</div>
         </div>
-        <div className="text-4xl font-bold text-gray-900">{unlockedTestAchievements}</div>
-        <div className="mt-1 text-sm text-gray-500">{sssRankAchievements} SSS rank</div>
+        <div className="text-4xl font-bold text-gray-900">{unlockedConceptsCount}</div>
+        <div className="mt-1 text-sm text-gray-500">of {totalConceptsCount} total</div>
       </motion.div>
 
       <motion.div

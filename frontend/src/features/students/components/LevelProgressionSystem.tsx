@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { useSearchParams, useParams } from 'react-router-dom'
 import { useRouter } from '../../../utils/routing'
 import { AnimatePresence } from 'framer-motion'
@@ -12,6 +12,7 @@ import { MathConceptsTab } from './journey/MathConceptsTab'
 import { useFilteredAchievements } from '../hooks/useFilteredAchievements'
 import { useJourneyFilters } from '../hooks/useJourneyFilters'
 import { useAchievementDefinitions } from '../../../lib/levels/hooks'
+import { useMathConcepts } from '../hooks/useMathConcepts'
 
 import type { User } from '../hooks/useLearners'
 
@@ -63,8 +64,6 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
     totalAchievements,
     unlockedAchievements,
     inProgressAchievements,
-    unlockedTestAchievements,
-    sssRankAchievements,
   } = useFilteredAchievements({
     achievements: userData?.achievements || [],
     achievementFilter,
@@ -72,6 +71,21 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
     tierFilter: 'all',
     textFilter,
   })
+
+  // Calculate unlocked math concepts count
+  const { concepts: mathConcepts } = useMathConcepts({
+    userData,
+    isActive: true,
+    userId: userData?.id || params.userId,
+  })
+  
+  const unlockedConceptsCount = useMemo(() => {
+    return mathConcepts.filter(c => !c.isLocked).length
+  }, [mathConcepts])
+  
+  const totalConceptsCount = useMemo(() => {
+    return mathConcepts.length
+  }, [mathConcepts])
 
   if (!userData) {
     return null
@@ -86,8 +100,8 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
           userData={userData}
           unlockedAchievements={unlockedAchievements}
           totalAchievements={totalAchievements}
-          unlockedTestAchievements={unlockedTestAchievements}
-          sssRankAchievements={sssRankAchievements}
+          unlockedConceptsCount={unlockedConceptsCount}
+          totalConceptsCount={totalConceptsCount}
           inProgressAchievements={inProgressAchievements}
         />
 

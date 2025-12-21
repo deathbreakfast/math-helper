@@ -239,7 +239,7 @@ This section captures bugs discovered during live testing so we don’t lose con
 - [x] Update backend API to return deltas instead of factors
 - [x] Frontend already displays multiplier values correctly (shows deltas as x0.03, total as x1.35)
 - [x] Add backend tests for multiplier math.
-- [ ] Update doc section(s) that define multiplier semantics to remove ambiguity.
+- [x] Update doc section(s) that define multiplier semantics to remove ambiguity.
 
 ---
 
@@ -790,30 +790,38 @@ XP is awarded **after the session is completed** from two sources:
 When a session is completed, XP is calculated in this order:
 
 1. **Calculate base XP**: Sum of XP from all correct questions (concept XP × number correct)
-2. **Calculate multiplier total**: Sum all XP multipliers from achievements earned during the session
+2. **Calculate multiplier total**: 
+   - Convert each achievement's multiplier factor to a delta: `delta = factor - 1.0`
+   - Sum all deltas: `sum_deltas = sum(all deltas)`
+   - Calculate total multiplier: `total_multiplier = 1.0 + sum_deltas`
+   - Example: factors 1.03 and 1.32 → deltas 0.03 and 0.32 → total = 1.0 + 0.03 + 0.32 = 1.35
 3. **Apply multipliers**: Multiply base XP by the total multiplier
 4. **Calculate bonus XP**: Sum all bonus XP from achievements earned during the session
 5. **Final total**: Add bonus XP to the multiplied XP
 
 **Formula**: `Total XP = (Base XP × Total Multiplier) + Bonus XP`
 
+**Note**: Multipliers are stored as factors (e.g., 1.03, 1.32) but are treated as bonus deltas in calculation. The total multiplier is always `1.0 + sum(deltas)`, not `sum(factors)`.
+
 #### Example Calculation
 
 - Session: 10 correct answers on "Single Digit Addition (1s)" (37 XP each)
 - Base XP: 10 × 37 = 370 XP
 - Achievements earned:
-  - First Steps: multiplier 1.01, bonus 50 XP
-  - First Victory: multiplier 1.02, bonus 100 XP
-  - Accuracy Ace [Gold]: multiplier 1.03, bonus 0 XP
-  - Speed Demon [Diamond]: multiplier 1.16, bonus 50 XP
-  - So Wow! [Bronze]: multiplier 0, bonus 10 XP
-  - So Wow! [Silver]: multiplier 0, bonus 25 XP
-  - So Wow! [Gold]: multiplier 0, bonus 50 XP
-  - So Wow! [Diamond]: multiplier 0, bonus 100 XP
-- Total Multiplier: 1.01 + 1.02 + 1.03 + 1.16 = 4.22
-- Multiplied XP: 370 × 4.22 = 1,561.4 XP
+  - First Steps: multiplier factor 1.01 (delta 0.01), bonus 50 XP
+  - First Victory: multiplier factor 1.02 (delta 0.02), bonus 100 XP
+  - Accuracy Ace [Gold]: multiplier factor 1.03 (delta 0.03), bonus 0 XP
+  - Speed Demon [Diamond]: multiplier factor 1.16 (delta 0.16), bonus 50 XP
+  - So Wow! [Bronze]: multiplier factor 0 (no multiplier), bonus 10 XP
+  - So Wow! [Silver]: multiplier factor 0 (no multiplier), bonus 25 XP
+  - So Wow! [Gold]: multiplier factor 0 (no multiplier), bonus 50 XP
+  - So Wow! [Diamond]: multiplier factor 0 (no multiplier), bonus 100 XP
+- Total Multiplier calculation:
+  - Deltas: 0.01 + 0.02 + 0.03 + 0.16 = 0.22
+  - Total Multiplier: 1.0 + 0.22 = 1.22
+- Multiplied XP: 370 × 1.22 = 451.4 XP
 - Bonus XP: 50 + 100 + 0 + 50 + 10 + 25 + 50 + 100 = 385 XP
-- **Total XP**: 1,561.4 + 385 = **1,946.4 XP**
+- **Total XP**: 451.4 + 385 = **836.4 XP**
 
 ---
 
@@ -1006,7 +1014,10 @@ Achievements provide XP multipliers that are applied to the base XP earned from 
 ### XP Calculation
 When a session is completed:
 1. Base XP = Sum of (concept XP × number of correct answers for that concept)
-2. Total Multiplier = Sum of all XP multipliers from achievements earned during the session
+2. Total Multiplier calculation:
+   - Convert each multiplier factor to delta: `delta = factor - 1.0`
+   - Sum all deltas: `sum_deltas = sum(all deltas)`
+   - Total Multiplier = `1.0 + sum_deltas`
 3. Multiplied XP = Base XP × Total Multiplier
 4. Bonus XP = Sum of all EXP values from achievements earned during the session
 5. Total XP = Multiplied XP + Bonus XP
@@ -1015,14 +1026,18 @@ When a session is completed:
 Session with 10 correct answers on "Single Digit Addition (1s)" (37 XP each):
 - Base XP: 10 × 37 = 370 XP
 - Achievements earned:
-  - First Steps: multiplier 1.01, bonus 50 XP
-  - First Victory: multiplier 1.02, bonus 100 XP
-  - Accuracy Ace [Gold]: multiplier 1.03, bonus 3 XP
-  - Speed Demon [Diamond]: multiplier 1.16, bonus 6 XP
-- Total Multiplier: 1.01 + 1.02 + 1.03 + 1.16 = 4.22
-- Multiplied XP: 370 × 4.22 = 1,561.4 XP
+  - First Steps: multiplier factor 1.01 (delta 0.01), bonus 50 XP
+  - First Victory: multiplier factor 1.02 (delta 0.02), bonus 100 XP
+  - Accuracy Ace [Gold]: multiplier factor 1.03 (delta 0.03), bonus 3 XP
+  - Speed Demon [Diamond]: multiplier factor 1.16 (delta 0.16), bonus 6 XP
+- Total Multiplier calculation:
+  - Deltas: 0.01 + 0.02 + 0.03 + 0.16 = 0.22
+  - Total Multiplier: 1.0 + 0.22 = 1.22
+- Multiplied XP: 370 × 1.22 = 451.4 XP
 - Bonus XP: 50 + 100 + 3 + 6 = 159 XP
-- **Total XP**: 1,561.4 + 159 = **1,720.4 XP**
+- **Total XP**: 451.4 + 159 = **610.4 XP**
+
+**Note**: Multipliers are displayed as deltas (x0.01, x0.02, etc.) in the UI, with the total shown as the full multiplier (x1.22).
 
 ---
 

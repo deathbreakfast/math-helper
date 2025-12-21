@@ -4,7 +4,9 @@ Source: `MATH_CONCEPTS.md` → "Achievements & EXP Awards Requirements".
 
 Notes:
 - Bonus XP corresponds to the EXP arrays in the doc.
-- Multipliers are additive at the session level (see `MATH_CONCEPTS.md`).
+- Multipliers are stored as factors (e.g., 1.03, 1.32) but are treated as bonus deltas
+  in calculation. The total multiplier is calculated as: 1.0 + sum(deltas) where
+  delta = factor - 1.0. See `MATH_CONCEPTS.md` → "XP Multipliers" for details.
 """
 
 from __future__ import annotations

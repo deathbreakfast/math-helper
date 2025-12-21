@@ -148,9 +148,9 @@ def submit_practice_attempts():
     # Aggregate daily stats for analytics
     AnalyticsService.aggregate_daily_stats(user.id)
 
-    # Update achievements
+    # Update achievements (pass session_id for proper attribution)
     metrics = AnalyticsService.compute_user_metrics(user.id)
-    AchievementService.ensure_achievements(user, metrics)
+    AchievementService.ensure_achievements(user, metrics, session_id=session.id)
 
     session_payload = {
         "id": str(session.id),

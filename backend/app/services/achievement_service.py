@@ -230,25 +230,30 @@ class AchievementService:
             user: User to check achievements for
             metrics: User metrics dictionary
             session_id: Optional session ID to link achievements to a specific session
-        
+            
         Returns:
             List of newly created achievements
         """
         from .achievements.achievement_checkers.milestone_checker import MilestoneChecker
         from .achievements.achievement_checkers.basic_milestone_checker import BasicMilestoneChecker
+        from .achievements.achievement_checkers.session_achievements_checker import SessionAchievementsChecker
         
         achievement_configs = _get_achievement_configs()
         milestone_checker = MilestoneChecker(achievement_configs)
         basic_milestone_checker = BasicMilestoneChecker(achievement_configs)
+        session_achievements_checker = SessionAchievementsChecker(achievement_configs)
         
         # Use MilestoneChecker to handle tier-based milestone achievements
         milestone_achievements = milestone_checker.check(user, metrics, session_id)
         
-        # Use BasicMilestoneChecker to handle non-tier-based milestones
+        # Use BasicMilestoneChecker to handle non-tier-based milestones (question_count, operation_accuracy)
         basic_milestone_achievements = basic_milestone_checker.check(user, metrics, session_id)
         
+        # Use SessionAchievementsChecker to handle session-based achievements (completed_session_count, etc.)
+        session_achievements = session_achievements_checker.check(user, metrics, session_id)
+        
         # Combine all achievements
-        all_new_achievements = milestone_achievements + basic_milestone_achievements
+        all_new_achievements = milestone_achievements + basic_milestone_achievements + session_achievements
         return all_new_achievements
 
     @staticmethod

@@ -409,3 +409,91 @@ def test_first_victory_only_awarded_once(app, test_user):
         
         assert achievement_count == 1, "First Victory should only be awarded once"
 
+
+def test_first_victory_not_awarded_on_incomplete_session(app, test_user):
+    """Test that first-victory achievement is NOT awarded when session is not completed."""
+    with app.app_context():
+        # Create a session with responses but NOT completed
+        questions = create_test_questions(1, 1)
+        responses_data = [{
+            'question_id': questions[0].id,
+            'answer': questions[0].correct_answer,
+            'is_correct': True,
+            'duration_ms': 3000
+        }]
+        
+        # Create session but don't mark it as completed (completed_at = None)
+        from app.models import PracticeSession, Response, Question
+        session = PracticeSession(
+            user_id=test_user.id,
+            mode="standard",
+            level=1,
+            started_at=datetime.utcnow(),
+            completed_at=None  # Session is NOT completed
+        )
+        db.session.add(session)
+        db.session.flush()
+        
+        # Add response
+        for resp_data in responses_data:
+            question = db.session.get(Question, resp_data['question_id'])
+            response = Response(
+                session_id=session.id,
+                user_id=test_user.id,
+                question_id=question.id,
+                submitted_answer=resp_data['answer'],
+                correct_answer=question.correct_answer,
+                is_correct=resp_data['is_correct'],
+                duration_ms=resp_data['duration_ms'],
+                answered_at=datetime.utcnow()
+            )
+            db.session.add(response)
+        
+        db.session.commit()
+        
+        # Now check achievements - should NOT award first-victory
+        user = db.session.get(User, test_user.id)
+        metrics = AnalyticsService.compute_user_metrics(user.id)
+        AchievementService.ensure_achievements(user, metrics, session_id=session.id)
+        
+        # Verify first-victory was NOT awarded
+        achievement = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="first-victory"
+        ).first()
+        
+        assert achievement is None, "First Victory should NOT be awarded when session is not completed"
+
+
+def test_first_victory_awarded_only_on_completed_session(app, test_user):
+    """Test that first-victory achievement IS awarded when session IS completed."""
+    with app.app_context():
+        # Create a completed session
+        questions = create_test_questions(1, 1)
+        responses_data = [{
+            'question_id': questions[0].id,
+            'answer': questions[0].correct_answer,
+            'is_correct': True,
+            'duration_ms': 3000
+        }]
+        
+        # Create test session with responses (this helper creates completed sessions)
+        session = create_test_session_with_responses(test_user.id, responses_data)
+        
+        # Verify session is completed
+        assert session.completed_at is not None, "Test session should be completed"
+        
+        # Now check achievements - should award first-victory
+        user = db.session.get(User, test_user.id)
+        metrics = AnalyticsService.compute_user_metrics(user.id)
+        AchievementService.ensure_achievements(user, metrics, session_id=session.id)
+        
+        # Verify first-victory WAS awarded
+        achievement = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="first-victory"
+        ).first()
+        
+        assert achievement is not None, "First Victory should be awarded when session is completed"
+        assert achievement.session_id == session.id, "Achievement should be linked to the completed session"
+

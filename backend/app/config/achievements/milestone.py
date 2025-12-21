@@ -30,8 +30,8 @@ MILESTONE_ACHIEVEMENTS: dict[str, dict[str, Any]] = {
         "category": "milestone",
         "tier": "silver",
         "requirements": {
-            "type": "question_count",
-            "min_questions": 1
+            "type": "completed_session_count",
+            "min_sessions": 1
         },
         "constraint": {
             "allow_multiple_per_tier": False,

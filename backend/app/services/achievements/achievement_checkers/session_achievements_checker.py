@@ -13,11 +13,25 @@ from .base_checker import AchievementChecker
 class SessionAchievementsChecker(AchievementChecker):
     """Checker for session-based achievements."""
     
-    def check(self, user: User, session_id: int | None = None) -> list[Achievement]:
+    def __init__(self, achievement_configs: dict[str, Any]):
+        """Initialize checker with achievement configs.
+        
+        Args:
+            achievement_configs: Dictionary of achievement configurations
+        """
+        self.achievement_configs = achievement_configs
+    
+    def check(
+        self,
+        user: User,
+        metrics: dict[str, Any] | None = None,
+        session_id: int | None = None
+    ) -> list[Achievement]:
         """Check and award session-based achievements.
         
         Args:
             user: User to check achievements for
+            metrics: Optional pre-computed user metrics (not used by this checker)
             session_id: Optional session ID to link achievements to a specific session
             
         Returns:
@@ -32,7 +46,7 @@ class SessionAchievementsChecker(AchievementChecker):
         
         for achievement_code, config in achievement_configs.items():
             req_type = config.get("requirements", {}).get("type")
-            if req_type not in ["session_accuracy_and_consecutive", "perfect_sessions", "level_mastery"]:
+            if req_type not in ["session_accuracy_and_consecutive", "perfect_sessions", "level_mastery", "completed_session_count"]:
                 continue
             
             if achievement_code in user_achievement_codes:
@@ -51,6 +65,10 @@ class SessionAchievementsChecker(AchievementChecker):
             elif req_type == "level_mastery":
                 new_achievements.extend(
                     self._check_level_mastery(user, achievement_code, config, requirements, session_id)
+                )
+            elif req_type == "completed_session_count":
+                new_achievements.extend(
+                    self._check_completed_session_count(user, achievement_code, config, requirements, session_id)
                 )
         
         return new_achievements
@@ -213,6 +231,42 @@ class SessionAchievementsChecker(AchievementChecker):
             )]
         else:
             debug_print(f"[ACHIEVEMENT DEBUG]   ✗ Not awarding")
+            return []
+    
+    def _check_completed_session_count(
+        self, user: User, achievement_code: str, config: dict[str, Any],
+        requirements: dict[str, Any], session_id: int | None
+    ) -> list[Achievement]:
+        """Check completed_session_count achievements (e.g., first-victory).
+        
+        Awards achievements based on the number of completed sessions a user has.
+        This is different from question_count as it requires sessions to be completed,
+        not just questions answered.
+        """
+        min_sessions = requirements.get("min_sessions", 1)
+        
+        # Count completed sessions (sessions with completed_at set)
+        completed_sessions_count = (
+            PracticeSession.query.filter_by(user_id=user.id)
+            .filter(PracticeSession.completed_at.isnot(None))
+            .count()
+        )
+        
+        debug_print(f"[ACHIEVEMENT DEBUG]   completed_session_count: {completed_sessions_count} (need {min_sessions})")
+        
+        if completed_sessions_count >= min_sessions:
+            debug_print(f"[ACHIEVEMENT DEBUG]   ✓ AWARDING {achievement_code} (completed_sessions: {completed_sessions_count} >= {min_sessions})")
+            return [_create_achievement(
+                user_id=user.id,
+                code=achievement_code,
+                title=config["title"],
+                description=config["description"],
+                icon=config["icon"],
+                category=config["category"],
+                session_id=session_id,
+            )]
+        else:
+            debug_print(f"[ACHIEVEMENT DEBUG]   ✗ Not awarding (need {min_sessions} completed sessions, have {completed_sessions_count})")
             return []
 
 

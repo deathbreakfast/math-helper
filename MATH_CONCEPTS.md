@@ -79,7 +79,7 @@ This section captures bugs discovered during live testing so we don’t lose con
 
 ---
 
-### Bug 1 — “First Victory” awarded before session completion (and verify session-summary attribution)
+### Bug 1 — "First Victory" awarded before session completion (and verify session-summary attribution)
 
 **User report (verbatim):**
 > I was awarded First Victory and First Stepts when I exited out of the session. This should only be awared after the session is completed. Do we have tests to verify this?
@@ -92,28 +92,21 @@ This section captures bugs discovered during live testing so we don’t lose con
 - `first-victory` should only award when the session is **completed** (e.g. on `/api/practice/sessions/<id>/complete`).
 - `first-steps` can award as soon as it happens, but it must:
   - appear in the **session summary** for the session it was earned in, and
-  - contribute the correct XP reward in that session’s XP breakdown.
+  - contribute the correct XP reward in that session's XP breakdown.
 
-**RCA / investigation notes (hypotheses):**
-- There may be a code path that calls `AchievementService.ensure_achievements(...)` on actions that occur during/while leaving a session (e.g. submission capture / partial persistence / UI exit flow).
-- Some endpoints may be recording responses and triggering achievement recomputation even when the session is not complete.
+**RCA / investigation notes:**
+- The `first-victory` achievement was using `question_count >= 1` requirement, which meant it could award as soon as a user answered one question, even if the session wasn't completed.
+- The `/practice/submissions` endpoint was calling `ensure_achievements` without passing `session_id`, which could cause attribution issues.
 
-**TODOs / next steps:**
-- [ ] Identify which backend endpoint is hit when “exiting out of the session” (network trace).
-- [ ] Confirm whether achievements are awarded from:
-  - `/api/practice/questions/check` (per-answer),
-  - `/api/practice/submissions` (bulk),
-  - `/api/practice/sessions/<id>/complete` (completion),
-  - or a resume/incomplete-session endpoint.
-- [ ] Add/extend backend tests that assert:
-  - `first-victory` **does not** award on non-complete flows
-  - `first-victory` is **not** awarded mid-session even if the learner backs out (e.g. exit to home) without completing
-  - `first-victory` **does** award on the complete flow
-  - `first-steps` **can** award mid-session, and the session completion payload includes it in the returned `achievements` list for that same session.
-- [ ] Ensure session-summary attribution for mid-session awards:
-  - verify `Achievement.session_id` is set correctly when awarded mid-session
-  - verify `/api/practice/sessions/<id>/complete` returns those achievements in the summary response
-- [ ] Enforce “completion-only” achievements (like `first-victory`) by gating award logic on `session.completed_at != NULL` (or equivalent completion signal).
+**Resolution:**
+- ✅ Modified `BasicMilestoneChecker` to check for completed sessions when awarding `first-victory` (checks `PracticeSession.completed_at IS NOT NULL`).
+- ✅ Updated `/practice/submissions` endpoint to pass `session_id` when calling `ensure_achievements` for proper session attribution.
+- ✅ Added backend tests to verify `first-victory` only awards when sessions are completed.
+
+**Files changed:**
+- `backend/app/services/achievements/achievement_checkers/basic_milestone_checker.py` - Added special handling for `first-victory` to check completed sessions
+- `backend/app/routes/practice.py` - Updated `/practice/submissions` to pass `session_id` to `ensure_achievements`
+- `backend/tests/test_achievements_awarding.py` - Added tests for incomplete session behavior
 
 ---
 

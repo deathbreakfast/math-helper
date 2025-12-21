@@ -1,7 +1,7 @@
 """Basic milestone achievement checker.
 
-Handles non-tier-based milestone achievements like first-steps, first-victory,
-and operation_accuracy achievements.
+Handles non-tier-based milestone achievements like first-steps and operation_accuracy achievements.
+Note: first-victory is handled by SessionAchievementsChecker as it requires completed sessions.
 """
 
 from __future__ import annotations
@@ -73,7 +73,11 @@ class BasicMilestoneChecker(AchievementChecker):
             req_type = requirements.get("type")
             meets_requirements = False
             
-            # Check question_count achievements (basic milestones like first-steps, first-victory)
+            # Skip completed_session_count achievements (handled by SessionAchievementsChecker)
+            if req_type == "completed_session_count":
+                continue
+            
+            # Check question_count achievements (basic milestones like first-steps)
             if req_type == "question_count":
                 min_questions = requirements.get("min_questions", 0)
                 meets_requirements = total_answers >= min_questions

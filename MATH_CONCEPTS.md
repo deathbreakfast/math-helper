@@ -51,7 +51,20 @@ These are the remaining phases/stages of work, tracked as a checklist. Keep this
   - [x] ensure tier naming/casing is consistent across the app
 - [ ] **Legacy cleanup**
   - [x] remove remaining `legacyLevel` plumbing once concept configs and descriptive IDs are fully supported
-  - [ ] migration strategy for existing persisted data (if not using full DB resets)
+  - [x] migration strategy for existing persisted data (if not using full DB resets)
+
+  **Migration strategy (no full DB reset):**
+  - **Keep existing rows**: Do not backfill or rewrite historical `PracticeSession.level` or `Question.required_level`.
+  - **Use runtime compatibility matching**:
+    - Unlock/requirement counting uses `metadata_filter.concept_id` and will match both new `{concept_id: ...}` and legacy `{level: N}` metadata where applicable.
+    - For descriptive concepts, requirement metadata should use `{concept_id: "<descriptive_id>"}` going forward.
+  - **Concept catalog changes**:
+    - New concepts can be added without migrating old concept ids; old `c_concept_###` remain valid forever.
+    - If a concept is renamed, keep the old `concept_id` as an alias in config (don’t rename persisted IDs).
+  - **Optional one-time data cleanup (safe)**:
+    - For any achievements currently stored with `{"level": N}` metadata, optionally *add* a parallel achievement entry with `{"concept_id": "c_concept_###"}` when re-earned (no destructive migration).
+  - **Future improvement (optional)**:
+    - Add a background job/management command to backfill `achievement_metadata.concept_id` for legacy rows where `level` is present and unambiguous.
 
 ---
 

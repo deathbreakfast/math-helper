@@ -125,17 +125,20 @@ This section captures bugs discovered during live testing so we don’t lose con
 - Enter Pin & continue
 - Start a session with an unlocked math concept
 
-**RCA / investigation notes (hypotheses):**
-- The session engine currently chooses a random concept for “general practice” based on a random legacy level (not unlock state). We should deprecated anything level related as requirements in this doc. 
-- Frontend routing might not always be sending `concept_id` (or sends it but backend resumes a different incomplete session).
+**RCA / investigation notes:**
+- The session engine was choosing a random concept for "general practice" based on a random legacy level (not unlock state).
+- When `concept_id` was None, it would randomly select a level and convert it to a concept_id without checking unlock status.
 
-**TODOs / next steps:**
-- [ ] Confirm the exact flow + endpoints involved for Home-started practice:
-  - `/` (user select) → practice start → PIN verify → `/api/practice/sessions/start`
-- [ ] Ensure Home-started practice selects only from unlocked concepts:
-  - if backend is picking randomly, it must filter to unlocked-only
-  - or frontend must pass an explicit `concept_id` that is unlocked
-- [ ] Add an e2e/integration test for the exact expected flow above.
+**Resolution:**
+- ✅ Created `ConceptUnlockService` to check if concepts are unlocked for users
+- ✅ Updated `SessionEngineService.generate_session()` to only select from unlocked concepts when `concept_id` is None
+- ✅ Added test to verify only unlocked concepts are selected
+- ✅ Updated existing test to handle descriptive concept IDs (c_add_1s, etc.)
+
+**Files changed:**
+- `backend/app/services/concept_unlock_service.py` - New service for checking concept unlock status
+- `backend/app/services/session_engine_service.py` - Updated to filter by unlocked concepts
+- `backend/tests/test_session_engine_service.py` - Added test for unlocked concept selection
 
 ---
 

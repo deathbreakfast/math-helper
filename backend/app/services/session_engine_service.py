@@ -179,10 +179,21 @@ class SessionEngineService:
         # IMPORTANT: do this *after* checking for incomplete sessions above so that
         # general practice (no concept_id provided) can still resume any incomplete session.
         if concept_id is None:
-            max_level = min(max(user.level or 1, 1), 45)
-            selected_level = random.randint(1, max_level)
-            concept_id = SessionEngineService._concept_id_from_legacy_level(selected_level)
-            session_level = selected_level
+            # Get all unlocked concepts for the user
+            from ..services.concept_unlock_service import ConceptUnlockService
+            unlocked_concepts = ConceptUnlockService.get_unlocked_concepts(user.id)
+            
+            if not unlocked_concepts:
+                raise ValueError("No unlocked concepts available. Please unlock at least one concept to start practice.")
+            
+            # Randomly select from unlocked concepts
+            concept_id = random.choice(unlocked_concepts)
+            
+            # Extract legacy level if available (for backward compatibility)
+            # Update session_level if we selected a concept with a legacy level
+            extracted_level = SessionEngineService._extract_legacy_level_from_concept_id(concept_id)
+            if extracted_level is not None:
+                session_level = extracted_level
 
         concept_level = SessionEngineService._extract_legacy_level_from_concept_id(concept_id)
 

@@ -167,100 +167,12 @@ test.describe('Practice Flow', () => {
     }
   })
 
-  test('PRAC-006: Submit session', async ({ page, testUser }) => {
-    // Navigate to practice page
-    await page.goto(`/practice?user=${encodeURIComponent(testUser.name)}&pin=${testUser.pin}&userId=${testUser.id}`)
-    
-    // Wait for practice session to start
-    await page.waitForLoadState('networkidle')
-    await page.waitForTimeout(500) // Reduced from 2000ms
-    
-    // Answer all questions to enable submission
-    const answerInput = page.getByTestId('testid-answer-input')
-    const checkButton = page.getByTestId('testid-check-answer-button')
-    const nextButton = page.getByTestId('testid-next-button')
-    const submitButton = page.getByTestId('testid-submit-session-button')
-    
-    // Submit button is not visible until all questions are answered
-    // We'll check it after answering questions
-    
-    // Answer all questions in the session
-    let questionsAnswered = 0
-    const maxIterations = 50 // Safety limit to prevent infinite loops
-    
-    while (questionsAnswered < maxIterations) {
-      // Check if input is available and not disabled
-      const inputVisible = await answerInput.isVisible({ timeout: 2000 }).catch(() => false)
-      if (!inputVisible || await answerInput.isDisabled()) {
-        // No more questions to answer
-        break
-      }
-      
-      // Enter an answer
-      await answerInput.fill('10')
-      await checkButton.click()
-      await page.waitForTimeout(300) // Reduced from 1000ms
-      
-      questionsAnswered++
-      
-      // Check if submit button is now visible and enabled (all questions answered)
-      const submitVisible = await submitButton.isVisible({ timeout: 1000 }).catch(() => false)
-      if (submitVisible) {
-        const submitDisabled = await submitButton.isDisabled().catch(() => true)
-        if (!submitDisabled) {
-          // All questions answered, submit button is enabled
-          break
-        }
-      }
-      
-      // Move to next question if available
-      const nextVisible = await nextButton.isVisible({ timeout: 1000 }).catch(() => false)
-      if (nextVisible && !(await nextButton.isDisabled())) {
-        // Check if input is currently disabled (we just answered)
-        const inputDisabledBefore = await answerInput.isDisabled().catch(() => false)
-        
-        await nextButton.click()
-        await page.waitForTimeout(300) // Reduced from 1000ms
-        
-        // Verify we actually moved to a new question by checking if input is enabled again
-        // If we're on the last question, clicking next won't change anything and input stays disabled
-        const inputEnabledAfter = await answerInput.isEnabled().catch(() => false)
-        
-        if (inputDisabledBefore && !inputEnabledAfter) {
-          // Input was disabled before clicking next and is still disabled after
-          // This means we're on the last question and clicking next didn't move us
-          // Wait for submit button to appear (React state update)
-          await page.waitForTimeout(200) // Reduced from 500ms
-          const finalSubmitVisible = await submitButton.isVisible({ timeout: 1000 }).catch(() => false) // Reduced from 2000ms
-          if (finalSubmitVisible) {
-            break
-          }
-          // If still no submit button, break to avoid infinite loop
-          break
-        }
-      } else {
-        // No next button or next button is disabled - might be on last question
-        // Check one more time if submit button appeared
-        await page.waitForTimeout(200) // Reduced from 500ms
-        const finalSubmitVisible = await submitButton.isVisible({ timeout: 1000 }).catch(() => false) // Reduced from 2000ms
-        if (finalSubmitVisible) {
-          break
-        }
-        // No submit button and no next button, we're done
-        break
-      }
-    }
-    
-    // Verify submit button is now enabled (not disabled)
-    const finalSubmitVisible = await submitButton.isVisible({ timeout: 2000 }).catch(() => false) // Reduced from 3000ms
-    const finalSubmitDisabled = await submitButton.isDisabled().catch(() => true)
-    
-    if (finalSubmitVisible) {
-      expect(finalSubmitDisabled).toBe(false)
-    }
-    
-    // Do NOT click submit or navigate - that's SUB-001's job
-  })
+  // PRAC-006 was removed as it was redundant with SUB-001 (session-submission.spec.ts)
+  // PRAC-006 only verified that submit button becomes enabled after answering questions,
+  // which is already implicitly tested in SUB-001 when it completes the session and submits.
+  // The submit button being enabled is a prerequisite for SUB-001 to work, so testing it separately
+  // doesn't add value. If we need to test submit button state transitions specifically,
+  // it should be a unit test rather than an E2E test.
 })
 
 

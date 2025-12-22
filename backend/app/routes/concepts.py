@@ -78,3 +78,4 @@ def get_concept_requirements():
 
     return jsonify({"requirements": requirements_by_concept})
 
+

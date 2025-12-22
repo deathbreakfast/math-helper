@@ -2,6 +2,11 @@
 
 Tests verify that these achievements are correctly awarded when user has
 Level Master and Lightning Fast achievements for all multiplication/division tables.
+
+NOTE: Currently these tests only verify config existence. A checker implementation
+for master_of_times_tables and master_of_division_tables requirement types is not
+yet implemented. When implemented, these tests should be expanded to verify actual
+achievement granting behavior similar to Level Grandmaster checker tests.
 """
 
 import pytest

@@ -10,6 +10,7 @@ import {
   waitForSessionRestoration,
   getIncompleteSession,
   handleSessionRestorationAndAnswerToSubmit,
+  completePracticeSession,
 } from './helpers/test-helpers'
 
 test.describe('Summary Page', () => {
@@ -120,64 +121,29 @@ test.describe('Summary Page', () => {
     await expect(page.locator('body')).toBeVisible()
   })
 
-  test('SUM-002: Summary stats', async ({ page, testUser, request }) => {
-    // Start a practice session via API
-    const sessionData = await startPracticeSessionViaAPI(request, testUser.id)
-    const { session_id, questions } = sessionData
-    
-    expect(questions.length).toBeGreaterThan(0)
-    
-    // Answer all questions except the last one via API
-    for (let i = 0; i < questions.length - 1; i++) {
-      const question = questions[i]
-      const questionId = question.question_id || question.id
-      const correctAnswer = question.correctAnswer || question.correct_answer
-      
-      if (!questionId || !correctAnswer) {
-        throw new Error(`Question ${i} missing required fields: ${JSON.stringify(question)}`)
-      }
-      
-      await answerQuestionViaAPI(
-        request,
-        session_id,
-        typeof questionId === 'string' ? parseInt(questionId) : questionId,
-        String(correctAnswer),
-        1000 // 1 second per question
-      )
-    }
-    
-    // Navigate to practice page - this should resume the incomplete session from backend
-    const startSessionResponsePromise = page.waitForResponse(
-      (response) => response.url().includes('/api/practice/sessions/start') && response.request().method() === 'POST',
-      { timeout: 15000 }
-    )
-    
+  test('SUM-002: Summary stats display (consolidates SUB-002 and SUB-003)', async ({ page, testUser }) => {
+    // Navigate to practice and complete a full session via UI
     await navigateToPractice(page, testUser)
     
-    const startSessionResponse = await startSessionResponsePromise.catch(() => null)
-    if (!startSessionResponse) {
-      throw new Error('Failed to capture /api/practice/sessions/start response')
-    }
+    // Answer all questions to complete session
+    await completePracticeSession(page)
     
-    const responseData = await startSessionResponse.json()
-    await page.waitForLoadState('networkidle')
-    
-    // Handle session restoration and answer questions to reach submit button
-    await handleSessionRestorationAndAnswerToSubmit(
-      page,
-      session_id,
-      responseData.session_id,
-      questions,
-      responseData.questions
-    )
-    
-    // Submit the session via UI
+    // Submit session
     await submitPracticeSession(page)
     await waitForSummaryPage(page)
     
-    // Verify stats are displayed
-    const stats = page.locator('text=/accuracy|correct|total|time/i')
-    await expect(stats.first()).toBeVisible({ timeout: 5000 })
+    // Verify summary page displays key stats (accuracy, time, correct count, total)
+    // This consolidates previous SUB-002 (accuracy) and SUB-003 (time) tests
+    const statsText = page.locator('text=/accuracy|correct|total|time|duration|seconds|minutes/i')
+    await expect(statsText.first()).toBeVisible({ timeout: 5000 })
+    
+    // Verify accuracy-related stats appear
+    const accuracyText = page.locator('text=/accuracy/i')
+    await expect(accuracyText.first()).toBeVisible({ timeout: 5000 })
+    
+    // Verify time-related stats appear
+    const timeText = page.locator('text=/time|duration|seconds|minutes/i')
+    await expect(timeText.first()).toBeVisible({ timeout: 5000 })
   })
 
   test('SUM-003: Problem grid', async ({ page, testUser, request }) => {

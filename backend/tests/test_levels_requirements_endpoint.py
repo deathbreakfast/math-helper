@@ -73,3 +73,4 @@ def test_levels_requirements_translates_test_type_to_concept_id_and_enriches_cou
                 assert req.get("completed") in (True, False)
         assert found_translated is True
 
+

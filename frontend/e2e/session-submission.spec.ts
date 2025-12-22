@@ -33,38 +33,9 @@ test.describe('Session Submission', () => {
     expect(page.url()).toContain('/summary')
   })
 
-  test('SUB-002: Session accuracy calculation', async ({ page, testUser }) => {
-    // This test verifies accuracy calculation
-    // Complete session to enable submit button
-    await navigateToPractice(page, testUser)
-    
-    // Answer all questions to complete session
-    await completePracticeSession(page)
-    
-    // Submit session
-    await submitPracticeSession(page)
-    await waitForSummaryPage(page)
-    
-    // Verify summary page shows accuracy/stats
-    const statsText = page.locator('text=/accuracy|correct|total/i')
-    await expect(statsText.first()).toBeVisible({ timeout: 5000 })
-  })
-
-  test('SUB-003: Session time tracking', async ({ page, testUser }) => {
-    // Navigate to practice and complete a session
-    await navigateToPractice(page, testUser)
-    
-    // Answer all questions to complete session
-    await completePracticeSession(page)
-    
-    // Submit session
-    await submitPracticeSession(page)
-    await waitForSummaryPage(page)
-    
-    // Verify time is displayed on summary
-    const timeText = page.locator('text=/time|duration|seconds|minutes/i')
-    await expect(timeText.first()).toBeVisible({ timeout: 5000 })
-  })
+  // SUB-002 and SUB-003 were consolidated into summary-page.spec.ts SUM-002
+  // which verifies summary stats display (accuracy, time, etc.) after session completion
+  // This eliminates redundancy while maintaining coverage
 
   test('SUB-004: Incomplete session handling with backend restoration', async ({ page, testUser, request }) => {
     // Start a practice session via API (faster than UI)

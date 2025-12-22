@@ -31,3 +31,7 @@ instance/
 frontend/playwright-report/
 frontend/test-results/
 backend/test_output.txt
+
+# Backend coverage output
+backend/coverage/
+backend/coverage.json

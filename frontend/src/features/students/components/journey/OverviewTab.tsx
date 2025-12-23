@@ -10,12 +10,12 @@ import { logError } from '../../../../utils/logger'
 
 type OverviewTabProps = {
   allAchievements: Achievement[]
-  onViewAllTests: () => void
+  onViewAllAchievements: () => void
   userData?: UserProgressData
   onRefresh?: () => void
 }
 
-export const OverviewTab = ({ allAchievements, onViewAllTests, userData, onRefresh }: OverviewTabProps) => {
+export const OverviewTab = ({ allAchievements, onViewAllAchievements, userData, onRefresh }: OverviewTabProps) => {
   const [searchParams] = useSearchParams()
   const [isResetting, setIsResetting] = useState(false)
 
@@ -24,7 +24,7 @@ export const OverviewTab = ({ allAchievements, onViewAllTests, userData, onRefre
     return import.meta.env.VITE_DEV_MODE === 'true'
   }, [])
 
-  // Get all recent achievements (not just test achievements)
+  // Get recent achievements
   const recentAchievements = allAchievements
     .filter((a) => a.status === 'unlocked' && !a.isHidden)
     .sort((a, b) => (b.lastEarnedAt?.getTime() || b.unlockedAt?.getTime() || 0) - (a.lastEarnedAt?.getTime() || a.unlockedAt?.getTime() || 0))
@@ -124,7 +124,7 @@ export const OverviewTab = ({ allAchievements, onViewAllTests, userData, onRefre
         )}
         <button
           data-testid="testid-view-all-achievements-button"
-          onClick={onViewAllTests}
+          onClick={onViewAllAchievements}
           className="rounded-xl bg-gradient-to-r from-purple-500 to-pink-600 px-8 py-4 font-semibold text-white shadow-lg transition-all hover:scale-105 hover:shadow-xl"
         >
           View All Achievements

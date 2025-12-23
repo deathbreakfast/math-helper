@@ -4,7 +4,6 @@ import { X, Calendar, Award, Info } from 'lucide-react'
 import type { Achievement } from '../../data/achievements'
 import type { BackendAchievementDefinition } from '../../../lib/levels/api'
 import { logError } from '../../../../utils/logger'
-import { getTestDisplayName } from '../../utils/progressMapping/testDisplayNames'
 
 type AchievementInstance = {
   id: string
@@ -70,9 +69,6 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
     const parts: string[] = []
     if (metadata.level) {
       parts.push(`Level ${metadata.level}`)
-    } else if (metadata.test_type) {
-      // Show friendly test name for test sessions
-      parts.push(getTestDisplayName(metadata.test_type))
     }
     if (metadata.operation) parts.push(metadata.operation)
     return parts.join(' • ')

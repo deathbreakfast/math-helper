@@ -69,12 +69,11 @@ describe('achievementConverters', () => {
         { category: 'speed', expectedType: 'speed-session' },
         { category: 'consistency', expectedType: 'streak' },
         { category: 'accuracy', expectedType: 'milestone' },
-        { category: 'test', expectedType: 'test-completion' },
         { category: 'milestone', expectedType: 'milestone' },
       ]
 
       categories.forEach(({ category, expectedType }) => {
-        const definition = { title: 'Test', category }
+        const definition = { title: 'Sample', category }
         const result = convertBackendDefinitionToFrontend('test', definition, [])
         expect(result.type).toBe(expectedType)
       })
@@ -125,22 +124,6 @@ describe('achievementConverters', () => {
       const result = convertBackendDefinitionToFrontend('test-achievement', definition, userAchievements)
 
       expect(result.count).toBe(3)
-    })
-
-    it('should extract test type and performance tier from test achievements', () => {
-      const definition = { title: 'Test Achievement', category: 'test' }
-      const result = convertBackendDefinitionToFrontend('addition-1digit-b', definition, [])
-
-      expect(result.testType).toBe('addition-1digit')
-      expect(result.performanceTier).toBe('B')
-    })
-
-    it('should handle test achievements with multi-character tier suffixes', () => {
-      const definition = { title: 'Test Achievement', category: 'test' }
-      const result = convertBackendDefinitionToFrontend('addition-1digit-sss', definition, [])
-
-      expect(result.testType).toBe('addition-1digit')
-      expect(result.performanceTier).toBe('SSS')
     })
 
     it('should use code as title if title is missing', () => {
@@ -284,7 +267,6 @@ describe('achievementConverters', () => {
         { category: 'speed', expectedType: 'speed-session' },
         { category: 'consistency', expectedType: 'streak' },
         { category: 'accuracy', expectedType: 'milestone' },
-        { category: 'test', expectedType: 'test-completion' },
       ]
 
       categories.forEach(({ category, expectedType }) => {

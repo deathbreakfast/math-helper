@@ -96,8 +96,6 @@ export const AchievementsTab = ({
               <option value="progression">Progression</option>
               <option value="consistency">Consistency</option>
               <option value="speed">Speed</option>
-              <option value="test">Test</option>
-              <option value="test-mastery">Test Mastery</option>
             </select>
           </div>
           <div className="min-w-[200px] flex-1">

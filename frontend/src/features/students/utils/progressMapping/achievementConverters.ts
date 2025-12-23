@@ -22,8 +22,6 @@ export function convertBackendDefinitionToFrontend(
     type = 'streak'
   } else if (category === 'accuracy') {
     type = 'milestone'
-  } else if (category === 'test') {
-    type = 'test-completion'
   }
   
   // Extract tier from code (handles both old and new formats)
@@ -57,31 +55,6 @@ export function convertBackendDefinitionToFrontend(
   // Clean title to remove tier suffix if present
   const rawTitle = definition.title || code
   const cleanedTitle = cleanTitle(rawTitle, tier)
-  
-  // Extract test type from code if it's a test achievement
-  let testType: Achievement['testType'] = undefined
-  let performanceTier: Achievement['performanceTier'] = undefined
-  if (category === 'test') {
-    // Extract test type (e.g., "addition-1digit" from "addition-1digit-b")
-    // Tier suffixes can be: 'b', 'a', 's', 'ss', 'sss'
-    const tierSuffixes = ['sss', 'ss', 's', 'a', 'b']
-    let tierSuffix: string | undefined
-    let testTypeCode = code
-    
-    // Check for multi-character tier suffixes first (sss, ss) then single (s, a, b)
-    for (const suffix of tierSuffixes) {
-      if (code.endsWith(`-${suffix}`)) {
-        tierSuffix = suffix
-        testTypeCode = code.slice(0, -(suffix.length + 1)) // Remove '-{suffix}'
-        break
-      }
-    }
-    
-    if (tierSuffix) {
-      testType = testTypeCode as Achievement['testType']
-      performanceTier = tierSuffix.toUpperCase() as Achievement['performanceTier']
-    }
-  }
   
   // Count how many times this achievement was earned (count achievements with same code)
   const achievementCount = userAchievements.filter((a) => a.code === code).length
@@ -119,8 +92,6 @@ export function convertBackendDefinitionToFrontend(
     // Metadata is not available in userAchievements array - it comes from backend requirements
     metadata: undefined,
     xp_reward: definition.xp_reward,
-    testType,
-    performanceTier,
   }
 }
 
@@ -143,8 +114,6 @@ export function convertBackendAchievementToFrontend(
     type = 'streak'
   } else if (category === 'accuracy') {
     type = 'milestone'
-  } else if (category === 'test') {
-    type = 'test-completion'
   }
   
   // Extract tier from code (handles both old and new formats)
@@ -179,31 +148,6 @@ export function convertBackendAchievementToFrontend(
   const rawTitle = backendAchievement.title || code
   const cleanedTitle = cleanTitle(rawTitle, tier)
   
-  // Extract test type from code if it's a test achievement
-  let testType: Achievement['testType'] = undefined
-  let performanceTier: Achievement['performanceTier'] = undefined
-  if (category === 'test') {
-    // Extract test type (e.g., "addition-1digit" from "addition-1digit-b")
-    // Tier suffixes can be: 'b', 'a', 's', 'ss', 'sss'
-    const tierSuffixes = ['sss', 'ss', 's', 'a', 'b']
-    let tierSuffix: string | undefined
-    let testTypeCode = code
-    
-    // Check for multi-character tier suffixes first (sss, ss) then single (s, a, b)
-    for (const suffix of tierSuffixes) {
-      if (code.endsWith(`-${suffix}`)) {
-        tierSuffix = suffix
-        testTypeCode = code.slice(0, -(suffix.length + 1)) // Remove '-{suffix}'
-        break
-      }
-    }
-    
-    if (tierSuffix) {
-      testType = testTypeCode as Achievement['testType']
-      performanceTier = tierSuffix.toUpperCase() as Achievement['performanceTier']
-    }
-  }
-  
   // Format requirement text - special handling for Lightning Fast
   // Note: convertBackendAchievementToFrontend doesn't have access to definition.requirements
   // so we can't format Lightning Fast requirements here. This is a fallback converter.
@@ -230,8 +174,6 @@ export function convertBackendAchievementToFrontend(
     metadata: undefined,
     // Not always available in this fallback path (depends on /api/users payload).
     xp_reward: (backendAchievement as any).xp_reward,
-    testType,
-    performanceTier,
   }
 }
 

@@ -68,7 +68,6 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
     achievements: userData?.achievements || [],
     achievementFilter,
     statusFilter,
-    tierFilter: 'all',
     textFilter,
   })
 
@@ -127,7 +126,7 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
           {activeTab === 'overview' && (
             <OverviewTab 
               allAchievements={userData.achievements} 
-              onViewAllTests={() => {
+              onViewAllAchievements={() => {
                 const userId = userData?.id || params.userId
                 if (userId) {
                   const queryString = searchParams.toString() ? `?${searchParams.toString()}` : ''

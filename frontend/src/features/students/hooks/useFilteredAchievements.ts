@@ -1,13 +1,12 @@
 import { useMemo } from 'react'
 import { useDevMode } from '../../../utils/devMode'
-import type { Achievement, AchievementType, AchievementStatus, PerformanceTier } from '../data/achievements'
+import type { Achievement, AchievementType, AchievementStatus } from '../data/achievements'
 import { shouldShowAchievement } from '../utils/achievementUtils'
 
 type UseFilteredAchievementsProps = {
   achievements: Achievement[]
   achievementFilter: 'all' | AchievementType | string
   statusFilter: 'all' | AchievementStatus
-  tierFilter: 'all' | PerformanceTier
   textFilter: string
 }
 
@@ -15,7 +14,6 @@ export const useFilteredAchievements = ({
   achievements,
   achievementFilter,
   statusFilter,
-  tierFilter,
   textFilter,
 }: UseFilteredAchievementsProps) => {
   const devMode = useDevMode()
@@ -54,30 +52,6 @@ export const useFilteredAchievements = ({
     })
   }, [achievements, achievementFilter, statusFilter, textFilter, devMode])
 
-  // Filter test achievements
-  const testAchievements = useMemo(() => {
-    return achievements.filter((a) => a.type === 'test-completion')
-  }, [achievements])
-
-  const filteredTestAchievements = useMemo(() => {
-    // Normalize text filter: replace hyphens with spaces for flexible matching
-    const normalizedTextFilter = textFilter.toLowerCase().replace(/-/g, ' ')
-    return testAchievements.filter((achievement) => {
-      const tierMatch = tierFilter === 'all' || achievement.performanceTier === tierFilter
-      const statusMatch = statusFilter === 'all' || achievement.status === statusFilter
-      
-      // Normalize achievement text for comparison (replace hyphens with spaces)
-      const normalizedTitle = achievement.title.toLowerCase().replace(/-/g, ' ')
-      const normalizedDescription = achievement.description.toLowerCase().replace(/-/g, ' ')
-      const normalizedId = achievement.id.toLowerCase().replace(/-/g, ' ')
-      const textMatch = !textFilter || 
-        normalizedTitle.includes(normalizedTextFilter) ||
-        normalizedDescription.includes(normalizedTextFilter) ||
-        normalizedId.includes(normalizedTextFilter)
-      return tierMatch && statusMatch && textMatch
-    })
-  }, [testAchievements, tierFilter, statusFilter, textFilter])
-
   // Calculate stats
   // In dev mode, include all achievements in stats. Otherwise, only include non-hidden or unlocked achievements
   const totalAchievements = devMode 
@@ -85,18 +59,12 @@ export const useFilteredAchievements = ({
     : achievements.filter((a) => !a.isHidden || a.status === 'unlocked').length
   const unlockedAchievements = achievements.filter((a) => a.status === 'unlocked').length
   const inProgressAchievements = achievements.filter((a) => a.status === 'in-progress').length
-  const unlockedTestAchievements = testAchievements.filter((a) => a.status === 'unlocked').length
-  const sssRankAchievements = testAchievements.filter((a) => a.performanceTier === 'SSS' && a.status === 'unlocked').length
 
   return {
     filteredAchievements,
-    testAchievements,
-    filteredTestAchievements,
     totalAchievements,
     unlockedAchievements,
     inProgressAchievements,
-    unlockedTestAchievements,
-    sssRankAchievements,
   }
 }
 

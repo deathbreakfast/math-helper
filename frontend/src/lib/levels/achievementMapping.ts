@@ -2,9 +2,6 @@
  * Maps backend achievement codes to frontend achievement IDs
  * This mapping connects backend achievement codes (like "first-steps", "speed-demon-bronze")
  * to frontend achievement IDs (like milestone IDs)
- * 
- * NOTE: Test achievements have been removed. All test-specific achievements are no longer used.
- * The system now uses generic achievements (level-master, lightning-fast, speed-demon) with metadata.
  */
 
 export type AchievementCodeMapping = {
@@ -16,8 +13,6 @@ export type AchievementCodeMapping = {
  * 
  * Backend codes are like: "first-steps", "speed-demon-bronze", "level-master-bronze", etc.
  * Frontend IDs are like: "s1", "m1", "s8", etc.
- * 
- * Test achievements have been removed - the system now uses generic achievements with metadata.
  */
 export const ACHIEVEMENT_CODE_TO_FRONTEND_ID: AchievementCodeMapping = {
   // Milestone achievements
@@ -35,38 +30,10 @@ export const ACHIEVEMENT_CODE_TO_FRONTEND_ID: AchievementCodeMapping = {
   'speed-demon-bronze': ['s8'], // Average <5s per question
   'speed-demon-silver': ['s9'], // Average <4s per question
   'speed-demon-gold': ['s10'], // Average <3s per question
-  
-  // Note: Test achievements (addition-1digit-bronze, multiplication-by-2-silver, etc.) have been removed.
-  // The system now uses generic achievements (level-master, lightning-fast) with metadata for level-specific requirements.
-  
-  // Legacy mappings (kept for backward compatibility with old achievements in database)
-  // LEGACY CODE AUDIT NOTE:
-  // - These mappings are for legacy test achievements that were awarded before test achievements
-  //   were removed from the system.
-  // - Legacy test achievements follow patterns like: {test_type}-{tier} (e.g., "addition-1digit-b")
-  // - These achievements are no longer awarded, but may still exist in the database.
-  // - RECOMMENDATION: Audit production database to check if any legacy achievements exist.
-  //   If none exist, these mappings can be removed.
-  //   If they exist, keep these mappings for display purposes only.
+
+  // Legacy mappings (kept for backward compatibility with older achievement codes that may exist in the database).
   'master-of-all': ['level-grandmaster'], // Renamed to level-grandmaster
   'level-grandmaster': ['level-grandmaster'], // Level Master (Bronze) on all levels
-  'subtraction-intro': ['subtraction-1digit-b', 'subtraction-1digit-a', 'subtraction-1digit-s'],
-  'mixed-addition': ['addition-2digit-b', 'addition-2digit-a', 'addition-2digit-s'],
-  'mixed-subtraction': ['subtraction-2digit-b', 'subtraction-2digit-a', 'subtraction-2digit-s'],
-  'double-addition': ['addition-2digit-b', 'addition-2digit-a', 'addition-2digit-s'],
-  'double-subtraction': ['subtraction-2digit-b', 'subtraction-2digit-a', 'subtraction-2digit-s'],
-  'triple-addition': ['addition-3digit-b', 'addition-3digit-a', 'addition-3digit-s'],
-  'triple-subtraction': ['subtraction-3digit-b', 'subtraction-3digit-a', 'subtraction-3digit-s'],
-  'multiplication-easy': ['multiplication-2digit-b', 'multiplication-2digit-a', 'multiplication-2digit-s'],
-  'multiplication-work': ['multiplication-2digit-b', 'multiplication-2digit-a', 'multiplication-2digit-s'],
-  'multiplication-triple': ['multiplication-3digit-b', 'multiplication-3digit-a', 'multiplication-3digit-s'],
-  'division-remainder': ['division-2digit-b', 'division-2digit-a', 'division-2digit-s'],
-  'division-double-remainder': ['division-2digit-b', 'division-2digit-a', 'division-2digit-s'],
-  'division-fraction': ['division-2digit-b', 'division-2digit-a', 'division-2digit-s'],
-  'division-double-fraction': ['division-2digit-b', 'division-2digit-a', 'division-2digit-s'],
-  'division-triple-fraction': ['division-3digit-b', 'division-3digit-a', 'division-3digit-s'],
-  'division-decimal': ['division-2digit-b', 'division-2digit-a', 'division-2digit-s'],
-  'division-double-decimal': ['division-3digit-b', 'division-3digit-a', 'division-3digit-s'],
 }
 
 /**

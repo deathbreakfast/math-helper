@@ -99,15 +99,14 @@ File: `frontend/src/features/students/data/levelRequirements.ts`
 ### Frontend: “Test Achievements Removed” Drift Still Leaks Through
 
 Files show inconsistent state around “test achievements”:
-- `frontend/src/features/students/hooks/useFilteredAchievements.ts` still filters `type === 'test-completion'`.
-- `frontend/src/features/students/utils/progressMapping/achievementConverters.ts` still emits `type = 'test-completion'` for category `test`.
+- ✅ `frontend/src/features/students/hooks/useFilteredAchievements.ts` no longer has special handling for test achievements.
+- ✅ `frontend/src/features/students/utils/progressMapping/achievementConverters.ts` no longer maps a `test` category to a special achievement type.
 - ✅ `frontend/src/features/students/data/levelRequirements.ts` no longer references “test achievements”.
 - Various comments point at backend `achievements_config.py`, but that file is **deprecated** (see backend notes below).
 
 **Recommendation (P0/P1):**
-- Decide whether “test achievements” is truly gone as a product concept.
-  - If yes: remove the remaining type/category handling and update UX copy.
-  - If no: document the new model (e.g., metadata-based achievements) and ensure frontend reflects it consistently.
+- ✅ Decide whether “test achievements” is truly gone as a product concept.
+  - ✅ Yes: removed remaining type/category handling and updated UX copy.
 
 ### Backend: Deprecated Compatibility Module
 
@@ -262,7 +261,7 @@ File: `frontend/src/features/practice/hooks/usePracticeSession.ts`
 ### P0 (Do next)
 - Remove/stop tracking generated artifacts; add missing ignores for backend coverage output.
 - Refactor `complete_session` into a dedicated orchestration service with cleaner transaction/error handling.
-- Resolve “test achievements removed” drift (update frontend behavior + copy, and remove dead filtering paths).
+- ✅ Resolve “test achievements removed” drift (update frontend behavior + copy, and remove dead filtering paths).
 
 ### P1 (High value)
 - Break up `AchievementQueryService.count_achievements_by_code_with_filters`.

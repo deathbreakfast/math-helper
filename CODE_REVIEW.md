@@ -115,8 +115,8 @@ File: `backend/app/config/achievements_config.py`
 - Emits a `DeprecationWarning` at import time.
 
 **Recommendation (P2):**
-- Confirm nothing imports it (or keep it until you’re sure no external consumers exist).
-- If kept, ensure the frontend does **not** reference it conceptually in comments/docs.
+- ✅ Confirm nothing imports it (or keep it until you’re sure no external consumers exist).
+- ✅ Removed `backend/app/config/achievements_config.py` (no remaining importers).
 
 ### Backend: Stub/Deprecated Methods That Can Be Removed
 
@@ -124,7 +124,7 @@ File: `backend/app/services/achievement_service.py`
 - `validate_and_cleanup_tier_achievements` is **deprecated** and returns `0`.
 
 **Recommendation (P2):**
-- Remove deprecated stubs once you’re confident nothing calls them (or keep but fence behind explicit “legacy cleanup” module).
+- ✅ Remove deprecated stubs once you’re confident nothing calls them (or keep but fence behind explicit “legacy cleanup” module).
 
 ### Backend: Likely Dead/Legacy Endpoint
 

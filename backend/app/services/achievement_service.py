@@ -310,10 +310,6 @@ class AchievementService:
 
     @staticmethod
     @log_query
-    def validate_and_cleanup_tier_achievements(user_id: int) -> int:
-        """Deprecated: tiered test achievements are no longer supported."""
-        return 0
-
     # Test achievement methods removed - test achievements are no longer used
 
     @staticmethod

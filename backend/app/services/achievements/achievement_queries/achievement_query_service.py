@@ -194,6 +194,228 @@ class AchievementQueryService:
         ).count()
 
     @staticmethod
+    def _parse_achievement_metadata(achievement: Achievement) -> dict[str, Any] | None:
+        """Parse achievement metadata from JSON string.
+        
+        Args:
+            achievement: Achievement object with achievement_metadata field
+            
+        Returns:
+            Parsed metadata dict (excluding session_id), or None if parsing fails or no metadata
+        """
+        import json
+        
+        ach_metadata_str = achievement.achievement_metadata
+        if not ach_metadata_str:
+            return None
+        
+        try:
+            ach_metadata = json.loads(ach_metadata_str)
+            # Remove session_id from metadata for comparison (it's added for uniqueness, not filtering)
+            return {k: v for k, v in ach_metadata.items() if k != "session_id"}
+        except (json.JSONDecodeError, TypeError):
+            return None
+
+    @staticmethod
+    def _apply_metadata_filter(
+        achievement: Achievement,
+        metadata_filter: dict[str, Any] | None,
+    ) -> bool:
+        """Check if achievement matches metadata filter.
+        
+        Args:
+            achievement: Achievement to check
+            metadata_filter: Optional metadata filter dict
+            
+        Returns:
+            True if achievement matches filter (or no filter provided), False otherwise
+        """
+        if not metadata_filter:
+            # No metadata filter - only match achievements with no metadata (or only session_id)
+            if not achievement.achievement_metadata:
+                return True
+            
+            parsed = AchievementQueryService._parse_achievement_metadata(achievement)
+            if parsed is None:
+                # Can't parse, skip it
+                return False
+            
+            # If metadata only contains session_id, treat it as no metadata for filtering
+            return len(parsed) == 0
+        
+        # Metadata filter provided - must match
+        parsed = AchievementQueryService._parse_achievement_metadata(achievement)
+        if parsed is None:
+            # Achievement has no metadata but filter requires it
+            return False
+        
+        return AchievementQueryService._metadata_matches_filter(parsed, metadata_filter)
+
+    @staticmethod
+    def _apply_session_filters(
+        achievement: Achievement,
+        level: int | None = None,
+        min_accuracy: float | None = None,
+        operation: str | None = None,
+    ) -> bool:
+        """Check if achievement's session matches session-level filters.
+        
+        Args:
+            achievement: Achievement to check
+            level: Optional level filter (session level must match)
+            min_accuracy: Optional minimum accuracy filter (session accuracy must be >= this, as 0.0-1.0)
+            operation: Optional operation filter (session must have questions with this operation)
+            
+        Returns:
+            True if session matches all provided filters (or no filters provided), False otherwise
+        """
+        if level is None and min_accuracy is None and operation is None:
+            return True
+        
+        if not achievement.session_id:
+            return False
+        
+        session = db.session.get(PracticeSession, achievement.session_id)
+        if not session:
+            return False
+        
+        if level is not None and session.level != level:
+            return False
+        
+        if min_accuracy is not None:
+            min_accuracy_percent = min_accuracy * 100.0
+            if (session.accuracy or 0) < min_accuracy_percent:
+                return False
+        
+        if operation is not None:
+            # Check if session has questions with this operation
+            has_operation = (
+                db.session.query(Response)
+                .join(Question, Response.question_id == Question.id)
+                .filter(Response.session_id == session.id)
+                .filter(Question.operation == operation)
+                .first()
+                is not None
+            )
+            if not has_operation:
+                return False
+        
+        return True
+
+    @staticmethod
+    def _count_non_tiered_achievements(
+        user_id: int,
+        achievement_code: str,
+        level: int | None = None,
+        min_accuracy: float | None = None,
+        operation: str | None = None,
+        metadata_filter: dict[str, Any] | None = None,
+    ) -> int:
+        """Count non-tiered achievements with filters.
+        
+        Args:
+            user_id: User ID
+            achievement_code: Achievement code to count (non-tiered)
+            level: Optional level filter
+            min_accuracy: Optional minimum accuracy filter
+            operation: Optional operation filter
+            metadata_filter: Optional metadata filter
+            
+        Returns:
+            Number of achievements matching all filters
+        """
+        query = Achievement.query.filter_by(user_id=user_id, code=achievement_code)
+        
+        # If we have metadata filter or session filters, we need to do in-Python filtering
+        # because metadata is stored as JSON string and can't be efficiently queried in SQL
+        has_metadata_filter = metadata_filter is not None
+        has_session_filters = level is not None or min_accuracy is not None or operation is not None
+        
+        if has_metadata_filter or has_session_filters:
+            all_achievements = query.all()
+            matching = 0
+            
+            for ach in all_achievements:
+                # Apply metadata filter
+                if not AchievementQueryService._apply_metadata_filter(ach, metadata_filter):
+                    continue
+                
+                # Apply session-level filters
+                if not AchievementQueryService._apply_session_filters(ach, level, min_accuracy, operation):
+                    continue
+                
+                matching += 1
+            
+            return matching
+        
+        # No filters - can use efficient SQL count
+        return query.count()
+
+    @staticmethod
+    def _count_tiered_achievements(
+        user_id: int,
+        base_code: str,
+        target_tier: str,
+        level: int | None = None,
+        min_accuracy: float | None = None,
+        operation: str | None = None,
+        metadata_filter: dict[str, Any] | None = None,
+    ) -> int:
+        """Count tiered achievements with tier substitution.
+        
+        Args:
+            user_id: User ID
+            base_code: Base achievement code (without tier)
+            target_tier: Target tier to count (e.g., "bronze")
+            level: Optional level filter
+            min_accuracy: Optional minimum accuracy filter
+            operation: Optional operation filter
+            metadata_filter: Optional metadata filter
+            
+        Returns:
+            Number of achievements matching all filters (with tier substitution applied)
+        """
+        from ....utils.tier_utils import extract_base_code_and_tier, TIER_HIERARCHY, convert_tier_to_base_units
+        
+        # Get all achievements for this user
+        all_achievements = Achievement.query.filter_by(user_id=user_id).all()
+        
+        # Filter achievements by base code, tier, metadata, and session filters
+        matching_tiers = []
+        for ach in all_achievements:
+            ach_base, ach_tier = extract_base_code_and_tier(ach.code)
+            
+            # Must match base code
+            if ach_base != base_code:
+                continue
+            
+            # Must have a tier (skip non-tiered achievements)
+            if ach_tier is None:
+                continue
+            
+            # Apply metadata filter
+            if not AchievementQueryService._apply_metadata_filter(ach, metadata_filter):
+                continue
+            
+            # Apply session-level filters
+            if not AchievementQueryService._apply_session_filters(ach, level, min_accuracy, operation):
+                continue
+            
+            matching_tiers.append(ach_tier)
+        
+        # Calculate total bronze units from matching achievements
+        total_bronze_units = 0
+        for ach_tier in matching_tiers:
+            total_bronze_units += convert_tier_to_base_units(ach_tier, 1)
+        
+        # Convert bronze units to target tier count
+        target_tier_value = TIER_HIERARCHY.get(target_tier.lower(), 1)
+        bronze_units_per_target = 2 ** (target_tier_value - 1) if target_tier_value > 1 else 1
+        equivalent_count = total_bronze_units // bronze_units_per_target
+        
+        return equivalent_count
+
+    @staticmethod
     @log_query
     def count_achievements_by_code_with_filters(
         user_id: int,
@@ -219,186 +441,28 @@ class AchievementQueryService:
         Returns:
             Number of achievements matching all filters (with tier substitution applied)
         """
-        from ....utils.tier_utils import extract_base_code_and_tier, TIER_HIERARCHY, convert_tier_to_base_units
-        import json
+        from ....utils.tier_utils import extract_base_code_and_tier
         
         # Extract base code and target tier
         base_code, target_tier = extract_base_code_and_tier(achievement_code)
         
-        # If no tier, just count exact matches (but still apply filters)
+        # Route to appropriate counting method
         if target_tier is None:
-            query = Achievement.query.filter_by(user_id=user_id, code=achievement_code)
-            if metadata_filter:
-                # Metadata is stored as JSON string; allow concept_id matching against legacy level metadata.
-                # For non-tiered achievements we do an in-Python filter for compatibility.
-                all_achievements = query.all()
-                matching = 0
-                for ach in all_achievements:
-                    ach_metadata_str = ach.achievement_metadata
-                    if not ach_metadata_str:
-                        continue
-                    try:
-                        ach_metadata = json.loads(ach_metadata_str)
-                        ach_metadata_for_filter = {k: v for k, v in ach_metadata.items() if k != "session_id"}
-                    except (json.JSONDecodeError, TypeError):
-                        continue
-
-                    if AchievementQueryService._metadata_matches_filter(ach_metadata_for_filter, metadata_filter):
-                        matching += 1
-
-                # Apply session-level filters after metadata filtering if needed
-                if level is not None or min_accuracy is not None or operation is not None:
-                    # Fall back to the slower path below (tiered loop style) for correctness.
-                    # Reuse the tiered path logic by treating each matching achievement as one unit.
-                    # This is rare for non-tiered achievements with metadata.
-                    filtered_achievements = []
-                    for ach in all_achievements:
-                        ach_metadata_str = ach.achievement_metadata
-                        if not ach_metadata_str:
-                            continue
-                        try:
-                            ach_metadata = json.loads(ach_metadata_str)
-                            ach_metadata_for_filter = {k: v for k, v in ach_metadata.items() if k != "session_id"}
-                        except (json.JSONDecodeError, TypeError):
-                            continue
-                        if AchievementQueryService._metadata_matches_filter(ach_metadata_for_filter, metadata_filter):
-                            filtered_achievements.append(ach)
-
-                    # Session-level filters
-                    result = 0
-                    for ach in filtered_achievements:
-                        if not ach.session_id:
-                            continue
-                        session = db.session.get(PracticeSession, ach.session_id)
-                        if not session:
-                            continue
-                        if level is not None and session.level != level:
-                            continue
-                        if min_accuracy is not None:
-                            min_accuracy_percent = min_accuracy * 100.0
-                            if (session.accuracy or 0) < min_accuracy_percent:
-                                continue
-                        if operation is not None:
-                            # Only count if session includes at least one question of operation
-                            has_op = (
-                                db.session.query(Response)
-                                .join(Question, Response.question_id == Question.id)
-                                .filter(Response.session_id == session.id)
-                                .filter(Question.operation == operation)
-                                .first()
-                                is not None
-                            )
-                            if not has_op:
-                                continue
-                        result += 1
-                    return result
-
-                return matching
-            
-            # Apply session-level filters if provided
-            if level is not None or min_accuracy is not None or operation is not None:
-                query = query.join(PracticeSession, Achievement.session_id == PracticeSession.id)
-                
-                if level is not None:
-                    query = query.filter(PracticeSession.level == level)
-                
-                if min_accuracy is not None:
-                    min_accuracy_percent = min_accuracy * 100.0
-                    query = query.filter(PracticeSession.accuracy >= min_accuracy_percent)
-                
-                if operation is not None:
-                    query = (
-                        query.join(Response, PracticeSession.id == Response.session_id)
-                        .join(Question, Response.question_id == Question.id)
-                        .filter(Question.operation == operation)
-                        .distinct()
-                    )
-            
-            return query.count()
-        
-        # For tiered achievements, we need to find all achievements with the same base code
-        # and apply tier substitution. We'll query all achievements with the base code pattern.
-        # Get all achievements for this user
-        all_achievements = Achievement.query.filter_by(user_id=user_id).all()
-        
-        # Filter achievements by base code and metadata
-        matching_achievements = []
-        for ach in all_achievements:
-            ach_base, ach_tier = extract_base_code_and_tier(ach.code)
-            
-            # Must match base code
-            if ach_base != base_code:
-                continue
-            
-            # Must have a tier (skip non-tiered achievements)
-            if ach_tier is None:
-                continue
-            
-            # Check metadata filter if provided
-            if metadata_filter:
-                ach_metadata_str = ach.achievement_metadata
-                if ach_metadata_str:
-                    try:
-                        ach_metadata = json.loads(ach_metadata_str)
-                        # Remove session_id from metadata for comparison (it's added for uniqueness, not filtering)
-                        ach_metadata_for_filter = {k: v for k, v in ach_metadata.items() if k != "session_id"}
-                        if not AchievementQueryService._metadata_matches_filter(ach_metadata_for_filter, metadata_filter):
-                            continue
-                    except (json.JSONDecodeError, TypeError):
-                        continue
-                else:
-                    # Achievement has no metadata but filter requires it
-                    continue
-            else:
-                # No metadata filter - only match achievements with no metadata (or only session_id)
-                if ach.achievement_metadata:
-                    try:
-                        ach_metadata = json.loads(ach.achievement_metadata)
-                        # If metadata only contains session_id, treat it as no metadata for filtering
-                        if set(ach_metadata.keys()) != {"session_id"}:
-                            continue
-                    except (json.JSONDecodeError, TypeError):
-                        # If we can't parse metadata, skip it
-                        continue
-            
-            # Check session-level filters if provided
-            if level is not None or min_accuracy is not None or operation is not None:
-                if not ach.session_id:
-                    continue
-                
-                session = db.session.get(PracticeSession, ach.session_id)
-                if not session:
-                    continue
-                
-                if level is not None and session.level != level:
-                    continue
-                
-                if min_accuracy is not None:
-                    session_accuracy = session.accuracy / 100.0 if session.accuracy else 0.0
-                    if session_accuracy < min_accuracy:
-                        continue
-                
-                if operation is not None:
-                    # Check if session has questions with this operation
-                    has_operation = (
-                        Response.query.join(Question)
-                        .filter(Response.session_id == session.id)
-                        .filter(Question.operation == operation)
-                        .first() is not None
-                    )
-                    if not has_operation:
-                        continue
-            
-            matching_achievements.append(ach_tier)
-        
-        # Calculate total bronze units from matching achievements
-        total_bronze_units = 0
-        for ach_tier in matching_achievements:
-            total_bronze_units += convert_tier_to_base_units(ach_tier, 1)
-        
-        # Convert bronze units to target tier count
-        target_tier_value = TIER_HIERARCHY.get(target_tier.lower(), 1)
-        bronze_units_per_target = 2 ** (target_tier_value - 1) if target_tier_value > 1 else 1
-        equivalent_count = total_bronze_units // bronze_units_per_target
-        
-        return equivalent_count
+            return AchievementQueryService._count_non_tiered_achievements(
+                user_id=user_id,
+                achievement_code=achievement_code,
+                level=level,
+                min_accuracy=min_accuracy,
+                operation=operation,
+                metadata_filter=metadata_filter,
+            )
+        else:
+            return AchievementQueryService._count_tiered_achievements(
+                user_id=user_id,
+                base_code=base_code,
+                target_tier=target_tier,
+                level=level,
+                min_accuracy=min_accuracy,
+                operation=operation,
+                metadata_filter=metadata_filter,
+            )

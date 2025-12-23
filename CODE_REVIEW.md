@@ -38,7 +38,7 @@ These are the **largest “real source” files** (excluding `__pycache__`, `.ve
 Heuristic analysis (AST-based) found these as top hotspots in `backend/app`:
 
 **Largest functions (LOC)**
-- `AchievementQueryService.count_achievements_by_code_with_filters` (~207 LOC, **CC~54**) in `backend/app/services/achievements/achievement_queries/achievement_query_service.py`
+- ✅ `AchievementQueryService.count_achievements_by_code_with_filters` (~207 LOC, **CC~54**) in `backend/app/services/achievements/achievement_queries/achievement_query_service.py` — **REFACTORED**: Split into smaller helper methods
 - `complete_session` (~175 LOC, **CC~19**) in `backend/app/routes/practice.py`
 - `SessionEngineService.generate_session` (~168 LOC, **CC~32**) in `backend/app/services/session_engine_service.py`
 - `LevelMasterChecker.check` (~167 LOC, **CC~22**) in `backend/app/services/achievements/achievement_checkers/level_master_checker.py`
@@ -47,7 +47,7 @@ Heuristic analysis (AST-based) found these as top hotspots in `backend/app`:
 - `QuestionService.generate_question` (~129 LOC, **CC~13**) in `backend/app/services/question_service.py`
 
 **Most complex (estimated cyclomatic complexity)**
-- `AchievementQueryService.count_achievements_by_code_with_filters` (**CC~54**) — extremely branchy
+- ✅ `AchievementQueryService.count_achievements_by_code_with_filters` (**CC~54**) — **REFACTORED**: Split into smaller helper methods reducing complexity
 - `GenericAccuracyChecker.check` (**CC~35**) — complex decision tree
 - `SessionEngineService.generate_session` (**CC~32**) — heavy branching + multiple responsibilities
 - `QuestionService.generate_operands_with_constraints` (**CC~31**) — many special cases, deep conditional logic
@@ -146,7 +146,7 @@ File: `backend/app/routes/practice.py`
 File: `backend/app/routes/practice.py`, function `complete_session`
 
 **Problems**
-- Combines many responsibilities:
+- ✅ **RESOLVED**: Previously combined many responsibilities:
   - compute session stats
   - persist completion
   - compute analytics
@@ -154,30 +154,30 @@ File: `backend/app/routes/practice.py`, function `complete_session`
   - commit/flush sequencing
   - compute XP and update user
   - shape API response
-- Error handling includes `traceback.print_exc()` and returns a 500 mid-flow, which risks partial updates.
+- ✅ **RESOLVED**: Error handling previously included `traceback.print_exc()` and returned a 500 mid-flow, which risked partial updates.
 
 **Recommendation (P0):**
-- Extract an orchestration service, e.g. `SessionCompletionService.complete_session(session_id, total_duration_ms) -> DTO`.
-- Wrap the full workflow in a single transaction boundary where possible.
-- Centralize logging (no `print_exc`) and return consistent error payloads.
+- ✅ **COMPLETED**: Extracted orchestration service `SessionCompletionService.complete_session(session_id, total_duration_ms) -> DTO`.
+- ✅ **COMPLETED**: Wrapped the full workflow in a single transaction boundary using `with transaction():`.
+- ✅ **COMPLETED**: Centralized logging using `logger.exception()` instead of `print_exc`, with consistent error payloads.
 
 ### Backend: `AchievementQueryService.count_achievements_by_code_with_filters` is Overly Branchy
 
 File: `backend/app/services/achievements/achievement_queries/achievement_query_service.py`
 
 **Problems**
-- Very high branching (**CC~54**).
+- ✅ **RESOLVED**: Very high branching (**CC~54**) — refactored into smaller helpers.
 - Falls back to in-Python filtering for metadata + session-level filters.
 - Works around metadata stored as JSON strings (hard to query efficiently, easy to get wrong).
 
 **Recommendation (P0/P1):**
 - If you can change the schema: store `achievement_metadata` as a real JSON column (SQLite JSON1 / Postgres JSONB) and query it.
 - Otherwise: normalize a small set of frequently queried metadata keys into explicit columns (e.g., `concept_id`, `level`, `operation`), keep the blob for the rest.
-- Split into smaller internal helpers:
-  - “non-tiered exact count” path
-  - “tiered substitution” path
-  - “metadata filter parse/match” path
-  - “session filter join” path
+- ✅ **COMPLETED**: Split into smaller internal helpers:
+  - ✅ "non-tiered exact count" path — `_count_non_tiered_achievements`
+  - ✅ "tiered substitution" path — `_count_tiered_achievements`
+  - ✅ "metadata filter parse/match" path — `_parse_achievement_metadata`, `_apply_metadata_filter`
+  - ✅ "session filter join" path — `_apply_session_filters`
 
 ### Backend: `QuestionService.generate_operands_with_constraints` Has Many Special Cases
 
@@ -260,11 +260,11 @@ File: `frontend/src/features/practice/hooks/usePracticeSession.ts`
 
 ### P0 (Do next)
 - Remove/stop tracking generated artifacts; add missing ignores for backend coverage output.
-- Refactor `complete_session` into a dedicated orchestration service with cleaner transaction/error handling.
-- ✅ Resolve “test achievements removed” drift (update frontend behavior + copy, and remove dead filtering paths).
+- ✅ Refactor `complete_session` into a dedicated orchestration service with cleaner transaction/error handling.
+- ✅ Resolve "test achievements removed" drift (update frontend behavior + copy, and remove dead filtering paths).
 
 ### P1 (High value)
-- Break up `AchievementQueryService.count_achievements_by_code_with_filters`.
+- ✅ Break up `AchievementQueryService.count_achievements_by_code_with_filters` — **COMPLETED**.
 - Simplify/strategy-ize `QuestionService.generate_operands_with_constraints`.
 - Remove unused frontend constants: `LEVEL_REQUIREMENTS`, `STREAK_ACHIEVEMENTS`, etc.
 - Audit and deprecate/remove `/practice/submissions` if unused.

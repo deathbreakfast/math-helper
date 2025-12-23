@@ -204,6 +204,7 @@ test.describe('Achievement Detail Modal', () => {
   })
 
   test('ACH-MODAL-005: Modal can be closed', async ({ page, request }) => {
+    test.setTimeout(60000) // Increase timeout to 60s to allow time for cleanup
     const testUser = await createTestUserWithState(request, {
       achievements: ['first-victory']
     })

@@ -41,7 +41,7 @@ Heuristic analysis (AST-based) found these as top hotspots in `backend/app`:
 - ✅ `AchievementQueryService.count_achievements_by_code_with_filters` (~207 LOC, **CC~54**) in `backend/app/services/achievements/achievement_queries/achievement_query_service.py` — **REFACTORED**: Split into smaller helper methods
 - `complete_session` (~175 LOC, **CC~19**) in `backend/app/routes/practice.py`
 - ✅ `SessionEngineService.generate_session` (~168 LOC, **CC~32**) in `backend/app/services/session_engine_service.py` — **REFACTORED**: Split into SessionResumeService, QuestionGenerationService, SessionFactory, and ConceptSelectionService
-- `LevelMasterChecker.check` (~167 LOC, **CC~22**) in `backend/app/services/achievements/achievement_checkers/level_master_checker.py`
+- ✅ `LevelMasterChecker.check` (~167 LOC, **CC~22**) in `backend/app/services/achievements/achievement_checkers/level_master_checker.py` — **REFACTORED**: Split into focused helper methods for level/concept queries, consecutive calculation, and tier determination
 - ✅ `GenericAccuracyChecker.check` (~143 LOC, **CC~35**) in `backend/app/services/achievements/achievement_checkers/generic_accuracy_checker.py` — **REFACTORED**: Split complex decision tree into focused helper methods
 - ✅ `QuestionService.generate_operands_with_constraints` (~129 LOC, **CC~31**) in `backend/app/services/question_service.py` — **REFACTORED**: Converted to pipeline pattern with strategy selection
 - `QuestionService.generate_question` (~129 LOC, **CC~13**) in `backend/app/services/question_service.py`

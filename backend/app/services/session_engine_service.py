@@ -2,83 +2,19 @@
 
 from __future__ import annotations
 
-import json
-import random
-import re
 from typing import Any
 
-from ..database import log_query, transaction
+from ..database import log_query
 from ..models import User, db
-from ..services.level_config_service import LevelConfigService
-from ..services.practice_service import PracticeService
-from ..services.question_service import QuestionService
-from ..services.concept_config_service import ConceptConfigService
+from ..services.concept_selection_service import ConceptSelectionService
+from ..services.question_generation_service import QuestionGenerationService
+from ..services.session_factory import SessionFactory
+from ..services.session_resume_service import SessionResumeService
+from ..utils.legacy_mappings import concept_id_from_legacy_level, extract_legacy_level_from_concept_id
 
 
 class SessionEngineService:
     """Service for session generation orchestration."""
-
-    @staticmethod
-    def _extract_legacy_level_from_concept_id(concept_id: str | None) -> int | None:
-        """Extract legacy level number from concept ID.
-        
-        Supports:
-        - Old format: c_level_1 -> 1
-        - New format: c_concept_001 -> 1
-        - Descriptive format: c_add_1s -> None (no legacy level mapping)
-        
-        Args:
-            concept_id: The concept ID to parse
-            
-        Returns:
-            The legacy level number if found, None otherwise
-        """
-        if not concept_id:
-            return None
-        
-        # Old format: c_level_1, c_level_2, etc.
-        old_format_match = re.match(r'^c_level_(\d+)$', concept_id)
-        if old_format_match:
-            return int(old_format_match.group(1))
-        
-        # New format: c_concept_001, c_concept_002, etc.
-        new_format_match = re.match(r'^c_concept_(\d+)$', concept_id)
-        if new_format_match:
-            return int(new_format_match.group(1))
-        
-        # Descriptive format (c_add_1s, c_sub_2s, etc.) - no legacy level mapping
-        return None
-
-    @staticmethod
-    def _concept_id_from_legacy_level(level: int) -> str:
-        """Build a new-format concept ID from a legacy level number."""
-        return f"c_concept_{level:03d}"
-
-    @staticmethod
-    def _transform_session_questions_to_generate_format(questions_data: list[dict[str, Any]]) -> list[dict[str, Any]]:
-        """Transform questions from get_session_with_details format to generate_session format."""
-        transformed = []
-        for q in questions_data:
-            transformed_q = {
-                "id": str(q.get("question_id", q.get("id", ""))),
-                "question_id": q.get("question_id"),
-                "prompt": q.get("prompt", ""),
-                "operation": q.get("operation", ""),
-                "operand1": q.get("operand1", 0),
-                "operand2": q.get("operand2", 0),
-                "correctAnswer": q.get("correctAnswer", ""),
-                "difficulty": f"Level {q.get('level', 1)}",  # Default if not available
-                "targetMs": 4000,  # Default if not available
-                "hint": q.get("hint", ""),
-                "layout": q.get("layout"),
-                "answerFormat": q.get("answer_format"),
-                "mathTypeLabel": q.get("math_type_label", ""),
-            }
-            # Include response if present
-            if "response" in q:
-                transformed_q["response"] = q["response"]
-            transformed.append(transformed_q)
-        return transformed
 
     @staticmethod
     @log_query
@@ -113,140 +49,52 @@ class SessionEngineService:
         # - For non-concept practice, default to the user's current level.
         session_level = level if level is not None else (user.level if concept_id is None else None)
         
-        # Check for incomplete session first
-        # If resume_oldest is True (dashboard), get oldest session
-        # Otherwise, if concept_id is provided, only resume matching concept sessions
-        if resume_oldest:
-            incomplete_session, response_count, _ = PracticeService.get_oldest_incomplete_session(user_id, mode)
-        else:
-            incomplete_session, response_count, _ = PracticeService.get_incomplete_session(
-                user_id, mode, concept_id=concept_id
-            )
-        
-        if incomplete_session:
-            # For concept-specific practice, concept_id must match.
-            # For dashboard resume (resume_oldest) and general practice (no concept_id), allow resume.
-            concept_matches = (
-                incomplete_session.concept_id == concept_id
-                if concept_id is not None
-                else True  # If no concept_id specified, allow resume
-            )
-            level_matches = (
-                incomplete_session.level == session_level 
-                if session_level is not None and incomplete_session.level is not None
-                else True  # If either is None, allow resume (backward compatibility)
-            )
-            if level_matches and concept_matches:
-                # Get full session details with all questions
-                session_data = PracticeService.get_session_with_details(incomplete_session.id)
-                if session_data and session_data.get("questions"):
-                    # Check if all questions are answered
-                    questions = session_data["questions"]
-                    all_answered = all(q.get("response") is not None for q in questions)
-                    if all_answered:
-                        # All questions answered but not marked complete - mark it now
-                        correct_count = sum(1 for q in questions if q.get("response", {}).get("is_correct", False))
-                        PracticeService.complete_session(
-                            incomplete_session.id,
-                            total_questions=len(questions),
-                            correct_count=correct_count,
-                            total_duration_ms=None
-                        )
-                        # Continue to create new session below
-                    else:
-                        # Transform questions to match generate_session format
-                        questions = SessionEngineService._transform_session_questions_to_generate_format(
-                            session_data["questions"]
-                        )
-                        response_level = (
-                            incomplete_session.level
-                            if incomplete_session.level is not None
-                            else (user.level if user.level is not None else 1)
-                        )
-                        return {
-                            "session_id": incomplete_session.id,
-                            "mode": incomplete_session.mode,
-                            "level": response_level,
-                            "concept_id": incomplete_session.concept_id,
-                            "questions": questions,
-                        }
-        
-        # No incomplete session found, create new one
-        # Default question count for practice
-        question_count = 10
-
-        # Concept-based default practice selection.
-        # IMPORTANT: do this *after* checking for incomplete sessions above so that
-        # general practice (no concept_id provided) can still resume any incomplete session.
-        if concept_id is None:
-            # Get all unlocked concepts for the user
-            from ..services.concept_unlock_service import ConceptUnlockService
-            unlocked_concepts = ConceptUnlockService.get_unlocked_concepts(user.id)
-            
-            if not unlocked_concepts:
-                raise ValueError("No unlocked concepts available. Please unlock at least one concept to start practice.")
-            
-            # Randomly select from unlocked concepts
-            concept_id = random.choice(unlocked_concepts)
-            
-            # Extract legacy level if available (for backward compatibility)
-            # Update session_level if we selected a concept with a legacy level
-            extracted_level = SessionEngineService._extract_legacy_level_from_concept_id(concept_id)
-            if extracted_level is not None:
-                session_level = extracted_level
-
-        concept_level = SessionEngineService._extract_legacy_level_from_concept_id(concept_id)
-
-        config = ConceptConfigService.get_concept_config(concept_id)
-        if not config:
-            raise ValueError(f"Unsupported concept_id for practice session: {concept_id}")
-
-        if concept_level is None:
-            concept_level = int(config.get("legacy_level") or 0) or None
-
-        operation = config["operation"]
-        questions: list[dict[str, Any]] = []
-
-        for i in range(question_count):
-            max_retries = 3
-            question_data = None
-            for retry in range(max_retries):
-                try:
-                    question_data = QuestionService.generate_question(
-                        operation=operation,
-                        level=concept_level or 1,
-                        test_constraints=None,
-                        config_override=config,
-                    )
-                    break  # Success, exit retry loop
-                except ValueError:
-                    # Invalid level configuration (e.g., division by zero)
-                    if retry >= max_retries - 1:
-                        raise
-
-            if question_data:
-                questions.append(question_data)
-            
-        # Create session (pass concept_id if provided)
-        session = PracticeService.create_session(
+        # Try to resume an existing incomplete session
+        incomplete_session, session_data = SessionResumeService.find_resumable_session(
             user_id=user_id,
             mode=mode,
-            level=session_level,
+            concept_id=concept_id,
+            session_level=session_level,
+            resume_oldest=resume_oldest,
+        )
+        
+        if session_data:
+            return session_data
+        
+        # No resumable session found, create a new one
+        # Select concept (either provided or random from unlocked)
+        selected_concept_id, extracted_level = ConceptSelectionService.select_concept_for_practice(
+            user_id=user_id,
             concept_id=concept_id,
         )
-
-        # Store question IDs
-        question_ids = [q.get("question_id") for q in questions if q.get("question_id")]
-        if question_ids:
-            with transaction():
-                session.question_ids = json.dumps(question_ids)
-                db.session.add(session)
-
+        
+        # Update session_level if we selected a concept with a legacy level
+        if extracted_level is not None:
+            session_level = extracted_level
+        
+        # Generate questions for the selected concept
+        questions = QuestionGenerationService.generate_questions_for_concept(
+            concept_id=selected_concept_id,
+            question_count=10,
+        )
+        
+        # Create session and persist question IDs
+        session = SessionFactory.create_session_with_questions(
+            user_id=user_id,
+            mode=mode,
+            concept_id=selected_concept_id,
+            questions=questions,
+            level=session_level,
+        )
+        
+        # Determine response level (for backward compatibility)
+        concept_level = extract_legacy_level_from_concept_id(selected_concept_id)
         response_level = session_level if session_level is not None else (concept_level if concept_level is not None else user.level)
+        
         return {
             "session_id": session.id,
             "mode": mode,
             "level": response_level,
-            "concept_id": concept_id,
+            "concept_id": selected_concept_id,
             "questions": questions,
         }

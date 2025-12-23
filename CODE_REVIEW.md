@@ -40,7 +40,7 @@ Heuristic analysis (AST-based) found these as top hotspots in `backend/app`:
 **Largest functions (LOC)**
 - ✅ `AchievementQueryService.count_achievements_by_code_with_filters` (~207 LOC, **CC~54**) in `backend/app/services/achievements/achievement_queries/achievement_query_service.py` — **REFACTORED**: Split into smaller helper methods
 - `complete_session` (~175 LOC, **CC~19**) in `backend/app/routes/practice.py`
-- `SessionEngineService.generate_session` (~168 LOC, **CC~32**) in `backend/app/services/session_engine_service.py`
+- ✅ `SessionEngineService.generate_session` (~168 LOC, **CC~32**) in `backend/app/services/session_engine_service.py` — **REFACTORED**: Split into SessionResumeService, QuestionGenerationService, SessionFactory, and ConceptSelectionService
 - `LevelMasterChecker.check` (~167 LOC, **CC~22**) in `backend/app/services/achievements/achievement_checkers/level_master_checker.py`
 - ✅ `GenericAccuracyChecker.check` (~143 LOC, **CC~35**) in `backend/app/services/achievements/achievement_checkers/generic_accuracy_checker.py` — **REFACTORED**: Split complex decision tree into focused helper methods
 - ✅ `QuestionService.generate_operands_with_constraints` (~129 LOC, **CC~31**) in `backend/app/services/question_service.py` — **REFACTORED**: Converted to pipeline pattern with strategy selection
@@ -49,7 +49,7 @@ Heuristic analysis (AST-based) found these as top hotspots in `backend/app`:
 **Most complex (estimated cyclomatic complexity)**
 - ✅ `AchievementQueryService.count_achievements_by_code_with_filters` (**CC~54**) — **REFACTORED**: Split into smaller helper methods reducing complexity
 - ✅ `GenericAccuracyChecker.check` (**CC~35**) — **REFACTORED**: Split complex decision tree into focused helper methods reducing complexity
-- `SessionEngineService.generate_session` (**CC~32**) — heavy branching + multiple responsibilities
+- ✅ `SessionEngineService.generate_session` (**CC~32**) — **REFACTORED**: Split into focused services (SessionResumeService, QuestionGenerationService, SessionFactory, ConceptSelectionService) reducing complexity
 - ✅ `QuestionService.generate_operands_with_constraints` (**CC~31**) — **REFACTORED**: Converted to pipeline pattern reducing complexity
 
 **Interpretation:** These are the primary candidates for refactors that reduce cognitive load and defect risk.
@@ -200,15 +200,16 @@ File: `backend/app/services/question_service.py`
 File: `backend/app/services/session_engine_service.py`
 
 **Problems**
-- Handles resume rules, concept picking, question generation retries, session persistence, and response shaping.
-- Uses multiple legacy compatibility rules (concept_id formats + “legacy level”).
+- ✅ Handles resume rules, concept picking, question generation retries, session persistence, and response shaping — **REFACTORED**
+- ✅ Uses multiple legacy compatibility rules (concept_id formats + "legacy level") — **REFACTORED**
 
 **Recommendation (P1):**
-- Split into:
-  - `SessionResumeService` (resume selection and validation)
-  - `QuestionGenerationService` (pure generation, deterministic inputs)
-  - `SessionFactory` (persist + attach question IDs)
-- Make “legacy mappings” a single module with tests.
+- ✅ Split into:
+  - ✅ `SessionResumeService` (resume selection and validation) — **COMPLETED**
+  - ✅ `QuestionGenerationService` (pure generation, deterministic inputs) — **COMPLETED**
+  - ✅ `SessionFactory` (persist + attach question IDs) — **COMPLETED**
+  - ✅ `ConceptSelectionService` (concept selection logic) — **COMPLETED**
+- ✅ Make "legacy mappings" a single module with tests — **COMPLETED**: `backend/app/utils/legacy_mappings.py`
 
 ## Antipatterns / Code Smells
 
@@ -267,6 +268,7 @@ File: `frontend/src/features/practice/hooks/usePracticeSession.ts`
 ### P1 (High value)
 - ✅ Break up `AchievementQueryService.count_achievements_by_code_with_filters` — **COMPLETED**.
 - ✅ Simplify/strategy-ize `QuestionService.generate_operands_with_constraints` — **COMPLETED**.
+- ✅ Refactor `SessionEngineService.generate_session` — **COMPLETED**: Split into SessionResumeService, QuestionGenerationService, SessionFactory, ConceptSelectionService, and legacy_mappings module.
 - Remove unused frontend constants: `LEVEL_REQUIREMENTS`, `STREAK_ACHIEVEMENTS`, etc.
 - Audit and deprecate/remove `/practice/submissions` if unused.
 

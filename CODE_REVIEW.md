@@ -66,7 +66,7 @@ The root `.gitignore` already ignores most of these (notably `instance/`, `.venv
 
 ### Recommendations
 - **P0:** Ensure no runtime artifacts are tracked in git (if any are tracked, remove them from the index).
-- **P0:** Expand `.gitignore` to ignore coverage outputs consistently:
+- **P0:** ✅ Expand `.gitignore` to ignore coverage outputs consistently:
   - `backend/coverage/`
   - `backend/coverage.json`
 - **P1:** Consider keeping all generated artifacts under a consistent ignored directory (e.g., `./.artifacts/`) to reduce repo clutter.
@@ -83,8 +83,8 @@ File: `frontend/src/features/students/data/achievements.ts`
 - **Observed:** `STREAK_ACHIEVEMENTS` and similar constants appear to have **no imports/usage** elsewhere (type imports exist, but not the constants).
 
 **Recommendation (P1):**
-- Remove unused exported arrays (or move them to a historical reference doc if you still want the old definitions preserved).
-- Keep only the TypeScript types if that’s the intended purpose.
+- ✅ Remove unused exported arrays (or move them to a historical reference doc if you still want the old definitions preserved).
+- ✅ Keep only the TypeScript types if that’s the intended purpose.
 
 ### Frontend: Unused Level Requirements Constant
 
@@ -93,7 +93,7 @@ File: `frontend/src/features/students/data/levelRequirements.ts`
 - Contains text like “Complete any 5 test achievements” despite “test achievements removed” elsewhere.
 
 **Recommendation (P1):**
-- Delete `LEVEL_REQUIREMENTS` if backend-driven requirements are the source of truth.
+- ✅ Delete `LEVEL_REQUIREMENTS` if backend-driven requirements are the source of truth.
 - If it’s meant to be fallback/seed data, rename + document it explicitly and keep it in a non-production path.
 
 ### Frontend: “Test Achievements Removed” Drift Still Leaks Through
@@ -101,7 +101,7 @@ File: `frontend/src/features/students/data/levelRequirements.ts`
 Files show inconsistent state around “test achievements”:
 - `frontend/src/features/students/hooks/useFilteredAchievements.ts` still filters `type === 'test-completion'`.
 - `frontend/src/features/students/utils/progressMapping/achievementConverters.ts` still emits `type = 'test-completion'` for category `test`.
-- `frontend/src/features/students/data/levelRequirements.ts` references “test achievements”.
+- ✅ `frontend/src/features/students/data/levelRequirements.ts` no longer references “test achievements”.
 - Various comments point at backend `achievements_config.py`, but that file is **deprecated** (see backend notes below).
 
 **Recommendation (P0/P1):**

@@ -40,6 +40,30 @@ export async function answerQuestion(
   const { answerInput, checkButton } = getPracticeElements(page)
   
   await answerInput.fill(answer)
+  
+  // Wait for check button to be enabled before clicking
+  // This handles cases where validation or state updates need to complete
+  await checkButton.waitFor({ state: 'visible', timeout: 5000 })
+  await checkButton.waitFor({ state: 'attached', timeout: 5000 })
+  
+  // Wait for button to be enabled (not disabled)
+  let attempts = 0
+  const maxAttempts = 20 // 2 seconds with 100ms intervals
+  while (attempts < maxAttempts) {
+    const isDisabled = await checkButton.isDisabled().catch(() => true)
+    if (!isDisabled) {
+      break
+    }
+    await page.waitForTimeout(100)
+    attempts++
+  }
+  
+  // Verify button is enabled before clicking
+  const isDisabled = await checkButton.isDisabled().catch(() => true)
+  if (isDisabled) {
+    throw new Error(`Check button is still disabled after waiting. Input value: "${await answerInput.inputValue().catch(() => 'unknown')}"`)
+  }
+  
   await checkButton.click()
   
   // Brief wait for React state to update (reduced from 1000ms)
@@ -205,10 +229,19 @@ export async function completePracticeSession(
  */
 export async function submitPracticeSession(page: Page): Promise<any> {
   // First, ensure submit button is ready (visible and enabled)
-  // Use short timeout to fail fast if not ready
-  const submitStatus = await isSubmitButtonReady(page)
+  // Wait a bit longer and retry to handle timing issues
+  let submitStatus = await isSubmitButtonReady(page)
+  let attempts = 0
+  const maxAttempts = 10 // 1 second with 100ms intervals
+  
+  while ((!submitStatus.visible || !submitStatus.enabled) && attempts < maxAttempts) {
+    await page.waitForTimeout(100)
+    submitStatus = await isSubmitButtonReady(page)
+    attempts++
+  }
+  
   if (!submitStatus.visible || !submitStatus.enabled) {
-    throw new Error(`Submit button not ready: visible=${submitStatus.visible}, enabled=${submitStatus.enabled}`)
+    throw new Error(`Submit button not ready after waiting: visible=${submitStatus.visible}, enabled=${submitStatus.enabled}`)
   }
   
   const { submitButton } = getPracticeElements(page)
@@ -224,12 +257,12 @@ export async function submitPracticeSession(page: Page): Promise<any> {
       const matchesSessions = url.includes('/api/practice/sessions')
       const matchesComplete = matchesSessions && (url.includes('/complete') || url.match(/\/sessions\/\d+\//))
       // Accept POST requests with 2xx status codes
-      return matchesComplete && method === 'POST' && status >= 200 && status < 300
+      return !!(matchesComplete && method === 'POST' && status >= 200 && status < 300)
     },
     { timeout: 10000 } // 10 second timeout - should be enough for API response
   ).catch(() => {
     // If response wait fails, return null (navigation is the key indicator)
-    return null
+    return null as any
   })
   
   // Submit the session (button is confirmed ready, so use short timeout)
@@ -429,5 +462,42 @@ export async function handleSessionRestorationAndAnswerToSubmit(
 export async function waitForSummaryPage(page: Page): Promise<void> {
   await page.waitForURL(/\/summary/, { timeout: 10000 })
   expect(page.url()).toContain('/summary')
+}
+
+/**
+ * Wait for level-up modal to appear and dismiss it
+ * This is needed because the modal blocks pointer events to other elements
+ */
+export async function waitForAndDismissLevelUpModal(page: Page): Promise<void> {
+  const levelUpModal = page.getByTestId('testid-level-up-modal')
+  
+  // Wait for modal to appear (if it does)
+  const modalVisible = await levelUpModal.isVisible({ timeout: 3000 }).catch(() => false)
+  
+  if (modalVisible) {
+    // Look for close/dismiss button - could be an X button, "Continue" button, or click outside
+    // Try common patterns for closing modals
+    const closeButton = levelUpModal.locator('button[aria-label="Close"]').or(
+      levelUpModal.locator('button').filter({ hasText: /close|dismiss|continue|ok/i })
+    ).or(
+      levelUpModal.locator('button').first()
+    )
+    
+    const closeButtonVisible = await closeButton.isVisible({ timeout: 2000 }).catch(() => false)
+    
+    if (closeButtonVisible) {
+      await closeButton.click()
+      // Wait for modal to disappear
+      await levelUpModal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {})
+    } else {
+      // If no close button found, try clicking outside the modal (backdrop click)
+      // Click on a non-interactive area to dismiss
+      await page.keyboard.press('Escape')
+      await levelUpModal.waitFor({ state: 'hidden', timeout: 5000 }).catch(() => {})
+    }
+    
+    // Additional wait to ensure modal is fully dismissed and pointer events are restored
+    await page.waitForTimeout(300)
+  }
 }
 

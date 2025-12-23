@@ -11,6 +11,7 @@ import {
   getIncompleteSession,
   handleSessionRestorationAndAnswerToSubmit,
   completePracticeSession,
+  waitForAndDismissLevelUpModal,
 } from './helpers/test-helpers'
 
 test.describe('Summary Page', () => {
@@ -263,6 +264,9 @@ test.describe('Summary Page', () => {
     await submitPracticeSession(page)
     await waitForSummaryPage(page)
     
+    // Wait for and dismiss level-up modal if it appears (it blocks pointer events)
+    await waitForAndDismissLevelUpModal(page)
+    
     // Click on a problem card
     const problemCard = page.locator('[data-testid*="problem"]').or(
       page.locator('button').filter({ hasText: /\d+/ })
@@ -335,6 +339,9 @@ test.describe('Summary Page', () => {
     // Submit the session via UI
     await submitPracticeSession(page)
     await waitForSummaryPage(page)
+    
+    // Wait for and dismiss level-up modal if it appears (it blocks pointer events)
+    await waitForAndDismissLevelUpModal(page)
     
     // Click Practice Again button
     const practiceAgainButton = page.getByTestId('testid-practice-again-button')

@@ -87,6 +87,7 @@ export {
   waitForSummaryPage,
   waitForSessionRestoration,
   handleSessionRestorationAndAnswerToSubmit,
+  waitForAndDismissLevelUpModal,
 } from './ui/practice-helpers'
 
 // Assertion Helpers

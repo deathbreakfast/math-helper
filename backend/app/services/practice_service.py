@@ -328,8 +328,15 @@ class PracticeService:
             try:
                 question_ids = json.loads(session.question_ids)
                 total_questions = len(question_ids)
+                
+                # Check if all unique questions have at least one response
+                # This is the correct check - not just response_count >= total_questions,
+                # because users can answer the same question multiple times
+                unique_question_ids_with_responses = set(r.question_id for r in responses if r.question_id)
+                all_questions_answered = len(unique_question_ids_with_responses) >= total_questions
+                
                 # If we have responses for all questions, session is effectively complete
-                if response_count >= total_questions:
+                if all_questions_answered:
                     # Mark as complete to prevent future resumption
                     with transaction():
                         session.completed_at = datetime.utcnow()
@@ -378,8 +385,15 @@ class PracticeService:
             try:
                 question_ids = json.loads(session.question_ids)
                 total_questions = len(question_ids)
+                
+                # Check if all unique questions have at least one response
+                # This is the correct check - not just response_count >= total_questions,
+                # because users can answer the same question multiple times
+                unique_question_ids_with_responses = set(r.question_id for r in responses if r.question_id)
+                all_questions_answered = len(unique_question_ids_with_responses) >= total_questions
+                
                 # If we have responses for all questions, session is effectively complete
-                if response_count >= total_questions:
+                if all_questions_answered:
                     # Mark as complete to prevent future resumption
                     with transaction():
                         session.completed_at = datetime.utcnow()

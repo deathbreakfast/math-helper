@@ -9,6 +9,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any
 
+from ...database import flush_or_commit
 from ...models import Achievement, PracticeSession, Question, Response, User, db
 from ...services.analytics_service import AnalyticsService
 from .achievement_utils import debug_print
@@ -121,23 +122,23 @@ class AchievementOrchestrator:
         print(f"[ACHIEVEMENT INFO] User {user.id} metrics: {total_answers} questions, {avg_speed:.2f}s avg speed, {max_accuracy}% max accuracy, {current_streak} day streak")
         all_achievements = AchievementService.check_all_achievements(user, metrics, session_id=session_id)
         if all_achievements:
-            # Extract codes and titles immediately before commit to avoid detached object issues
+            # Extract codes and titles immediately before flush to avoid detached object issues
             all_achievement_codes = [a.code for a in all_achievements]
             all_achievement_titles = [a.title for a in all_achievements]
             debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(all_achievements)} achievement(s) from config: {all_achievement_codes}")
             print(f"[ACHIEVEMENT INFO] Awarded {len(all_achievements)} general achievement(s): {all_achievement_titles}")
-            db.session.commit()
+            flush_or_commit()
         
         # Check level-specific achievements (operation_count, level_accuracy, level_correct_count, test_completion)
         debug_print(f"[ACHIEVEMENT DEBUG] Checking level-specific achievements...")
         level_achievements = self.level_checker.check(user, session_id=session_id)
         if level_achievements:
-            # Extract codes and titles immediately before commit to avoid detached object issues
+            # Extract codes and titles immediately before flush to avoid detached object issues
             level_achievement_codes = [a.code for a in level_achievements]
             level_achievement_titles = [a.title for a in level_achievements]
             debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(level_achievements)} level-specific achievement(s): {level_achievement_codes}")
             print(f"[ACHIEVEMENT INFO] Awarded {len(level_achievements)} level-specific achievement(s): {level_achievement_titles}")
-            db.session.commit()
+            flush_or_commit()
         else:
             debug_print(f"[ACHIEVEMENT DEBUG] No new level-specific achievements awarded")
         
@@ -149,7 +150,7 @@ class AchievementOrchestrator:
             level_master_titles = [a.title for a in level_master_achievements]
             debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(level_master_achievements)} Level Master achievement(s): {level_master_codes}")
             print(f"[ACHIEVEMENT INFO] Awarded {len(level_master_achievements)} Level Master achievement(s): {level_master_titles}")
-            db.session.commit()
+            flush_or_commit()
 
         # Check Master of Basic Addition/Subtraction achievements (concept coverage based on Level Master buckets)
         debug_print(f"[ACHIEVEMENT DEBUG] Checking Master of Basic achievements...")
@@ -163,7 +164,7 @@ class AchievementOrchestrator:
             print(
                 f"[ACHIEVEMENT INFO] Awarded {len(master_of_basic_achievements)} Master of Basic achievement(s): {master_of_basic_titles}"
             )
-            db.session.commit()
+            flush_or_commit()
         
         # Check Level Grandmaster milestone achievement (Level Master Bronze on all levels)
         debug_print(f"[ACHIEVEMENT DEBUG] Checking Level Grandmaster achievement...")
@@ -173,7 +174,7 @@ class AchievementOrchestrator:
             level_grandmaster_titles = [a.title for a in level_grandmaster_achievements]
             debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(level_grandmaster_achievements)} Level Grandmaster achievement(s): {level_grandmaster_codes}")
             print(f"[ACHIEVEMENT INFO] Awarded {len(level_grandmaster_achievements)} Level Grandmaster achievement(s): {level_grandmaster_titles}")
-            db.session.commit()
+            flush_or_commit()
         
         # Check Human Calculator milestone achievement (Lightning Fast Bronze/Silver on all levels)
         debug_print(f"[ACHIEVEMENT DEBUG] Checking Human Calculator achievement...")
@@ -185,7 +186,7 @@ class AchievementOrchestrator:
             human_calculator_titles = [a.title for a in human_calculator_achievements]
             debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(human_calculator_achievements)} Human Calculator achievement(s): {human_calculator_codes}")
             print(f"[ACHIEVEMENT INFO] Awarded {len(human_calculator_achievements)} Human Calculator achievement(s): {human_calculator_titles}")
-            db.session.commit()
+            flush_or_commit()
 
         achievements = (
             Achievement.query.filter_by(user_id=user.id)
@@ -222,7 +223,7 @@ class AchievementOrchestrator:
         from ...services.achievement_service import AchievementService
         all_achievements = AchievementService.check_all_achievements(user, metrics)
         if all_achievements:
-            db.session.commit()
+            flush_or_commit()
         
         # Check level-specific achievements using pre-loaded data
         # Note: We still call the original method but it will benefit from composite indexes
@@ -230,7 +231,7 @@ class AchievementOrchestrator:
         # to accept pre-loaded data, but that's a larger refactoring
         level_achievements = self.level_checker.check(user)
         if level_achievements:
-            db.session.commit()
+            flush_or_commit()
 
         # Refresh achievements list
         achievements = (

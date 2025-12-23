@@ -303,8 +303,8 @@ class AchievementService:
         all_new_achievements = level_achievements + new_achievements
         
         if all_new_achievements:
-            from ..models import db
-            db.session.commit()
+            from ..database import flush_or_commit
+            flush_or_commit()
         
         return all_new_achievements
 

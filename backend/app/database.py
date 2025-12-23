@@ -7,6 +7,7 @@ import logging
 import os
 import time
 from contextlib import contextmanager
+from contextvars import ContextVar
 from typing import Any, Callable, Generator, TypeVar
 
 from flask import current_app
@@ -19,6 +20,9 @@ from .models import db
 logger = logging.getLogger(__name__)
 
 F = TypeVar("F", bound=Callable[..., Any])
+
+# Context variable to track if we're in an explicit transaction
+_in_explicit_transaction: ContextVar[bool] = ContextVar("_in_explicit_transaction", default=False)
 
 
 @event.listens_for(Engine, "connect")
@@ -93,19 +97,73 @@ def log_query(func: F) -> F:
     return wrapper  # type: ignore
 
 
+def flush_or_commit() -> None:
+    """Flush if in an explicit transaction, commit if not.
+    
+    This is useful for code that may be called either within an explicit transaction
+    (where we want to flush to make objects visible within the transaction)
+    or outside a transaction (where we need to commit to persist changes).
+    
+    Uses a context variable to track if we're in an explicit transaction created by
+    the transaction() context manager.
+    """
+    if _in_explicit_transaction.get():
+        # We're in an explicit transaction, flush to make objects visible within it
+        db.session.flush()
+    else:
+        # Not in an explicit transaction, commit to persist changes
+        # This ensures backward compatibility with tests and direct function calls
+        db.session.commit()
+
+
 @contextmanager
 def transaction() -> Generator[None, None, None]:
-    """Context manager for database transactions with automatic rollback on error."""
+    """Context manager for database transactions with automatic rollback on error.
+    
+    Supports nested transactions using savepoints. If called within an existing transaction,
+    creates a savepoint (nested transaction) that can be rolled back independently.
+    If called outside a transaction, starts a new top-level transaction.
+    """
 
+    # Try to create a nested transaction (savepoint)
+    # If we're already in a transaction, begin_nested() will work
+    # If not, it will raise an exception and we'll use begin() instead
     try:
+        trans = db.session.begin_nested()
+        is_nested = True
+        logger.debug("Starting nested transaction (savepoint)")
+    except (AttributeError, RuntimeError):
+        # Not in a transaction, start a new top-level transaction
+        trans = db.session.begin()
+        is_nested = False
         logger.debug("Starting database transaction")
+
+    # Mark that we're in an explicit transaction
+    token = _in_explicit_transaction.set(True)
+    
+    try:
         yield
-        db.session.commit()
-        logger.debug("Database transaction committed")
+        trans.commit()
+        if is_nested:
+            logger.debug("Nested transaction (savepoint) committed")
+        else:
+            logger.debug("Database transaction committed")
     except Exception as e:
-        db.session.rollback()
+        # Try to rollback, but handle the case where transaction is already closed
+        try:
+            if hasattr(trans, 'is_active') and trans.is_active:
+                trans.rollback()
+            else:
+                # Fallback: try rollback anyway, catch if it fails
+                trans.rollback()
+        except Exception as rollback_error:
+            # Transaction might already be closed or rolled back, log but don't fail
+            logger.debug(f"Could not rollback transaction (may already be closed): {type(rollback_error).__name__}")
         logger.error(f"Database transaction rolled back due to error: {type(e).__name__}: {str(e)}")
         raise
+    finally:
+        # Restore previous context value
+        _in_explicit_transaction.reset(token)
 
 
 @log_query
@@ -163,7 +221,7 @@ def init_db(app):
                 # Reset SQLite sequence counters so IDs start from 1 after wipe
                 try:
                     db.session.execute(text("DELETE FROM sqlite_sequence WHERE name IN ('practice_sessions', 'users', 'questions', 'responses', 'achievements', 'daily_stats', 'flagged_questions', 'server_records', 'level_problem_configs', 'level_progressions')"))
-                    db.session.commit()
+                    # Don't commit here - let the transaction context manager handle it
                     logger.info("SQLite sequence counters reset")
                 except Exception as e:
                     logger.warning(f"Could not reset SQLite sequence counters: {e}")

@@ -196,7 +196,8 @@ def create_achievement(
         if session_id and existing.session_id is None:
             existing.session_id = session_id
             db.session.add(existing)
-            db.session.commit()
+            from ...database import flush_or_commit
+            flush_or_commit()
         return existing
     
     # For achievements that allow multiple per tier but once per session, add session_id to metadata
@@ -228,7 +229,8 @@ def create_achievement(
             achievement_metadata=metadata_json,
         )
         db.session.add(achievement)
-        db.session.flush()
+        from ...database import flush_or_commit
+        flush_or_commit()
 
     return achievement
 

@@ -191,7 +191,8 @@ class LevelMasterChecker(AchievementChecker):
             _award_for_bucket(bucket_label=f"concept:{cid}", concept_filter=cid)
 
         if new_achievements:
-            db.session.commit()
+            from ....database import flush_or_commit
+            flush_or_commit()
 
         return new_achievements
 

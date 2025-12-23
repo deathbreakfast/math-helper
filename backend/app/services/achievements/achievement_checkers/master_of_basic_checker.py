@@ -78,7 +78,8 @@ class MasterOfBasicChecker(AchievementChecker):
         )
 
         if new_achievements:
-            db.session.commit()
+            from ....database import flush_or_commit
+            flush_or_commit()
 
         return new_achievements
 

@@ -65,10 +65,11 @@ The following **generated/runtime artifacts** are present in the workspace and h
 The root `.gitignore` already ignores most of these (notably `instance/`, `.venv/`, `frontend/playwright-report/`, `frontend/test-results/`), but **coverage outputs are not fully covered**.
 
 ### Recommendations
-- **P0:** Ensure no runtime artifacts are tracked in git (if any are tracked, remove them from the index).
-- **P0:** ✅ Expand `.gitignore` to ignore coverage outputs consistently:
-  - `backend/coverage/`
-  - `backend/coverage.json`
+- ✅ **P0:** Ensure no runtime artifacts are tracked in git (if any are tracked, remove them from the index) — **COMPLETED**: Removed tracked coverage files.
+- ✅ **P0:** Expand `.gitignore` to ignore coverage outputs consistently — **COMPLETED**:
+  - ✅ `backend/coverage/`
+  - ✅ `backend/coverage.json`
+  - ✅ `backend/.coverage` and `*.coverage`
 - **P1:** Consider keeping all generated artifacts under a consistent ignored directory (e.g., `./.artifacts/`) to reduce repo clutter.
 
 ## Dead Code / Stale Code Candidates
@@ -259,7 +260,7 @@ File: `frontend/src/features/practice/hooks/usePracticeSession.ts`
 ## Priority Action Plan
 
 ### P0 (Do next)
-- Remove/stop tracking generated artifacts; add missing ignores for backend coverage output.
+- ✅ Remove/stop tracking generated artifacts; add missing ignores for backend coverage output — **COMPLETED**: Added `.coverage` and `*.coverage` to `.gitignore`, removed tracked coverage files from git.
 - ✅ Refactor `complete_session` into a dedicated orchestration service with cleaner transaction/error handling.
 - ✅ Resolve "test achievements removed" drift (update frontend behavior + copy, and remove dead filtering paths).
 

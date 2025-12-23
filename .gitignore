@@ -35,3 +35,5 @@ backend/test_output.txt
 # Backend coverage output
 backend/coverage/
 backend/coverage.json
+backend/.coverage
+*.coverage

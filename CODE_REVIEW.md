@@ -42,13 +42,13 @@ Heuristic analysis (AST-based) found these as top hotspots in `backend/app`:
 - `complete_session` (~175 LOC, **CC~19**) in `backend/app/routes/practice.py`
 - `SessionEngineService.generate_session` (~168 LOC, **CC~32**) in `backend/app/services/session_engine_service.py`
 - `LevelMasterChecker.check` (~167 LOC, **CC~22**) in `backend/app/services/achievements/achievement_checkers/level_master_checker.py`
-- `GenericAccuracyChecker.check` (~143 LOC, **CC~35**) in `backend/app/services/achievements/achievement_checkers/generic_accuracy_checker.py`
+- ✅ `GenericAccuracyChecker.check` (~143 LOC, **CC~35**) in `backend/app/services/achievements/achievement_checkers/generic_accuracy_checker.py` — **REFACTORED**: Split complex decision tree into focused helper methods
 - ✅ `QuestionService.generate_operands_with_constraints` (~129 LOC, **CC~31**) in `backend/app/services/question_service.py` — **REFACTORED**: Converted to pipeline pattern with strategy selection
 - `QuestionService.generate_question` (~129 LOC, **CC~13**) in `backend/app/services/question_service.py`
 
 **Most complex (estimated cyclomatic complexity)**
 - ✅ `AchievementQueryService.count_achievements_by_code_with_filters` (**CC~54**) — **REFACTORED**: Split into smaller helper methods reducing complexity
-- `GenericAccuracyChecker.check` (**CC~35**) — complex decision tree
+- ✅ `GenericAccuracyChecker.check` (**CC~35**) — **REFACTORED**: Split complex decision tree into focused helper methods reducing complexity
 - `SessionEngineService.generate_session` (**CC~32**) — heavy branching + multiple responsibilities
 - ✅ `QuestionService.generate_operands_with_constraints` (**CC~31**) — **REFACTORED**: Converted to pipeline pattern reducing complexity
 

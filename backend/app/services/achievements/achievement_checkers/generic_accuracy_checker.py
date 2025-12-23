@@ -25,7 +25,185 @@ class GenericAccuracyChecker(AchievementChecker):
             achievement_configs: Dictionary of achievement configurations (optional, will use default if not provided)
         """
         self.achievement_configs = achievement_configs
-        self.achievement_configs = achievement_configs
+    
+    def _extract_session_context(self, session: PracticeSession) -> dict[str, Any] | None:
+        """Extract operation, level, and metrics from session.
+        
+        Returns a dict with operation, level, and metrics, or None if session is invalid.
+        """
+        if not session.completed_at or not session.level:
+            return None
+        
+        # Get operation from session's questions
+        first_question = (
+            Question.query.join(Response)
+            .filter(Response.session_id == session.id)
+            .first()
+        )
+        
+        if not first_question:
+            return None
+        
+        # Calculate session metrics
+        total_questions = session.total_questions
+        accuracy = session.accuracy / 100.0 if session.accuracy else 0.0  # Convert to 0-1 range
+        total_duration_ms = session.total_duration_ms or 0
+        avg_time_per_question = (
+            (total_duration_ms / 1000.0 / total_questions)
+            if total_questions > 0 and total_duration_ms
+            else None
+        )
+        
+        return {
+            "operation": first_question.operation,
+            "level": session.level,
+            "total_questions": total_questions,
+            "accuracy": accuracy,
+            "avg_time_per_question": avg_time_per_question,
+        }
+    
+    def _meets_requirements(
+        self,
+        requirements: dict[str, Any],
+        context: dict[str, Any],
+    ) -> bool:
+        """Check if session context meets achievement requirements.
+        
+        Args:
+            requirements: Achievement requirements dict
+            context: Session context (operation, level, metrics)
+            
+        Returns:
+            True if all requirements are met, False otherwise
+        """
+        # Check level and operation match
+        if requirements.get("level") != context["level"]:
+            return False
+        if requirements.get("operation") != context["operation"]:
+            return False
+        
+        # Extract requirement thresholds
+        min_accuracy_req = requirements.get("min_accuracy", 0.0)
+        min_questions_req = requirements.get("min_questions", 0)
+        max_questions_req = requirements.get("max_questions")
+        max_speed_req = requirements.get("max_speed")
+        
+        # Check accuracy requirement
+        if context["accuracy"] < min_accuracy_req:
+            return False
+        
+        # Check question count requirements
+        total_questions = context["total_questions"]
+        if total_questions < min_questions_req:
+            return False
+        if max_questions_req and total_questions > max_questions_req:
+            return False
+        
+        # Check speed requirement
+        if max_speed_req:
+            avg_time = context["avg_time_per_question"]
+            if avg_time is None or avg_time >= max_speed_req:
+                return False
+        
+        return True
+    
+    def _check_champion_eligibility(
+        self,
+        operation: str,
+        context: dict[str, Any],
+        session: PracticeSession,
+    ) -> tuple[str, dict[str, Any]] | None:
+        """Check if Champion tier is eligible and should be awarded instead of Divine.
+        
+        Args:
+            operation: Operation name (e.g., "addition")
+            context: Session context with metrics
+            session: Practice session
+            
+        Returns:
+            Tuple of (champion_code, champion_config) if eligible, None otherwise
+        """
+        champion_code = f"{operation}-basics-champion"
+        
+        if champion_code not in ACCURACY_ACHIEVEMENTS:
+            return None
+        
+        champion_config = ACCURACY_ACHIEVEMENTS[champion_code]
+        champion_req = champion_config.get("requirements", {})
+        
+        # Check if Champion requirements are met
+        if not self._meets_requirements(champion_req, context):
+            return None
+        
+        # Check server record eligibility
+        if AchievementService.checkChampionEligibility(champion_code, session, "champion"):
+            return (champion_code, champion_config)
+        
+        return None
+    
+    def _find_eligible_tiers(
+        self,
+        operation: str,
+        context: dict[str, Any],
+        user_achievement_codes: set[str],
+        configs_to_check: dict[str, Any],
+    ) -> list[tuple[str, str, dict[str, Any]]]:
+        """Find all tiers that meet requirements for this operation and level.
+        
+        Args:
+            operation: Operation name (e.g., "addition")
+            context: Session context with metrics
+            user_achievement_codes: Set of achievement codes user already has
+            configs_to_check: Achievement configs to check
+            
+        Returns:
+            List of (tier, achievement_code, config) tuples for eligible tiers
+        """
+        eligible_tiers = []
+        
+        for tier in reversed(ALL_TIERS):  # Check from highest to lowest
+            achievement_code = f"{operation}-basics-{tier}"
+            
+            # Skip if not in config or already earned
+            if achievement_code not in configs_to_check:
+                continue
+            if achievement_code in user_achievement_codes:
+                continue
+            
+            config = configs_to_check[achievement_code]
+            requirements = config.get("requirements", {})
+            
+            # Check if requirements are met
+            if self._meets_requirements(requirements, context):
+                eligible_tiers.append((tier, achievement_code, config))
+        
+        return eligible_tiers
+    
+    def _award_achievement(
+        self,
+        session: PracticeSession,
+        achievement_code: str,
+        config: dict[str, Any],
+    ) -> Achievement:
+        """Create and return an achievement for the session.
+        
+        Args:
+            session: Practice session
+            achievement_code: Achievement code
+            config: Achievement config
+            
+        Returns:
+            Created Achievement object
+        """
+        return AchievementService.create_achievement(
+            user_id=session.user_id,
+            code=achievement_code,
+            title=config["title"],
+            description=config["description"],
+            icon=config["icon"],
+            category=config["category"],
+            session_id=session.id,
+        )
     
     def check(self, session: PracticeSession) -> list[Achievement]:
         """Check session for generic accuracy achievements and award highest tier achieved.
@@ -39,136 +217,47 @@ class GenericAccuracyChecker(AchievementChecker):
         if not session.completed_at:
             return []
         
-        new_achievements = []
+        # Extract session context
+        context = self._extract_session_context(session)
+        if not context:
+            return []
+        
+        # Get user's existing achievements
         user_achievement_codes = AchievementService.get_achievement_codes(session.user_id)
         
-        # Get session metrics
-        total_questions = session.total_questions
-        accuracy = session.accuracy / 100.0 if session.accuracy else 0.0  # Convert to 0-1 range
-        total_duration_ms = session.total_duration_ms or 0
-        avg_time_per_question = (total_duration_ms / 1000.0 / total_questions) if total_questions > 0 and total_duration_ms else None
-        
-        # Get the operation and level for this session
-        if not session.level:
-            return []
-        
-        # Get operation from session's questions
-        first_question = (
-            Question.query.join(Response)
-            .filter(Response.session_id == session.id)
-            .first()
-        )
-        
-        if not first_question:
-            return []
-        
-        operation = first_question.operation
-        level = session.level
-        
-        # Check all tiers for this operation-level combination
-        tiers_achieved = []
-        
-        # Use achievement_configs if provided, otherwise fall back to ACCURACY_ACHIEVEMENTS
+        # Get configs to check
         configs_to_check = self.achievement_configs if self.achievement_configs else ACCURACY_ACHIEVEMENTS
         
-        for tier in reversed(ALL_TIERS):  # Check from highest to lowest
-            achievement_code = f"{operation}-basics-{tier}"
-            
-            if achievement_code not in configs_to_check:
-                continue
-            
-            # Skip if already earned
-            if achievement_code in user_achievement_codes:
-                continue
-            
-            config = configs_to_check[achievement_code]
-            requirements = config.get("requirements", {})
-            
-            # Check if this is for the correct level
-            if requirements.get("level") != level:
-                continue
-            
-            # Check if operation matches
-            if requirements.get("operation") != operation:
-                continue
-            
-            # Check tier requirements
-            min_accuracy_req = requirements.get("min_accuracy", 0.0)
-            min_questions_req = requirements.get("min_questions", 0)
-            max_questions_req = requirements.get("max_questions")
-            max_speed_req = requirements.get("max_speed")
-            
-            meets_requirements = True
-            
-            # Check accuracy
-            if accuracy < min_accuracy_req:
-                meets_requirements = False
-            
-            # Check question count
-            if total_questions < min_questions_req:
-                meets_requirements = False
-            
-            if max_questions_req and total_questions > max_questions_req:
-                meets_requirements = False
-            
-            # Check speed
-            if max_speed_req:
-                if avg_time_per_question is None:
-                    meets_requirements = False
-                elif avg_time_per_question >= max_speed_req:
-                    meets_requirements = False
-            
-            if meets_requirements:
-                tiers_achieved.append((tier, achievement_code, config))
+        # Find all eligible tiers
+        eligible_tiers = self._find_eligible_tiers(
+            context["operation"],
+            context,
+            user_achievement_codes,
+            configs_to_check,
+        )
         
-        # Award only the highest tier achieved
-        if tiers_achieved:
-            # Sort by tier value (highest first)
-            tiers_achieved.sort(key=lambda x: get_tier_value(x[0]), reverse=True)
-            highest_tier, achievement_code, config = tiers_achieved[0]
-            
-            # Check for Champion tier eligibility if this is Divine tier
-            if highest_tier == "divine":
-                # Check if Champion is also eligible
-                champion_code = f"{operation}-basics-champion"
-                if champion_code in ACCURACY_ACHIEVEMENTS:
-                    champion_config = ACCURACY_ACHIEVEMENTS[champion_code]
-                    champion_req = champion_config.get("requirements", {})
-                    
-                    # Check if Champion requirements are also met
-                    champion_eligible = True
-                    if accuracy < champion_req.get("min_accuracy", 0.0):
-                        champion_eligible = False
-                    if total_questions < champion_req.get("min_questions", 0):
-                        champion_eligible = False
-                    if champion_req.get("max_questions") and total_questions > champion_req.get("max_questions"):
-                        champion_eligible = False
-                    if champion_req.get("max_speed"):
-                        if avg_time_per_question is None or avg_time_per_question >= champion_req.get("max_speed"):
-                            champion_eligible = False
-                    
-                    # If Champion requirements met, check server record
-                    if champion_eligible:
-                        if AchievementService.checkChampionEligibility(champion_code, session, "champion"):
-                            # Award Champion instead
-                            achievement_code = champion_code
-                            config = champion_config
-            
-            # Award the achievement
-            achievement = AchievementService.create_achievement(
-                user_id=session.user_id,
-                code=achievement_code,
-                title=config["title"],
-                description=config["description"],
-                icon=config["icon"],
-                category=config["category"],
-                session_id=session.id,
+        if not eligible_tiers:
+            return []
+        
+        # Sort by tier value (highest first) and get the highest
+        eligible_tiers.sort(key=lambda x: get_tier_value(x[0]), reverse=True)
+        highest_tier, achievement_code, config = eligible_tiers[0]
+        
+        # Check for Champion tier eligibility if this is Divine tier
+        if highest_tier == "divine":
+            champion_result = self._check_champion_eligibility(
+                context["operation"],
+                context,
+                session,
             )
-            new_achievements.append(achievement)
+            if champion_result:
+                achievement_code, config = champion_result
         
-        if new_achievements:
-            from ....database import flush_or_commit
-            flush_or_commit()
+        # Award the achievement
+        achievement = self._award_achievement(session, achievement_code, config)
         
-        return new_achievements
+        from ....database import flush_or_commit
+        flush_or_commit()
+        
+        return [achievement]
 

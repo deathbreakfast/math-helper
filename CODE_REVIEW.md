@@ -137,7 +137,7 @@ File: `backend/app/routes/practice.py`
 - No obvious frontend usage of `/practice/submissions`.
 
 **Recommendation (P1):**
-- If unused, mark deprecated (return 410 + message) then delete after a sunset period.
+- ✅ Deleted `POST /practice/submissions` (no runtime callers; references were limited to docs/E2E helpers).
 
 ## Complexity Hotspots & Refactor Targets
 

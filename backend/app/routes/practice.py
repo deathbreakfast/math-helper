@@ -2,9 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import datetime
-from typing import Any
-
 from flask import Blueprint, jsonify, request
 from sqlalchemy import select
 
@@ -19,7 +16,6 @@ from .route_helpers import (
     create_error_response,
     create_success_response,
     get_json_payload,
-    get_user_from_payload,
     get_user_id_from_payload,
     validate_required_fields,
 )
@@ -71,108 +67,6 @@ def list_practice_sessions():
             for s in sessions
         ]
     })
-
-
-@practice_bp.post("/practice/submissions")
-def submit_practice_attempts():
-    """Submit practice attempts while verifying the learner PIN."""
-    payload = get_json_payload()
-    
-    # Get user with PIN verification
-    user, error = get_user_from_payload(payload, require_pin=True)
-    if error:
-        status_code = 404 if "not found" in error["error"].lower() else 403
-        return create_error_response(error["error"], status_code)
-
-    attempts_payload = payload.get("attempts") or []
-    normalized_attempts: list[dict[str, Any]] = []
-    correct_count = 0
-
-    # Create practice session
-    mode = payload.get("mode", "standard")
-    session = PracticeService.create_session(user.id, mode=mode, level=user.level)
-
-    # Process each attempt
-    for attempt in attempts_payload:
-        question_id = attempt.get("questionId") or attempt.get("question_id")
-        prompt = attempt.get("prompt") or "Practice prompt"
-        submitted = attempt.get("submittedAnswer")
-        expected = attempt.get("correctAnswer")
-        elapsed_ms = attempt.get("elapsedMs") or attempt.get("durationMs")
-
-        is_correct = (
-            submitted is not None
-            and expected is not None
-            and str(submitted).strip() != ""
-            and str(submitted).strip() == str(expected).strip()
-        )
-
-        if is_correct:
-            correct_count += 1
-
-        # If we have a real question_id, record the response
-        if question_id and isinstance(question_id, int):
-            PracticeService.record_response(
-                session_id=session.id,
-                question_id=question_id,
-                user_id=user.id,
-                submitted_answer=str(submitted) if submitted else "",
-                correct_answer=str(expected) if expected else "",
-                is_correct=is_correct,
-                duration_ms=elapsed_ms,
-            )
-
-        normalized_attempts.append(
-            {
-                "questionId": question_id,
-                "prompt": prompt,
-                "submittedAnswer": submitted,
-                "correctAnswer": expected,
-                "isCorrect": is_correct,
-                "elapsedMs": elapsed_ms,
-                "awardedPoints": 10 if is_correct else 0,
-            }
-        )
-
-    total_attempts = len(normalized_attempts)
-    accuracy = round((correct_count / total_attempts) * 100) if total_attempts else 0
-
-    # Complete the session
-    total_duration_ms = sum(
-        (a.get("elapsedMs") or 0) for a in normalized_attempts if a.get("elapsedMs")
-    )
-    PracticeService.complete_session(
-        session.id, total_attempts, correct_count, total_duration_ms if total_duration_ms > 0 else None
-    )
-
-    # Aggregate daily stats for analytics
-    AnalyticsService.aggregate_daily_stats(user.id)
-
-    # Update achievements (pass session_id for proper attribution)
-    metrics = AnalyticsService.compute_user_metrics(user.id)
-    AchievementService.ensure_achievements(user, metrics, session_id=session.id)
-
-    session_payload = {
-        "id": str(session.id),
-        "submittedAt": datetime.utcnow().isoformat(),
-        "user": {
-            "id": user.id,
-            "name": user.display_name,
-            "avatar": user.avatar,
-            "level": user.level,
-            "share_url_params": {"user": user.display_name, "pin": user.pin},
-        },
-        "attempts": normalized_attempts,
-        "totals": {
-            "questions": total_attempts,
-            "correct": correct_count,
-            "accuracy": accuracy,
-        },
-        "status": "completed",
-        "message": payload.get("notes") or "Practice submissions captured for the session.",
-    }
-
-    return create_success_response({"session": session_payload})
 
 
 @practice_bp.get("/practice/sessions/incomplete")

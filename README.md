@@ -117,6 +117,5 @@ Math Helper is designed for trusted, local-network deployments while the curricu
 - `GET /api/users` – List every learner plus derived dashboard metrics (levels, accuracy, speed, streaks) and any persisted achievements awarded by the backend rules engine.
 - `GET /api/users/<id>` – Fetch a single learner snapshot with the same metric payload as the list endpoint.
 - `GET /api/achievements?user_id=<id>` – Fetch the persisted achievements across all learners or scoped to a single learner for the global activity rail shown on the dashboard.
-- `POST /api/practice/submissions` – Accepts `{ userId?, userName?, pin, attempts[] }`, verifies the PIN from share-link parameters, and returns a mocked practice session summary so the new practice UI can gate submissions before the real engine lands.
 
 Schema groundwork (SQLite via SQLAlchemy) also defines `questions` and `responses` tables, ready for future endpoints that log generated prompts and learner answers with timestamps.

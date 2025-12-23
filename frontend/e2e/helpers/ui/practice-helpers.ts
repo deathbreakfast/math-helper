@@ -220,13 +220,11 @@ export async function submitPracticeSession(page: Page): Promise<any> {
       const url = response.url()
       const method = response.request().method()
       const status = response.status()
-      // Match either the complete endpoint or the submissions endpoint
-      // Be lenient with URL matching to catch variations
+      // Match the complete endpoint (be lenient with URL matching to catch variations)
       const matchesSessions = url.includes('/api/practice/sessions')
       const matchesComplete = matchesSessions && (url.includes('/complete') || url.match(/\/sessions\/\d+\//))
-      const matchesSubmissions = url.includes('/api/practice/submissions')
       // Accept POST requests with 2xx status codes
-      return (matchesComplete || matchesSubmissions) && method === 'POST' && status >= 200 && status < 300
+      return matchesComplete && method === 'POST' && status >= 200 && status < 300
     },
     { timeout: 10000 } // 10 second timeout - should be enough for API response
   ).catch(() => {

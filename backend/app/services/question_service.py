@@ -130,127 +130,209 @@ class QuestionService:
         return True
 
     @staticmethod
-    def generate_operands_with_constraints(
+    def _normalize_constraints(
+        constraints: dict[str, Any],
+        test_constraints: dict[str, Any] | None,
         operation: str,
         level: int,
-        test_constraints: dict[str, Any] | None = None,
-        max_attempts: int = 100,
-    ) -> tuple[int, int]:
-        """Generate operands that satisfy level constraints."""
-        config = LevelConfigService.get_level_config(level)
-        if not config:
-            raise ValueError(f"Level {level} configuration not found")
+    ) -> dict[str, Any]:
+        """Normalize constraints into a consistent structure for processing.
         
-        constraints = config.get("constraints", {})
-        op1_range = config["operand1_range"]
-        op2_range = config["operand2_range"]
+        Returns a dict with normalized constraint values and metadata.
+        """
+        normalized = {
+            "operation": operation,
+            "level": level,
+            "allow_division_by_zero": constraints.get("allow_division_by_zero", False),
+            "no_remainder": constraints.get("no_remainder", False),
+            "fixed_operand2": constraints.get("fixed_operand2"),
+            "multiple_of": constraints.get("multiple_of"),
+            "exclude_zeros": constraints.get("exclude_zeros", False),
+            "answer_min": constraints.get("answer_min"),
+            "test_multiplication_table": test_constraints.get("multiplication_table") if test_constraints else None,
+            "test_division_table": test_constraints.get("division_table") if test_constraints else None,
+        }
+        return normalized
+
+    @staticmethod
+    def _generate_with_test_constraints(
+        normalized_constraints: dict[str, Any],
+        op1_range: dict[str, int],
+        op2_range: dict[str, int],
+    ) -> tuple[int, int] | None:
+        """Generate operands using test constraints (multiplication_table or division_table).
         
-        # Handle test constraints (override level config)
-        if test_constraints:
-            if test_constraints.get("multiplication_table"):
-                operand2 = test_constraints["multiplication_table"]
-                operand1 = random.randint(op1_range["min"], op1_range["max"])
-                return operand1, operand2
-            
-            if test_constraints.get("division_table"):
-                operand2 = test_constraints["division_table"]
-                if operand2 == 0:
-                    # Division by zero - use default generation
-                    operand1 = random.randint(op1_range["min"], op1_range["max"])
-                else:
-                    # Generate operand1 as multiple of operand2
-                    min_quotient = max(1, op1_range["min"] // operand2)
-                    max_quotient = op1_range["max"] // operand2
-                    quotient = random.randint(min_quotient, max_quotient)
-                    operand1 = operand2 * quotient
-                return operand1, operand2
-        
-        # Handle fixed operand2 from level config
-        if "fixed_operand2" in constraints:
-            operand2 = constraints["fixed_operand2"]
+        Returns operands if test constraints are present, None otherwise.
+        """
+        # Handle multiplication_table test constraint
+        if normalized_constraints["test_multiplication_table"] is not None:
+            operand2 = normalized_constraints["test_multiplication_table"]
             operand1 = random.randint(op1_range["min"], op1_range["max"])
-            
-            # For division, operand2 cannot be 0
-            if operation == "division" and operand2 == 0:
-                if constraints.get("allow_division_by_zero"):
-                    return 0, 0
-                # Division by zero - invalid configuration, use operand2_range instead
-                if op2_range["min"] > 0 or op2_range["max"] > 0:
-                    operand2 = random.randint(max(1, op2_range["min"]), max(1, op2_range["max"]))
-                else:
-                    raise ValueError(
-                        f"Level {level} has invalid division configuration: fixed_operand2=0 and operand2_range=[0,0]"
-                    )
-            
-            # For division with fixed divisor and no remainder, ensure operand1 is multiple
-            if operation == "division" and constraints.get("no_remainder"):
-                if operand2 == 0:
-                    # This should not happen after the check above, but handle it anyway
-                    raise ValueError(f"Division by zero: operand2 cannot be 0 for division operation")
-                else:
-                    min_quotient = max(1, op1_range["min"] // operand2)
-                    max_quotient = op1_range["max"] // operand2
-                    quotient = random.randint(min_quotient, max_quotient)
-                    operand1 = operand2 * quotient
-            
-            # For multiple_of constraint
-            if "multiple_of" in constraints:
-                multiple = constraints["multiple_of"]
-                if multiple == 0:
-                    # Can't generate multiple of 0 - use default
-                    operand1 = random.randint(op1_range["min"], op1_range["max"])
-                else:
-                    # Generate operand1 as multiple
-                    min_multiple = max(1, op1_range["min"] // multiple)
-                    max_multiple = op1_range["max"] // multiple
-                    if min_multiple <= max_multiple:
-                        multiplier = random.randint(min_multiple, max_multiple)
-                        operand1 = multiple * multiplier
-                    else:
-                        # Range invalid, use default
-                        operand1 = random.randint(op1_range["min"], op1_range["max"])
-            
             return operand1, operand2
         
-        # Regular generation with constraints
+        # Handle division_table test constraint
+        if normalized_constraints["test_division_table"] is not None:
+            operand2 = normalized_constraints["test_division_table"]
+            if operand2 == 0:
+                # Division by zero - use default generation
+                operand1 = random.randint(op1_range["min"], op1_range["max"])
+            else:
+                # Generate operand1 as multiple of operand2
+                min_quotient = max(1, op1_range["min"] // operand2)
+                max_quotient = op1_range["max"] // operand2
+                quotient = random.randint(min_quotient, max_quotient)
+                operand1 = operand2 * quotient
+            return operand1, operand2
+        
+        return None
+
+    @staticmethod
+    def _generate_with_fixed_operand2(
+        normalized_constraints: dict[str, Any],
+        op1_range: dict[str, int],
+        op2_range: dict[str, int],
+        level: int,
+    ) -> tuple[int, int] | None:
+        """Generate operands when fixed_operand2 constraint is present.
+        
+        Returns operands if fixed_operand2 is set, None otherwise.
+        """
+        if normalized_constraints["fixed_operand2"] is None:
+            return None
+        
+        operation = normalized_constraints["operation"]
+        constraints = normalized_constraints
+        
+        operand2 = constraints["fixed_operand2"]
+        
+        # Handle division by zero case
+        if operation == "division" and operand2 == 0:
+            if constraints["allow_division_by_zero"]:
+                return 0, 0
+            # Division by zero - invalid configuration, use operand2_range instead
+            if op2_range["min"] > 0 or op2_range["max"] > 0:
+                operand2 = random.randint(max(1, op2_range["min"]), max(1, op2_range["max"]))
+            else:
+                raise ValueError(
+                    f"Level {level} has invalid division configuration: fixed_operand2=0 and operand2_range=[0,0]"
+                )
+        
+        # Start with random operand1
+        operand1 = random.randint(op1_range["min"], op1_range["max"])
+        
+        # Apply division no_remainder constraint
+        if operation == "division" and constraints["no_remainder"]:
+            if operand2 == 0:
+                raise ValueError("Division by zero: operand2 cannot be 0 for division operation")
+            min_quotient = max(1, op1_range["min"] // operand2)
+            max_quotient = op1_range["max"] // operand2
+            quotient = random.randint(min_quotient, max_quotient)
+            operand1 = operand2 * quotient
+        
+        # Apply multiple_of constraint
+        if constraints["multiple_of"] is not None:
+            multiple = constraints["multiple_of"]
+            if multiple == 0:
+                # Can't generate multiple of 0 - use default
+                operand1 = random.randint(op1_range["min"], op1_range["max"])
+            else:
+                # Generate operand1 as multiple
+                min_multiple = max(1, op1_range["min"] // multiple)
+                max_multiple = op1_range["max"] // multiple
+                if min_multiple <= max_multiple:
+                    multiplier = random.randint(min_multiple, max_multiple)
+                    operand1 = multiple * multiplier
+                else:
+                    # Range invalid, use default
+                    operand1 = random.randint(op1_range["min"], op1_range["max"])
+        
+        return operand1, operand2
+
+    @staticmethod
+    def _generate_with_general_strategy(
+        normalized_constraints: dict[str, Any],
+        op1_range: dict[str, int],
+        op2_range: dict[str, int],
+        max_attempts: int,
+    ) -> tuple[int, int]:
+        """Generate operands using general random strategy with constraint validation.
+        
+        Tries multiple attempts, applying constraints during generation when possible.
+        """
+        operation = normalized_constraints["operation"]
+        constraints = normalized_constraints
+        
+        # Try to generate valid operands
         for _ in range(max_attempts):
             operand1 = random.randint(op1_range["min"], op1_range["max"])
             operand2 = random.randint(op2_range["min"], op2_range["max"])
             
-            # For division, operand2 cannot be 0
+            # Handle division by zero
             if operation == "division" and operand2 == 0:
-                if constraints.get("allow_division_by_zero"):
+                if constraints["allow_division_by_zero"]:
                     return 0, 0
                 continue
             
-            # For division, ensure it divides evenly if no_remainder
-            if operation == "division" and constraints.get("no_remainder"):
+            # Apply division no_remainder constraint during generation
+            if operation == "division" and constraints["no_remainder"]:
                 if operand2 == 0:
-                    # Skip this attempt
                     continue
                 operand1 = operand2 * random.randint(
                     max(1, op1_range["min"] // operand2),
                     op1_range["max"] // operand2
                 )
             
-            # For multiple_of constraint
-            if "multiple_of" in constraints:
+            # Apply multiple_of constraint during generation
+            if constraints["multiple_of"] is not None:
                 multiple = constraints["multiple_of"]
                 min_multiple = max(1, op1_range["min"] // multiple)
                 max_multiple = op1_range["max"] // multiple
                 multiplier = random.randint(min_multiple, max_multiple)
                 operand1 = multiple * multiplier
             
-            if QuestionService.validate_constraints(operation, operand1, operand2, constraints):
+            # Validate against all constraints (only include keys with actual values)
+            validation_constraints = {}
+            if constraints["exclude_zeros"]:
+                validation_constraints["exclude_zeros"] = True
+            if constraints["fixed_operand2"] is not None:
+                validation_constraints["fixed_operand2"] = constraints["fixed_operand2"]
+            if constraints["multiple_of"] is not None:
+                validation_constraints["multiple_of"] = constraints["multiple_of"]
+            if constraints["no_remainder"]:
+                validation_constraints["no_remainder"] = True
+            if constraints["answer_min"] is not None:
+                validation_constraints["answer_min"] = constraints["answer_min"]
+            if constraints["allow_division_by_zero"]:
+                validation_constraints["allow_division_by_zero"] = True
+            
+            if QuestionService.validate_constraints(operation, operand1, operand2, validation_constraints):
                 return operand1, operand2
         
-        # Fallback: return valid operands even if constraints aren't perfect
+        # Fallback: generate valid operands even if constraints aren't perfectly satisfied
+        return QuestionService._generate_fallback_operands(
+            normalized_constraints, op1_range, op2_range
+        )
+
+    @staticmethod
+    def _generate_fallback_operands(
+        normalized_constraints: dict[str, Any],
+        op1_range: dict[str, int],
+        op2_range: dict[str, int],
+    ) -> tuple[int, int]:
+        """Generate fallback operands when max_attempts is exhausted.
+        
+        Ensures basic validity (e.g., no division by zero) even if constraints aren't met.
+        """
+        operation = normalized_constraints["operation"]
+        constraints = normalized_constraints
+        level = normalized_constraints["level"]
+        
         operand1 = random.randint(op1_range["min"], op1_range["max"])
         operand2 = random.randint(op2_range["min"], op2_range["max"])
         
         # For division, ensure operand2 is not 0
         if operation == "division" and operand2 == 0:
-            if constraints.get("allow_division_by_zero"):
+            if constraints["allow_division_by_zero"]:
                 return 0, 0
             # Use minimum of 1 if range allows, otherwise raise error
             if op2_range["max"] > 0:
@@ -259,6 +341,62 @@ class QuestionService:
                 raise ValueError(f"Level {level} has invalid division configuration: operand2_range=[0,0]")
         
         return operand1, operand2
+
+    @staticmethod
+    def generate_operands_with_constraints(
+        operation: str,
+        level: int,
+        test_constraints: dict[str, Any] | None = None,
+        max_attempts: int = 100,
+    ) -> tuple[int, int]:
+        """Generate operands that satisfy level constraints.
+        
+        Uses a pipeline pattern:
+        1. Normalize constraints from config and test_constraints
+        2. Try test constraint strategies first (multiplication_table, division_table)
+        3. Try fixed operand2 strategy if applicable
+        4. Fall back to general random generation with validation
+        
+        Args:
+            operation: The math operation (addition, subtraction, multiplication, division)
+            level: The difficulty level
+            test_constraints: Optional test-specific constraints
+            max_attempts: Maximum attempts for general strategy generation
+            
+        Returns:
+            Tuple of (operand1, operand2) that satisfy the constraints
+        """
+        config = LevelConfigService.get_level_config(level)
+        if not config:
+            raise ValueError(f"Level {level} configuration not found")
+        
+        constraints = config.get("constraints", {})
+        op1_range = config["operand1_range"]
+        op2_range = config["operand2_range"]
+        
+        # Step 1: Normalize constraints
+        normalized = QuestionService._normalize_constraints(
+            constraints, test_constraints, operation, level
+        )
+        
+        # Step 2: Try test constraint strategies (highest priority)
+        result = QuestionService._generate_with_test_constraints(
+            normalized, op1_range, op2_range
+        )
+        if result is not None:
+            return result
+        
+        # Step 3: Try fixed operand2 strategy
+        result = QuestionService._generate_with_fixed_operand2(
+            normalized, op1_range, op2_range, level
+        )
+        if result is not None:
+            return result
+        
+        # Step 4: Use general random generation strategy
+        return QuestionService._generate_with_general_strategy(
+            normalized, op1_range, op2_range, max_attempts
+        )
 
     @staticmethod
     def create_work_steps(operation: str, operand1: int, operand2: int, result: int) -> list[dict[str, Any]]:
@@ -577,100 +715,35 @@ class QuestionService:
         test_constraints: dict[str, Any] | None = None,
         max_attempts: int = 100,
     ) -> tuple[int, int]:
-        """Generate operands using an explicit config dict (no LevelConfigService lookup)."""
+        """Generate operands using an explicit config dict (no LevelConfigService lookup).
+        
+        Reuses the same pipeline pattern as generate_operands_with_constraints.
+        """
         constraints = config.get("constraints", {}) or {}
         op1_range = config["operand1_range"]
         op2_range = config["operand2_range"]
-
-        # Preserve existing test-constraint behavior (for future extension; tests are removed but this is harmless)
-        if test_constraints:
-            if test_constraints.get("multiplication_table"):
-                operand2 = test_constraints["multiplication_table"]
-                operand1 = random.randint(op1_range["min"], op1_range["max"])
-                return operand1, operand2
-
-            if test_constraints.get("division_table"):
-                operand2 = test_constraints["division_table"]
-                if operand2 == 0:
-                    operand1 = random.randint(op1_range["min"], op1_range["max"])
-                else:
-                    min_quotient = max(1, op1_range["min"] // operand2)
-                    max_quotient = op1_range["max"] // operand2
-                    quotient = random.randint(min_quotient, max_quotient)
-                    operand1 = operand2 * quotient
-                return operand1, operand2
-
-        # Handle fixed operand2 from config
-        if "fixed_operand2" in constraints:
-            operand2 = constraints["fixed_operand2"]
-            operand1 = random.randint(op1_range["min"], op1_range["max"])
-
-            if operation == "division" and operand2 == 0:
-                if constraints.get("allow_division_by_zero"):
-                    return 0, 0
-                if op2_range["min"] > 0 or op2_range["max"] > 0:
-                    operand2 = random.randint(max(1, op2_range["min"]), max(1, op2_range["max"]))
-                else:
-                    raise ValueError("Invalid division config: fixed_operand2=0 and operand2_range=[0,0]")
-
-            if operation == "division" and constraints.get("no_remainder"):
-                if operand2 == 0:
-                    raise ValueError("Division by zero")
-                min_quotient = max(1, op1_range["min"] // operand2)
-                max_quotient = op1_range["max"] // operand2
-                quotient = random.randint(min_quotient, max_quotient)
-                operand1 = operand2 * quotient
-
-            if "multiple_of" in constraints:
-                multiple = constraints["multiple_of"]
-                if multiple == 0:
-                    operand1 = random.randint(op1_range["min"], op1_range["max"])
-                else:
-                    min_multiple = max(1, op1_range["min"] // multiple)
-                    max_multiple = op1_range["max"] // multiple
-                    if min_multiple <= max_multiple:
-                        multiplier = random.randint(min_multiple, max_multiple)
-                        operand1 = multiple * multiplier
-                    else:
-                        operand1 = random.randint(op1_range["min"], op1_range["max"])
-
-            return operand1, operand2
-
-        for _ in range(max_attempts):
-            operand1 = random.randint(op1_range["min"], op1_range["max"])
-            operand2 = random.randint(op2_range["min"], op2_range["max"])
-
-            if operation == "division" and operand2 == 0:
-                if constraints.get("allow_division_by_zero"):
-                    return 0, 0
-                continue
-
-            if operation == "division" and constraints.get("no_remainder"):
-                if operand2 == 0:
-                    continue
-                operand1 = operand2 * random.randint(
-                    max(1, op1_range["min"] // operand2),
-                    op1_range["max"] // operand2,
-                )
-
-            if "multiple_of" in constraints:
-                multiple = constraints["multiple_of"]
-                min_multiple = max(1, op1_range["min"] // multiple)
-                max_multiple = op1_range["max"] // multiple
-                multiplier = random.randint(min_multiple, max_multiple)
-                operand1 = multiple * multiplier
-
-            if QuestionService.validate_constraints(operation, operand1, operand2, constraints):
-                return operand1, operand2
-
-        operand1 = random.randint(op1_range["min"], op1_range["max"])
-        operand2 = random.randint(op2_range["min"], op2_range["max"])
-        if operation == "division" and operand2 == 0:
-            if constraints.get("allow_division_by_zero"):
-                return 0, 0
-            if op2_range["max"] > 0:
-                operand2 = max(1, op2_range["min"])
-            else:
-                raise ValueError("Invalid division config: operand2_range=[0,0]")
-        return operand1, operand2
+        # Use a placeholder level since we don't have it from config
+        level = 1
+        
+        # Normalize constraints using the same helper
+        normalized = QuestionService._normalize_constraints(
+            constraints, test_constraints, operation, level
+        )
+        
+        # Use the same pipeline: test constraints -> fixed operand2 -> general strategy
+        result = QuestionService._generate_with_test_constraints(
+            normalized, op1_range, op2_range
+        )
+        if result is not None:
+            return result
+        
+        result = QuestionService._generate_with_fixed_operand2(
+            normalized, op1_range, op2_range, level
+        )
+        if result is not None:
+            return result
+        
+        return QuestionService._generate_with_general_strategy(
+            normalized, op1_range, op2_range, max_attempts
+        )
 

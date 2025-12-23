@@ -43,14 +43,14 @@ Heuristic analysis (AST-based) found these as top hotspots in `backend/app`:
 - `SessionEngineService.generate_session` (~168 LOC, **CC~32**) in `backend/app/services/session_engine_service.py`
 - `LevelMasterChecker.check` (~167 LOC, **CC~22**) in `backend/app/services/achievements/achievement_checkers/level_master_checker.py`
 - `GenericAccuracyChecker.check` (~143 LOC, **CC~35**) in `backend/app/services/achievements/achievement_checkers/generic_accuracy_checker.py`
-- `QuestionService.generate_operands_with_constraints` (~129 LOC, **CC~31**) in `backend/app/services/question_service.py`
+- ✅ `QuestionService.generate_operands_with_constraints` (~129 LOC, **CC~31**) in `backend/app/services/question_service.py` — **REFACTORED**: Converted to pipeline pattern with strategy selection
 - `QuestionService.generate_question` (~129 LOC, **CC~13**) in `backend/app/services/question_service.py`
 
 **Most complex (estimated cyclomatic complexity)**
 - ✅ `AchievementQueryService.count_achievements_by_code_with_filters` (**CC~54**) — **REFACTORED**: Split into smaller helper methods reducing complexity
 - `GenericAccuracyChecker.check` (**CC~35**) — complex decision tree
 - `SessionEngineService.generate_session` (**CC~32**) — heavy branching + multiple responsibilities
-- `QuestionService.generate_operands_with_constraints` (**CC~31**) — many special cases, deep conditional logic
+- ✅ `QuestionService.generate_operands_with_constraints` (**CC~31**) — **REFACTORED**: Converted to pipeline pattern reducing complexity
 
 **Interpretation:** These are the primary candidates for refactors that reduce cognitive load and defect risk.
 
@@ -184,14 +184,14 @@ File: `backend/app/services/achievements/achievement_queries/achievement_query_s
 File: `backend/app/services/question_service.py`
 
 **Problems**
-- Many special-cased branches for division, `fixed_operand2`, `multiple_of`, test constraints, etc.
-- Hard to reason about correctness and “edge-case coverage”.
+- ✅ **RESOLVED**: Many special-cased branches for division, `fixed_operand2`, `multiple_of`, test constraints, etc. — refactored into pipeline pattern.
+- ✅ **RESOLVED**: Hard to reason about correctness and "edge-case coverage" — split into focused strategy methods.
 
 **Recommendation (P1):**
-- Convert to a pipeline:
-  - Build a “constraints object” (normalized)
-  - Choose a generator strategy (division/no-remainder, fixed operand, general random)
-  - Validate constraints at the end
+- ✅ **COMPLETED**: Convert to a pipeline:
+  - ✅ Build a "constraints object" (normalized) — `_normalize_constraints`
+  - ✅ Choose a generator strategy (division/no-remainder, fixed operand, general random) — `_generate_with_test_constraints`, `_generate_with_fixed_operand2`, `_generate_with_general_strategy`
+  - ✅ Validate constraints at the end — integrated into `_generate_with_general_strategy`
 - Create a targeted unit test matrix for the generator strategies (edge-case oriented).
 
 ### Backend: `SessionEngineService.generate_session` Has Mixed Responsibilities
@@ -265,7 +265,7 @@ File: `frontend/src/features/practice/hooks/usePracticeSession.ts`
 
 ### P1 (High value)
 - ✅ Break up `AchievementQueryService.count_achievements_by_code_with_filters` — **COMPLETED**.
-- Simplify/strategy-ize `QuestionService.generate_operands_with_constraints`.
+- ✅ Simplify/strategy-ize `QuestionService.generate_operands_with_constraints` — **COMPLETED**.
 - Remove unused frontend constants: `LEVEL_REQUIREMENTS`, `STREAK_ACHIEVEMENTS`, etc.
 - Audit and deprecate/remove `/practice/submissions` if unused.
 

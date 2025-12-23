@@ -233,13 +233,13 @@ Several routes import models inside functions “to avoid circular imports”.
 ### Frontend Hook Complexity / Mixed Concerns
 
 File: `frontend/src/features/practice/hooks/usePracticeSession.ts`
-- Mixes API orchestration, state transitions, navigation, and persistence concerns.
-- Uses `// eslint-disable-next-line react-hooks/exhaustive-deps` (can hide legitimate dependency bugs).
-- Falls back to client-side answer checking if the server check fails (risk: silently masking backend errors).
+- ✅ Mixes API orchestration, state transitions, navigation, and persistence concerns — **REFACTORED**: Extracted helper functions for state synchronization
+- ✅ Uses `// eslint-disable-next-line react-hooks/exhaustive-deps` (can hide legitimate dependency bugs) — **FIXED**: Removed all eslint-disable comments and properly managed dependencies
+- ✅ Falls back to client-side answer checking if the server check fails (risk: silently masking backend errors) — **FIXED**: Removed client-side fallbacks, now shows errors and requires retry
 
 **Recommendation (P1):**
-- Extract “session state machine” logic into a pure reducer (or Zustand/Redux slice) and keep the hook thin.
-- Consider removing client-side fallback for correctness-critical flows; show an error and allow retry instead.
+- ✅ Extract "session state machine" logic into a pure reducer (or Zustand/Redux slice) and keep the hook thin — **PARTIALLY COMPLETED**: Extracted state synchronization helpers (`usePracticeSessionHelpers.ts`)
+- ✅ Consider removing client-side fallback for correctness-critical flows; show an error and allow retry instead — **COMPLETED**: Removed fallbacks from `handleCheckAnswer` and `handleSubmit`, now show errors
 
 ## Directory Structure & Architecture Notes
 

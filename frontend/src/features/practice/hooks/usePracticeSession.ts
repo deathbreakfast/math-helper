@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect, useMemo, useCallback } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import type { PracticeQuestion, User } from '../types'
@@ -7,6 +7,7 @@ import type { FeedbackState, QuestionAnswer } from '../utils/sessionReconstructi
 import { usePracticeState } from './usePracticeState'
 import { startSession, checkAnswer, completeSession, createSessionSummary } from './usePracticeAPI'
 import type { PracticeMode } from './usePracticeAPI'
+import { initializeSessionState, loadQuestionAnswer } from './usePracticeSessionHelpers'
 
 type UsePracticeSessionArgs = {
   selectedUser: User | null
@@ -29,6 +30,7 @@ type UsePracticeSessionResult = {
   questionAnswers: Record<string, QuestionAnswer>
   sessionMode: string
   sessionError: string | null
+  isLoadingProblems: boolean
   handleAnswerChange: (value: string) => void
   handleCheckAnswer: () => void
   handleSetAnswer: (questionId: string, answer: string, isCorrect: boolean) => void
@@ -80,94 +82,69 @@ export const usePracticeSession = ({
   } = actions
 
   // Fetch problems from backend API when learner or mode changes
-  useEffect(() => {
+  const fetchProblems = useCallback(async () => {
     if (!selectedUser) {
       resetState()
       return
     }
 
-    const fetchProblems = async () => {
-      setIsLoadingProblems(true)
-      setSessionError(null)
-      try {
-        const result = await startSession({
-          selectedUser,
-          practiceMode,
-          searchParams,
-        })
+    setIsLoadingProblems(true)
+    setSessionError(null)
+    try {
+      const result = await startSession({
+        selectedUser,
+        practiceMode,
+        searchParams,
+      })
 
-        // Set session state
-        setProblems(result.sessionState.problems)
-        setSessionId(result.sessionId)
-        setSessionMode(result.sessionMode)
-        setCurrentQuestionIndex(result.sessionState.currentQuestionIndex)
-        setQuestionAnswers(result.sessionState.questionAnswers)
-        setQuestionStartTimes(result.sessionState.questionStartTimes)
-        setFlaggedQuestions(result.sessionState.flaggedQuestions)
-
-        // Set current question state
-        const currentQuestion = result.sessionState.problems[result.sessionState.currentQuestionIndex]
-        if (currentQuestion) {
-          const answer = result.sessionState.questionAnswers[currentQuestion.id]
-          if (answer) {
-            setUserAnswer(answer.answer)
-            setFeedback(answer.feedback)
-            setShowAnswer(answer.isChecked)
-          } else {
-            setUserAnswer('')
-            setFeedback(null)
-            setShowAnswer(false)
-          }
-        } else {
-          setUserAnswer('')
-          setFeedback(null)
-          setShowAnswer(false)
-        }
-      } catch (error) {
-        logError('Error fetching problems:', error)
-        // Set error message for display
-        const errorMessage = error instanceof Error ? error.message : 'Failed to start session'
-        setSessionError(errorMessage)
-        // Fallback to empty problems
-        setProblems([])
-      } finally {
-        setIsLoadingProblems(false)
-      }
+      initializeSessionState(result, {
+        setProblems,
+        setSessionId,
+        setSessionMode,
+        setCurrentQuestionIndex,
+        setQuestionAnswers,
+        setQuestionStartTimes,
+        setFlaggedQuestions,
+        setUserAnswer,
+        setFeedback,
+        setShowAnswer,
+      })
+    } catch (error) {
+      logError('Error fetching problems:', error)
+      // Set error message for display - user can retry
+      const errorMessage = error instanceof Error ? error.message : 'Failed to start session'
+      setSessionError(errorMessage)
+      setProblems([])
+    } finally {
+      setIsLoadingProblems(false)
     }
+  }, [selectedUser, practiceMode, searchParams, resetState, setIsLoadingProblems, setSessionError, setProblems, setSessionId, setSessionMode, setCurrentQuestionIndex, setQuestionAnswers, setQuestionStartTimes, setFlaggedQuestions, setUserAnswer, setFeedback, setShowAnswer])
 
+  useEffect(() => {
     fetchProblems()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedUser, practiceMode])
+  }, [fetchProblems])
 
   const currentQuestion = problems[currentQuestionIndex]
 
   // Track start time when question changes
+  const currentQuestionId = currentQuestion?.id
   useEffect(() => {
-    if (currentQuestion?.id && !questionStartTimes[currentQuestion.id]) {
+    if (currentQuestionId && !questionStartTimes[currentQuestionId]) {
       setQuestionStartTimes((prev) => ({
         ...prev,
-        [currentQuestion.id]: Date.now(),
+        [currentQuestionId]: Date.now(),
       }))
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentQuestion?.id])
+  }, [currentQuestionId, questionStartTimes, setQuestionStartTimes])
 
   // Load saved answer when switching questions
   useEffect(() => {
-    if (currentQuestion?.id) {
-      const saved = questionAnswers[currentQuestion.id]
-      if (saved) {
-        setUserAnswer(saved.answer)
-        setFeedback(saved.feedback)
-        setShowAnswer(saved.isChecked)
-      } else {
-        setUserAnswer('')
-        setFeedback(null)
-        setShowAnswer(false)
-      }
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentQuestion?.id, questionAnswers])
+    loadQuestionAnswer(currentQuestion, questionAnswers, {
+      setUserAnswer,
+      setFeedback,
+      setShowAnswer,
+    })
+  }, [currentQuestion, questionAnswers, setUserAnswer, setFeedback, setShowAnswer])
 
   const isPartialProducts = currentQuestion?.layout?.type === 'partialProducts'
   const isLongDivision = currentQuestion?.layout?.type === 'longDivision'
@@ -215,23 +192,10 @@ export const usePracticeSession = ({
       setShowAnswer(true)
     } catch (error) {
       logError('Error checking answer:', error)
-      // Fallback to client-side check
-      const numericAnswer = Number(userAnswer)
-      const correct = numericAnswer === Number(currentQuestion.correctAnswer)
-      const feedbackState: FeedbackState = correct ? 'correct' : 'incorrect'
-      
-      setQuestionAnswers((prev) => ({
-        ...prev,
-        [currentQuestion.id]: {
-          answer: userAnswer,
-          isChecked: true,
-          feedback: feedbackState,
-          elapsedMs,
-        },
-      }))
-
-      setFeedback(feedbackState)
-      setShowAnswer(true)
+      // Show error to user instead of silently falling back
+      // This ensures backend correctness is enforced
+      const errorMessage = error instanceof Error ? error.message : 'Failed to check answer. Please try again.'
+      setSessionError(errorMessage)
     }
   }
 
@@ -316,57 +280,10 @@ export const usePracticeSession = ({
       }
     } catch (error) {
       logError('Failed to complete session:', error)
-      // Fallback to client-side submission
-      const attempts = problems.map((problem) => {
-        const answer = questionAnswers[problem.id]
-        const isCorrect = answer?.feedback === 'correct'
-        
-        return {
-          questionId: problem.id,
-          prompt: problem.prompt,
-          submittedAnswer: answer?.answer || '',
-          correctAnswer: problem.correctAnswer,
-          isCorrect: isCorrect,
-          awardedPoints: isCorrect ? 10 : 0,
-          elapsedMs: answer?.elapsedMs,
-        }
-      })
-
-      const correctCount = attempts.filter((a) => a.isCorrect).length
-      const accuracy = Math.round((correctCount / attempts.length) * 100)
-
-      const sessionSummary = {
-        id: `session-${Date.now()}`,
-        submittedAt: new Date().toISOString(),
-        status: 'completed',
-        message: 'Great job completing the practice session!',
-        totals: {
-          questions: attempts.length,
-          correct: correctCount,
-          accuracy,
-        },
-        user: {
-          id: selectedUser.id,
-          name: selectedUser.name,
-          avatar: selectedUser.avatar,
-          level: selectedUser.level,
-        },
-        attempts,
-      }
-
-      localStorage.setItem('lastPracticeSession', JSON.stringify(sessionSummary))
-      
-      // Navigate to summary page - only pass sessionId, not entire session object
-      const sessionIdForNav = sessionSummary.id
-      if (navigate) {
-        // Use navigate function which should preserve context params
-        navigate(`/summary?sessionId=${sessionIdForNav}`)
-      } else {
-        // Fallback: preserve context params manually
-        const contextParams = new URLSearchParams()
-        contextParams.set('sessionId', sessionIdForNav)
-        window.location.href = `/summary?${contextParams.toString()}`
-      }
+      // Show error to user instead of silently falling back
+      // This ensures backend correctness is enforced and achievements/XP are properly calculated
+      const errorMessage = error instanceof Error ? error.message : 'Failed to complete session. Please try again.'
+      setSessionError(errorMessage)
     }
   }
 

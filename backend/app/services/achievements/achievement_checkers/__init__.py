@@ -12,6 +12,7 @@ from .so_wow_checker import SoWowChecker
 from .generic_accuracy_checker import GenericAccuracyChecker
 from .level_grandmaster_checker import LevelGrandmasterChecker
 from .human_calculator_checker import HumanCalculatorChecker
+from .master_of_basic_checker import MasterOfBasicChecker
 from .operation_count_checker import OperationCountChecker
 from .level_accuracy_checker import LevelAccuracyChecker
 from .level_correct_count_checker import LevelCorrectCountChecker
@@ -31,6 +32,7 @@ __all__ = [
     'GenericAccuracyChecker',
     'LevelGrandmasterChecker',
     'HumanCalculatorChecker',
+    'MasterOfBasicChecker',
     'OperationCountChecker',
     'LevelAccuracyChecker',
     'LevelCorrectCountChecker',

@@ -299,6 +299,19 @@ def test_generic_achievement_022_test_achievements_in_config(app):
         assert "human-calculator" in ACHIEVEMENTS_CONFIG
         assert "master-of-times-tables-bronze" in ACHIEVEMENTS_CONFIG
         assert "master-of-division-tables-bronze" in ACHIEVEMENTS_CONFIG
+        assert "master-of-basic-addition-bronze" in ACHIEVEMENTS_CONFIG
+        assert "master-of-basic-subtraction-bronze" in ACHIEVEMENTS_CONFIG
+
+
+def test_generic_achievement_master_of_basic_all_tiers_present(app):
+    """Master of Basic Addition/Subtraction achievements are defined for all tiers."""
+    with app.app_context():
+        from app.config.achievements import ACHIEVEMENTS_CONFIG
+        from app.utils.tier_utils import ALL_TIERS
+
+        for tier in ALL_TIERS:
+            assert f"master-of-basic-addition-{tier}" in ACHIEVEMENTS_CONFIG
+            assert f"master-of-basic-subtraction-{tier}" in ACHIEVEMENTS_CONFIG
 
 
 def test_generic_achievement_023_all_tiers_present_in_accuracy(app):

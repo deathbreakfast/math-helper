@@ -18,6 +18,7 @@ from .achievement_checkers import (
     LevelMasterChecker,
     LevelGrandmasterChecker,
     HumanCalculatorChecker,
+    MasterOfBasicChecker,
 )
 
 
@@ -36,6 +37,7 @@ class AchievementOrchestrator:
         self.level_master_checker = LevelMasterChecker(achievement_configs)
         self.level_grandmaster_checker = LevelGrandmasterChecker(achievement_configs)
         self.human_calculator_checker = HumanCalculatorChecker(achievement_configs)
+        self.master_of_basic_checker = MasterOfBasicChecker(achievement_configs)
     
     def ensure_achievements(
         self,
@@ -147,6 +149,20 @@ class AchievementOrchestrator:
             level_master_titles = [a.title for a in level_master_achievements]
             debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(level_master_achievements)} Level Master achievement(s): {level_master_codes}")
             print(f"[ACHIEVEMENT INFO] Awarded {len(level_master_achievements)} Level Master achievement(s): {level_master_titles}")
+            db.session.commit()
+
+        # Check Master of Basic Addition/Subtraction achievements (concept coverage based on Level Master buckets)
+        debug_print(f"[ACHIEVEMENT DEBUG] Checking Master of Basic achievements...")
+        master_of_basic_achievements = self.master_of_basic_checker.check(user)
+        if master_of_basic_achievements:
+            master_of_basic_codes = [a.code for a in master_of_basic_achievements]
+            master_of_basic_titles = [a.title for a in master_of_basic_achievements]
+            debug_print(
+                f"[ACHIEVEMENT DEBUG] Awarded {len(master_of_basic_achievements)} Master of Basic achievement(s): {master_of_basic_codes}"
+            )
+            print(
+                f"[ACHIEVEMENT INFO] Awarded {len(master_of_basic_achievements)} Master of Basic achievement(s): {master_of_basic_titles}"
+            )
             db.session.commit()
         
         # Check Level Grandmaster milestone achievement (Level Master Bronze on all levels)

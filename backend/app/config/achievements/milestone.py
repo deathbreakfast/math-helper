@@ -528,6 +528,125 @@ def _generate_master_of_division_tables_achievements() -> dict[str, dict[str, An
     return achievements
 
 
+def _generate_master_of_basic_addition_achievements() -> dict[str, dict[str, Any]]:
+    """Generate Master of Basic Addition achievement definitions.
+
+    Milestone achievement awarded when the user has Level Master at all basic addition concepts.
+    This is concept-based (e.g. c_add_0s..c_add_10s) and is intended to power concept unlock requirements.
+    """
+    achievements: dict[str, dict[str, Any]] = {}
+
+    # Mirrors the 11-tier pattern used by other milestone achievements.
+    tier_requirements = {
+        "bronze": {"required_tier": "bronze"},
+        "silver": {"required_tier": "silver"},
+        "gold": {"required_tier": "gold"},
+        "platinum": {"required_tier": "platinum"},
+        "diamond": {"required_tier": "diamond"},
+        "master": {"required_tier": "master"},
+        "grandmaster": {"required_tier": "grandmaster"},
+        "legendary": {"required_tier": "legendary"},
+        "mythic": {"required_tier": "mythic"},
+        "divine": {"required_tier": "divine"},
+        "champion": {"required_tier": "divine"},  # Same as divine, requires server record
+    }
+
+    for tier in ALL_TIERS:
+        code = f"master-of-basic-addition-{tier}"
+        req = tier_requirements.get(tier, {})
+        required_tier = req.get("required_tier", "bronze")
+
+        tier_title = tier.capitalize()
+        title = f"Master of Basic Addition ({tier_title})"
+
+        if tier == "champion":
+            description = f"Level Master ({required_tier.capitalize()}) on all basic addition concepts (server record)"
+        else:
+            description = f"Level Master ({required_tier.capitalize()}) on all basic addition concepts"
+
+        requirements: dict[str, Any] = {
+            "type": "master_of_basic_addition",
+            "required_tier": required_tier,
+        }
+        if tier == "champion":
+            requirements["requires_champion_check"] = True
+
+        achievements[code] = {
+            "title": title,
+            "description": description,
+            "icon": "➕",
+            "category": "milestone",
+            "tier": tier,
+            "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": True,
+                "unique_achievement": False,
+            },
+        }
+
+    return achievements
+
+
+def _generate_master_of_basic_subtraction_achievements() -> dict[str, dict[str, Any]]:
+    """Generate Master of Basic Subtraction achievement definitions.
+
+    Milestone achievement awarded when the user has Level Master at all basic subtraction concepts.
+    This is concept-based (e.g. c_sub_0s..c_sub_10s) and is intended to power concept unlock requirements.
+    """
+    achievements: dict[str, dict[str, Any]] = {}
+
+    tier_requirements = {
+        "bronze": {"required_tier": "bronze"},
+        "silver": {"required_tier": "silver"},
+        "gold": {"required_tier": "gold"},
+        "platinum": {"required_tier": "platinum"},
+        "diamond": {"required_tier": "diamond"},
+        "master": {"required_tier": "master"},
+        "grandmaster": {"required_tier": "grandmaster"},
+        "legendary": {"required_tier": "legendary"},
+        "mythic": {"required_tier": "mythic"},
+        "divine": {"required_tier": "divine"},
+        "champion": {"required_tier": "divine"},  # Same as divine, requires server record
+    }
+
+    for tier in ALL_TIERS:
+        code = f"master-of-basic-subtraction-{tier}"
+        req = tier_requirements.get(tier, {})
+        required_tier = req.get("required_tier", "bronze")
+
+        tier_title = tier.capitalize()
+        title = f"Master of Basic Subtraction ({tier_title})"
+
+        if tier == "champion":
+            description = f"Level Master ({required_tier.capitalize()}) on all basic subtraction concepts (server record)"
+        else:
+            description = f"Level Master ({required_tier.capitalize()}) on all basic subtraction concepts"
+
+        requirements: dict[str, Any] = {
+            "type": "master_of_basic_subtraction",
+            "required_tier": required_tier,
+        }
+        if tier == "champion":
+            requirements["requires_champion_check"] = True
+
+        achievements[code] = {
+            "title": title,
+            "description": description,
+            "icon": "➖",
+            "category": "milestone",
+            "tier": tier,
+            "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": True,
+                "unique_achievement": False,
+            },
+        }
+
+    return achievements
+
+
 # Generate all milestone achievements
 MILESTONE_ACHIEVEMENTS.update(_generate_week_warrior_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_question_master_achievements())
@@ -538,4 +657,6 @@ MILESTONE_ACHIEVEMENTS.update(_generate_so_wow_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_human_calculator_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_master_of_times_tables_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_master_of_division_tables_achievements())
+MILESTONE_ACHIEVEMENTS.update(_generate_master_of_basic_addition_achievements())
+MILESTONE_ACHIEVEMENTS.update(_generate_master_of_basic_subtraction_achievements())
 

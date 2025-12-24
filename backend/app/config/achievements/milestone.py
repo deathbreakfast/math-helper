@@ -162,14 +162,14 @@ def _generate_speed_demon_achievements() -> dict[str, dict[str, Any]]:
         "bronze": {"max_avg_speed": 5.0},
         "silver": {"max_avg_speed": 4.0},
         "gold": {"max_avg_speed": 3.0},
-        "platinum": {"max_avg_speed": 2.5},
-        "diamond": {"max_avg_speed": 2.0},
-        "master": {"max_avg_speed": 1.5},
-        "grandmaster": {"max_avg_speed": 1.0},
-        "legendary": {"max_avg_speed": 0.8},
-        "mythic": {"max_avg_speed": 0.6},
-        "divine": {"max_avg_speed": 0.5},
-        "champion": {"max_avg_speed": 0.5},  # Same as divine, requires server record
+        "platinum": {"max_avg_speed": 2.78},
+        "diamond": {"max_avg_speed": 2.55},
+        "master": {"max_avg_speed": 2.31},
+        "grandmaster": {"max_avg_speed": 2.06},
+        "legendary": {"max_avg_speed": 1.8},
+        "mythic": {"max_avg_speed": 1.53},
+        "divine": {"max_avg_speed": 1.4},
+        "champion": {"max_avg_speed": 1.4},  # Same as divine, requires server record
     }
     
     for tier in ALL_TIERS:

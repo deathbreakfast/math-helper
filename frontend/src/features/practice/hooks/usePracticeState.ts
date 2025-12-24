@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import type { PracticeQuestion } from '../types'
 import type { FeedbackState, QuestionAnswer } from '../utils/sessionReconstruction'
 
@@ -54,7 +54,7 @@ export function usePracticeState(): {
   const [sessionMode, setSessionMode] = useState<string>('standard')
   const [sessionError, setSessionError] = useState<string | null>(null)
 
-  const resetState = () => {
+  const resetState = useCallback(() => {
     setProblems([])
     setCurrentQuestionIndex(0)
     setUserAnswer('')
@@ -64,7 +64,7 @@ export function usePracticeState(): {
     setQuestionStartTimes({})
     setSessionId(null)
     setSessionError(null)
-  }
+  }, [])
 
   return {
     state: {

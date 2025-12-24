@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useCallback } from 'react'
+import { useEffect, useMemo, useCallback, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import type { PracticeQuestion, User } from '../types'
@@ -50,6 +50,21 @@ export const usePracticeSession = ({
   const [searchParams] = useSearchParams()
   const { state, actions } = usePracticeState()
   
+  // Extract searchParams values we need to avoid dependency on the object itself
+  // Use useMemo to create stable references based on the actual string values
+  const conceptIdValue = searchParams.get('conceptId')
+  const isConceptValue = searchParams.get('isConcept')
+  const resumeOldestValue = searchParams.get('resumeOldest')
+  
+  // Create a stable searchParams object for startSession
+  const stableSearchParams = useMemo(() => {
+    const params = new URLSearchParams()
+    if (conceptIdValue) params.set('conceptId', conceptIdValue)
+    if (isConceptValue === 'true') params.set('isConcept', 'true')
+    if (resumeOldestValue === 'true') params.set('resumeOldest', 'true')
+    return params
+  }, [conceptIdValue, isConceptValue, resumeOldestValue])
+  
   const {
     problems,
     currentQuestionIndex,
@@ -94,7 +109,7 @@ export const usePracticeSession = ({
       const result = await startSession({
         selectedUser,
         practiceMode,
-        searchParams,
+        searchParams: stableSearchParams,
       })
 
       initializeSessionState(result, {
@@ -118,7 +133,7 @@ export const usePracticeSession = ({
     } finally {
       setIsLoadingProblems(false)
     }
-  }, [selectedUser, practiceMode, searchParams, resetState, setIsLoadingProblems, setSessionError, setProblems, setSessionId, setSessionMode, setCurrentQuestionIndex, setQuestionAnswers, setQuestionStartTimes, setFlaggedQuestions, setUserAnswer, setFeedback, setShowAnswer])
+  }, [selectedUser, practiceMode, stableSearchParams, resetState])
 
   useEffect(() => {
     fetchProblems()
@@ -135,7 +150,7 @@ export const usePracticeSession = ({
         [currentQuestionId]: Date.now(),
       }))
     }
-  }, [currentQuestionId, questionStartTimes, setQuestionStartTimes])
+  }, [currentQuestionId, questionStartTimes])
 
   // Load saved answer when switching questions
   useEffect(() => {
@@ -144,7 +159,7 @@ export const usePracticeSession = ({
       setFeedback,
       setShowAnswer,
     })
-  }, [currentQuestion, questionAnswers, setUserAnswer, setFeedback, setShowAnswer])
+  }, [currentQuestion, questionAnswers])
 
   const isPartialProducts = currentQuestion?.layout?.type === 'partialProducts'
   const isLongDivision = currentQuestion?.layout?.type === 'longDivision'

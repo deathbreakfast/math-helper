@@ -15,7 +15,7 @@ const LearnerStatsCards = ({ user, onLevelCardClick }: Props) => {
       value: user.level,
       icon: Target,
       tone: 'amber',
-      subtitle: 'Multi-digit operations',
+      subtitle: 'Select here to explore your journey',
       onClick: onLevelCardClick,
       actionButton: onLevelCardClick ? (
         <button

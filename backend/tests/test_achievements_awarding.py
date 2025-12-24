@@ -263,6 +263,139 @@ def test_speed_demon_gold_achievement(app, test_user):
         assert achievement is not None, "Speed demon achievement (gold or higher) should be awarded"
 
 
+def test_speed_demon_champion_divine_flow(app, test_user):
+    """Test speed-demon champion/divine flow: champion → divine → champion.
+    
+    Flow:
+    1. Session with speed 1.1s (qualifies for champion, sets server record) → should get champion
+    2. Session with speed 1.15s (qualifies for divine 1.2s but doesn't break record) → should get divine
+    3. Session with speed 1.0s (breaks record) → should get champion again
+    
+    This test validates that:
+    - Champion is only awarded when a server record is set
+    - Divine is awarded when qualifying for champion tier but not breaking the record
+    - Champion can be awarded again when breaking a new record
+    """
+    from app.models import ServerRecord
+    
+    with app.app_context():
+        # Ensure no existing record
+        existing_record = ServerRecord.query.filter_by(achievement_type="speed-demon-champion").first()
+        if existing_record:
+            db.session.delete(existing_record)
+            db.session.commit()
+        
+        # Step 1: Create session with speed 1.1s (sets new record, should get champion)
+        questions1 = create_test_questions(1500, 1)  # Need 1500 for divine/champion
+        responses_data1 = [{
+            'question_id': q.id,
+            'answer': q.correct_answer,
+            'is_correct': True,
+            'duration_ms': 1100  # 1.1 seconds per question (qualifies for champion 1.2s)
+        } for q in questions1]
+        
+        session1 = create_test_session_with_responses(test_user.id, responses_data1)
+        
+        user = db.session.get(User, test_user.id)
+        metrics1 = AnalyticsService.compute_user_metrics(user.id)
+        AchievementService.ensure_achievements(user, metrics1, session_id=session1.id)
+        
+        # Verify champion was awarded for first session (1.1s qualifies and sets record)
+        achievement1 = Achievement.query.filter(
+            Achievement.user_id == test_user.id,
+            Achievement.code.in_(["speed-demon-champion", "speed-demon-divine"]),
+            Achievement.session_id == session1.id
+        ).first()
+        
+        assert achievement1 is not None, "Should award champion or divine for first session (1.1s)"
+        
+        # Verify server record was set (champion validator should have been called)
+        record1 = ServerRecord.query.filter_by(achievement_type="speed-demon-champion").first()
+        # Expected: Champion should be awarded and server record should be set
+        # Current bug: Champion is awarded but no server record is set
+        assert achievement1.code == "speed-demon-champion", "Should award champion when setting first record"
+        assert record1 is not None, "BUG: Server record should be set when champion is awarded (champion validator not being called)"
+        assert record1.record_value == 1.1, f"Record should be 1.1s, got {record1.record_value}"
+        assert record1.session_id == session1.id, "Record should be from session1"
+        
+        # Step 2: Create session with speed 1.15s (qualifies for divine but doesn't break record)
+        questions2 = create_test_questions(1500, 1)
+        responses_data2 = [{
+            'question_id': q.id,
+            'answer': q.correct_answer,
+            'is_correct': True,
+            'duration_ms': 1150  # 1.15 seconds per question (qualifies for divine 1.2s, but slower than record 1.1s)
+        } for q in questions2]
+        
+        session2 = create_test_session_with_responses(test_user.id, responses_data2)
+        
+        user = db.session.get(User, test_user.id)
+        metrics2 = AnalyticsService.compute_user_metrics(user.id)
+        AchievementService.ensure_achievements(user, metrics2, session_id=session2.id)
+        
+        # Verify divine was awarded (NOT champion, since record wasn't broken)
+        achievement2 = Achievement.query.filter(
+            Achievement.user_id == test_user.id,
+            Achievement.code.in_(["speed-demon-divine", "speed-demon-champion"]),
+            Achievement.session_id == session2.id
+        ).first()
+        
+        assert achievement2 is not None, "Should award divine or champion for second session (1.15s)"
+        # Expected: Divine should be awarded (qualifies for champion tier but doesn't break record)
+        # Current bug: Champion is awarded again instead of divine
+        assert achievement2.code == "speed-demon-divine", f"BUG: Should award divine when not breaking record, got {achievement2.code} (champion validator not checking server record)"
+        
+        # Verify record was NOT updated (should still be 1.1s from session1)
+        record2 = ServerRecord.query.filter_by(achievement_type="speed-demon-champion").first()
+        assert record2 is not None, "Record should still exist"
+        assert record2.record_value == 1.1, f"Record should still be 1.1s, got {record2.record_value}"
+        assert record2.session_id == session1.id, "Record should still be from session1"
+        
+        # Verify champion was NOT awarded again (should only have 1 champion achievement)
+        champion_count = Achievement.query.filter(
+            Achievement.user_id == test_user.id,
+            Achievement.code == "speed-demon-champion"
+        ).count()
+        assert champion_count == 1, f"Should only have 1 champion achievement, got {champion_count}"
+        
+        # Step 3: Create session with speed 1.0s (breaks record, should get champion)
+        questions3 = create_test_questions(1500, 1)
+        responses_data3 = [{
+            'question_id': q.id,
+            'answer': q.correct_answer,
+            'is_correct': True,
+            'duration_ms': 1000  # 1.0 seconds per question (breaks record of 1.1s)
+        } for q in questions3]
+        
+        session3 = create_test_session_with_responses(test_user.id, responses_data3)
+        
+        user = db.session.get(User, test_user.id)
+        metrics3 = AnalyticsService.compute_user_metrics(user.id)
+        AchievementService.ensure_achievements(user, metrics3, session_id=session3.id)
+        
+        # Verify champion was awarded (should break record)
+        achievement3 = Achievement.query.filter(
+            Achievement.user_id == test_user.id,
+            Achievement.code == "speed-demon-champion",
+            Achievement.session_id == session3.id
+        ).first()
+        
+        assert achievement3 is not None, "Should award champion when breaking record (1.0s < 1.1s)"
+        
+        # Verify record was updated
+        record3 = ServerRecord.query.filter_by(achievement_type="speed-demon-champion").first()
+        assert record3 is not None, "Record should exist"
+        assert record3.record_value == 1.0, f"Record should be updated to 1.0s, got {record3.record_value}"
+        assert record3.session_id == session3.id, "Record should be from session3"
+        
+        # Verify we now have 2 champion achievements (one from session1, one from session3)
+        champion_count_final = Achievement.query.filter(
+            Achievement.user_id == test_user.id,
+            Achievement.code == "speed-demon-champion"
+        ).count()
+        assert champion_count_final == 2, f"Should have 2 champion achievements (sessions 1 and 3), got {champion_count_final}"
+
+
 def test_lightning_fast_with_multiplier(app, test_user):
     """Test lightning-fast achievement with concept speed multiplier (2.0x).
     

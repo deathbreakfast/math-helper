@@ -14,14 +14,14 @@ def _generate_lightning_fast_achievements() -> dict[str, dict[str, Any]]:
         "bronze": {"max_avg_speed": 5.0, "min_questions": 50},
         "silver": {"max_avg_speed": 4.0, "min_questions": 100},
         "gold": {"max_avg_speed": 3.0, "min_questions": 150},
-        "platinum": {"max_avg_speed": 2.78, "min_questions": 200},
-        "diamond": {"max_avg_speed": 2.55, "min_questions": 300},
-        "master": {"max_avg_speed": 2.31, "min_questions": 400},
-        "grandmaster": {"max_avg_speed": 2.06, "min_questions": 500},
-        "legendary": {"max_avg_speed": 1.8, "min_questions": 750},
-        "mythic": {"max_avg_speed": 1.53, "min_questions": 1000},
-        "divine": {"max_avg_speed": 1.4, "min_questions": 1500},
-        "champion": {"max_avg_speed": 1.4, "min_questions": 1500},  # Same as divine, requires server record
+        "platinum": {"max_avg_speed": 2.7, "min_questions": 200},
+        "diamond": {"max_avg_speed": 2.4, "min_questions": 300},
+        "master": {"max_avg_speed": 2.1, "min_questions": 400},
+        "grandmaster": {"max_avg_speed": 1.8, "min_questions": 500},
+        "legendary": {"max_avg_speed": 1.5, "min_questions": 750},
+        "mythic": {"max_avg_speed": 1.3, "min_questions": 1000},
+        "divine": {"max_avg_speed": 1.2, "min_questions": 1500},
+        "champion": {"max_avg_speed": 1.2, "min_questions": 1500},  # Same as divine, requires server record
     }
     
     for tier in ALL_TIERS:

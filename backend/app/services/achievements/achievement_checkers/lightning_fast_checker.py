@@ -11,6 +11,7 @@ from typing import Any
 
 from ....config.concepts_config import get_concept_speed_multiplier
 from ....models import Achievement, PracticeSession, Question, Response, User, db
+from ....utils.legacy_mappings import extract_legacy_level_from_concept_id
 from ....utils.tier_utils import get_tier_value
 from .base_checker import AchievementChecker
 
@@ -51,7 +52,11 @@ class LightningFastChecker(AchievementChecker):
         
         # Get session
         session = db.session.get(PracticeSession, session_id)
-        if not session or not session.completed_at or not session.level:
+        if not session or not session.completed_at:
+            return new_achievements
+        
+        # Must have either level or concept_id to filter responses
+        if not session.level and not session.concept_id:
             return new_achievements
         
         # Get lightning-fast achievements from config
@@ -66,14 +71,29 @@ class LightningFastChecker(AchievementChecker):
         # Get user's existing achievements
         user_achievement_codes = AchievementService.get_achievement_codes(user.id)
         
-        # Calculate average speed for this level from user's responses
-        # Get all responses for this level
-        level_responses = (
-            Response.query.filter_by(user_id=user.id, is_correct=True)
-            .join(Question)
-            .filter(Question.required_level == session.level)
-            .all()
-        )
+        # Calculate average speed for this level/concept from user's responses
+        # Priority: Use level filtering if level exists (backward compatible with legacy concepts)
+        # Otherwise, use concept_id filtering for descriptive concepts (c_add_1s, etc.)
+        if session.level:
+            # Use level filtering (works for both legacy concepts and level-based practice)
+            level_responses = (
+                Response.query.filter_by(user_id=user.id, is_correct=True)
+                .join(Question)
+                .filter(Question.required_level == session.level)
+                .all()
+            )
+        elif session.concept_id:
+            # No level but has concept_id - must be a descriptive concept (e.g., c_add_1s)
+            # Filter by concept_id
+            level_responses = (
+                Response.query.filter_by(user_id=user.id, is_correct=True)
+                .join(PracticeSession, Response.session_id == PracticeSession.id)
+                .filter(PracticeSession.concept_id == session.concept_id)
+                .all()
+            )
+        else:
+            # No level and no concept_id - can't filter
+            return new_achievements
         
         if not level_responses:
             return new_achievements
@@ -92,7 +112,16 @@ class LightningFastChecker(AchievementChecker):
         # Find all qualifying tiers for this level
         # Note: We don't check for existing achievements here - create_achievement() handles constraints
         qualifying_tiers = []
+        # Exclude champion from initial qualifying_tiers - it requires server record check
+        champion_code = "lightning-fast-champion"
+        champion_config = None
+        
         for achievement_code, config in lightning_fast_achievements:
+            # Skip champion tier - we'll check it separately after determining highest tier
+            if achievement_code == champion_code:
+                champion_config = config
+                continue
+                
             requirements = config.get("requirements", {})
             max_speed = requirements.get("max_speed_seconds", 999)
             # Apply speed multiplier to threshold
@@ -109,23 +138,33 @@ class LightningFastChecker(AchievementChecker):
             highest_tier, achievement_code, config = qualifying_tiers[0]
             
             # Check for Champion tier if this is Divine
-            # Note: Champion eligibility requires session context, so skip for now
-            if highest_tier == "divine":
-                champion_code = "lightning-fast-champion"
-                champion_config = self.achievement_configs.get(champion_code)
-                if champion_config:
-                    champion_req = champion_config.get("requirements", {})
-                    champion_max_speed = champion_req.get("max_speed_seconds", 0.5)
-                    # Apply speed multiplier to champion threshold
-                    adjusted_champion_max_speed = champion_max_speed * speed_multiplier
-                    if avg_speed_seconds <= adjusted_champion_max_speed:
-                        # Champion tier can be checked during session completion
-                        pass
+            # Champion tier requires both meeting the speed threshold AND setting/breaking a server record
+            if highest_tier == "divine" and champion_config:
+                champion_req = champion_config.get("requirements", {})
+                champion_max_speed = champion_req.get("max_speed_seconds", 999)
+                # Apply speed multiplier to champion threshold
+                adjusted_champion_max_speed = champion_max_speed * speed_multiplier
+                if avg_speed_seconds <= adjusted_champion_max_speed:
+                    # Champion tier qualifies by speed, now check if server record is set/broken
+                    if session_id:
+                        from ....services.achievements.achievement_validators.champion_validator import ChampionValidator
+                        champion_awarded = ChampionValidator.check_eligibility(
+                            champion_code,
+                            session,
+                            "champion"
+                        )
+                        if champion_awarded:
+                            # Server record was set/broken, award champion tier
+                            achievement_code = champion_code
+                            config = champion_config
+                        # else: award divine (record not set/broken)
 
-            # Create metadata used by unlock requirements (level-specific).
-            metadata = {"level": session.level}
+            # Create metadata used by unlock requirements (level/concept-specific).
+            metadata = {}
             if session.concept_id:
                 metadata["concept_id"] = session.concept_id
+            if session.level:
+                metadata["level"] = session.level
 
             achievement = AchievementService.create_achievement(
                 user_id=user.id,

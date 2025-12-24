@@ -198,7 +198,16 @@ class MilestoneChecker(AchievementChecker):
                 speed_multiplier = get_concept_speed_multiplier(session.concept_id)
         
         qualifying_tiers = []
+        # Exclude champion from initial qualifying_tiers - it requires server record check
+        champion_code = "speed-demon-champion"
+        champion_config = None
+        
         for achievement_code, config in speed_demon_achievements:
+            # Skip champion tier - we'll check it separately after determining highest tier
+            if achievement_code == champion_code:
+                champion_config = config
+                continue
+                
             requirements = config.get("requirements", {})
             max_speed = requirements.get("max_speed_seconds", 999)
             # Apply speed multiplier to threshold
@@ -216,19 +225,29 @@ class MilestoneChecker(AchievementChecker):
         highest_tier, achievement_code, config = qualifying_tiers[0]
         
         # Check for Champion tier if this is Divine
-        # Note: Champion check for speed-demon requires session context, so skip for now
-        # This is consistent with the original implementation
-        if highest_tier == "divine":
-            champion_code = "speed-demon-champion"
-            champion_config = self.achievement_configs.get(champion_code)
-            if champion_config:
-                champion_req = champion_config.get("requirements", {})
-                champion_max_speed = champion_req.get("max_speed_seconds", 0.5)
-                # Apply speed multiplier to champion threshold
-                adjusted_champion_max_speed = champion_max_speed * speed_multiplier
-                if avg_speed <= adjusted_champion_max_speed:
-                    # Champion check would need session context, skip for now
-                    pass
+        # Champion tier requires both meeting the speed threshold AND setting/breaking a server record
+        if highest_tier == "divine" and champion_config:
+            champion_req = champion_config.get("requirements", {})
+            champion_max_speed = champion_req.get("max_speed_seconds", 999)
+            # Apply speed multiplier to champion threshold
+            adjusted_champion_max_speed = champion_max_speed * speed_multiplier
+            if avg_speed <= adjusted_champion_max_speed:
+                # Champion tier qualifies by speed, now check if server record is set/broken
+                if session_id:
+                    from ....services.achievements.achievement_validators.champion_validator import ChampionValidator
+                    session = db.session.get(PracticeSession, session_id)
+                    if session:
+                        # Check if champion tier should be awarded (server record set/broken)
+                        champion_awarded = ChampionValidator.check_eligibility(
+                            champion_code,
+                            session,
+                            "champion"
+                        )
+                        if champion_awarded:
+                            # Server record was set/broken, award champion tier
+                            achievement_code = champion_code
+                            config = champion_config
+                        # else: award divine (record not set/broken)
         
         return self._create_achievement(
             user_id=user.id,

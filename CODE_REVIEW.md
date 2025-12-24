@@ -269,8 +269,8 @@ File: `frontend/src/features/practice/hooks/usePracticeSession.ts`
 - ✅ Break up `AchievementQueryService.count_achievements_by_code_with_filters` — **COMPLETED**.
 - ✅ Simplify/strategy-ize `QuestionService.generate_operands_with_constraints` — **COMPLETED**.
 - ✅ Refactor `SessionEngineService.generate_session` — **COMPLETED**: Split into SessionResumeService, QuestionGenerationService, SessionFactory, ConceptSelectionService, and legacy_mappings module.
-- Remove unused frontend constants: `LEVEL_REQUIREMENTS`, `STREAK_ACHIEVEMENTS`, etc.
-- Audit and deprecate/remove `/practice/submissions` if unused.
+- ✅ Remove unused frontend constants: `LEVEL_REQUIREMENTS`, `STREAK_ACHIEVEMENTS`, etc. — **COMPLETED**: Verified - these constants have been removed, files now only contain TypeScript types.
+- ✅ Audit and deprecate/remove `/practice/submissions` if unused — **COMPLETED**: Endpoint has been removed.
 
 ### P2 (Nice-to-have / cleanup)
 - Audit usage of deprecated `backend/app/config/achievements_config.py` and remove when safe.

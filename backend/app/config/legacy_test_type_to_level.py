@@ -3,8 +3,9 @@
 The app no longer exposes a Tests feature, but some legacy level progression
 requirements still reference `metadata_filter.test_type`.
 
-Until those requirements are migrated to concept/stage metadata, we translate
-`test_type` filters into an equivalent `level` filter.
+Until those requirements are migrated to concept_id metadata, we translate
+`test_type` filters into an equivalent `concept_id` filter (c_concept_XXX format).
+This mapping is used by translation layers in user_service.py and routes/levels.py.
 """
 
 from __future__ import annotations

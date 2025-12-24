@@ -288,7 +288,8 @@ def test_setup_user(user_id: int):
         
         # Support both string array and object array formats
         # String format: ["first-steps", "first-victory"]
-        # Object format: [{"code": "accuracy-ace-platinum", "metadata": {"test_type": "addition-1digit"}}]
+        # Object format: [{"code": "accuracy-ace-platinum", "metadata": {"concept_id": "c_concept_001"}}]
+        # Legacy: [{"code": "accuracy-ace-platinum", "metadata": {"test_type": "addition-1digit"}}] (will be translated)
         for achievement_item in achievements_list:
             # Handle string format (backward compatible)
             if isinstance(achievement_item, str):
@@ -307,6 +308,21 @@ def test_setup_user(user_id: int):
             # Check if achievement exists in config
             if achievement_code not in ACHIEVEMENTS_CONFIG:
                 continue  # Skip invalid achievement codes
+            
+            # Translate legacy test_type to concept_id if present
+            if metadata and isinstance(metadata, dict) and metadata.get("test_type"):
+                from ..config.legacy_test_type_to_level import LEGACY_TEST_TYPE_TO_LEVEL
+                test_type = str(metadata.get("test_type"))
+                mapped_level = LEGACY_TEST_TYPE_TO_LEVEL.get(test_type)
+                if mapped_level is not None:
+                    # Convert level to concept_id format: c_concept_{level:03d}
+                    concept_id = f"c_concept_{mapped_level:03d}"
+                    metadata = {**metadata, "concept_id": concept_id}
+                    metadata.pop("test_type", None)
+                else:
+                    # Unknown test_type, remove it
+                    metadata = {**metadata}
+                    metadata.pop("test_type", None)
             
             # Check if user already has this achievement (with same metadata if applicable)
             existing_query = Achievement.query.filter_by(

@@ -8,32 +8,6 @@ from ..services.level_config_service import LevelConfigService
 
 levels_bp = Blueprint("levels", __name__)
 
-def _translate_test_type_metadata_filter(metadata_filter: object) -> object:
-    """Translate legacy metadata_filter.test_type -> metadata_filter.concept_id.
-
-    The app no longer uses test types. Some legacy level progression configs still reference
-    test_type; convert them so the frontend can render concept-aware requirements and the
-    backend can count achievements using concept_id metadata filters.
-    """
-    if not isinstance(metadata_filter, dict):
-        return metadata_filter
-
-    test_type = metadata_filter.get("test_type")
-    if not test_type:
-        return metadata_filter
-
-    from ..config.legacy_test_type_to_level import LEGACY_TEST_TYPE_TO_LEVEL
-
-    mapped_level = LEGACY_TEST_TYPE_TO_LEVEL.get(str(test_type))
-    if mapped_level is None:
-        # If unknown, just drop the test_type to avoid leaking legacy strings to the UI.
-        copied = {**metadata_filter}
-        copied.pop("test_type", None)
-        return copied
-
-    copied = {**metadata_filter, "concept_id": f"c_concept_{mapped_level:03d}"}
-    copied.pop("test_type", None)
-    return copied
 
 
 @levels_bp.get("/levels")
@@ -56,13 +30,6 @@ def get_level(level: int):
 def get_level_requirements(level: int):
     """Get achievement requirements for a specific level."""
     requirements = LevelConfigService.get_level_progression_config(level)
-    # Normalize any legacy metadata filters before returning
-    translated = []
-    for req in requirements:
-        copied = req.copy()
-        copied["metadata_filter"] = _translate_test_type_metadata_filter(copied.get("metadata_filter"))
-        translated.append(copied)
-    requirements = translated
     return jsonify({"level": level, "requirements": requirements})
 
 
@@ -92,13 +59,6 @@ def get_batch_level_requirements():
     requirements_by_level = {}
     for level in levels:
         requirements = LevelConfigService.get_level_progression_config(level)
-        # Normalize any legacy metadata filters before returning / counting
-        translated = []
-        for req in requirements:
-            copied = req.copy()
-            copied["metadata_filter"] = _translate_test_type_metadata_filter(copied.get("metadata_filter"))
-            translated.append(copied)
-        requirements = translated
         
         # If user_id provided, add completion status to each requirement
         if user_id:

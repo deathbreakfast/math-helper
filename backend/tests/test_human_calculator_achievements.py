@@ -56,7 +56,7 @@ def _create_lightning_fast_achievement(user_id: int, level: int, tier: str):
     Achievement.query.filter_by(user_id=user_id, code=code).delete()
     db.session.commit()
     
-    metadata = {"level": level}
+    metadata = {"concept_id": f"c_concept_{level:03d}"}
     metadata_json = json.dumps(metadata, sort_keys=True)
     
     achievement = Achievement(

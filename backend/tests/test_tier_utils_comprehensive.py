@@ -275,11 +275,11 @@ class TestTierUtils:
     def test_count_achievements_with_tier_substitution_with_metadata(self):
         """Test count_achievements_with_tier_substitution with metadata filter."""
         achievements = [
-            {"code": "level-master-bronze", "achievement_metadata": {"level": 1}},
-            {"code": "level-master-bronze", "achievement_metadata": {"level": 2}},
+            {"code": "level-master-bronze", "achievement_metadata": {"concept_id": "c_concept_001"}},
+            {"code": "level-master-bronze", "achievement_metadata": {"concept_id": "c_concept_002"}},
         ]
         
-        metadata_filter = {"level": 1}
+        metadata_filter = {"concept_id": "c_concept_001"}
         
         equivalent, actual = count_achievements_with_tier_substitution(
             achievements,
@@ -295,10 +295,10 @@ class TestTierUtils:
     def test_count_achievements_with_tier_substitution_metadata_string(self):
         """Test count_achievements_with_tier_substitution handles string metadata."""
         achievements = [
-            {"code": "level-master-bronze", "achievement_metadata": json.dumps({"level": 1})},
+            {"code": "level-master-bronze", "achievement_metadata": json.dumps({"concept_id": "c_concept_001"})},
         ]
         
-        metadata_filter = {"level": 1}
+        metadata_filter = {"concept_id": "c_concept_001"}
         
         equivalent, actual = count_achievements_with_tier_substitution(
             achievements,
@@ -317,7 +317,7 @@ class TestTierUtils:
             {"code": "level-master-bronze", "achievement_metadata": "invalid json"},
         ]
         
-        metadata_filter = {"level": 1}
+        metadata_filter = {"concept_id": "c_concept_001"}
         
         equivalent, actual = count_achievements_with_tier_substitution(
             achievements,

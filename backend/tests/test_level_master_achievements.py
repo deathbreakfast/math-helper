@@ -69,7 +69,7 @@ def test_level_master_bronze_exactly_30(app, test_user):
         assert achievement is not None, "Level Master (Bronze) should be awarded for exactly 30 consecutive correct"
         assert achievement.achievement_metadata is not None, "Achievement should have metadata"
         metadata = json.loads(achievement.achievement_metadata)
-        assert metadata.get("level") == 1, "Achievement metadata should indicate level 1"
+        assert metadata.get("concept_id") == "c_concept_001", "Achievement metadata should indicate concept_id c_concept_001"
 
 
 def test_level_master_silver_exactly_60(app, test_user):
@@ -106,7 +106,7 @@ def test_level_master_silver_exactly_60(app, test_user):
             if ach.achievement_metadata:
                 try:
                     metadata = json.loads(ach.achievement_metadata)
-                    if metadata.get("level") == 1:
+                    if metadata.get("concept_id") == "c_concept_001":
                         if ach.code == "level-master-bronze":
                             bronze = ach
                         elif ach.code == "level-master-silver":
@@ -118,7 +118,7 @@ def test_level_master_silver_exactly_60(app, test_user):
         assert silver is not None, "Level Master (Silver) should be awarded for 60 consecutive correct"
         assert silver.achievement_metadata is not None, "Achievement should have metadata"
         metadata = json.loads(silver.achievement_metadata)
-        assert metadata.get("level") == 1, "Achievement metadata should indicate level 1"
+        assert metadata.get("concept_id") == "c_concept_001", "Achievement metadata should indicate concept_id c_concept_001"
         assert bronze is None, "Level Master (Bronze) should NOT be awarded when Silver is awarded (only highest tier)"
 
 
@@ -184,7 +184,7 @@ def test_level_master_negative_30_correct_1_incorrect(app, test_user):
         assert achievement.code == "level-master-bronze", "Should award bronze for 30 consecutive correct"
         assert achievement.achievement_metadata is not None, "Achievement should have metadata"
         metadata = json.loads(achievement.achievement_metadata)
-        assert metadata.get("level") == 1, "Achievement metadata should indicate level 1"
+        assert metadata.get("concept_id") == "c_concept_001", "Achievement metadata should indicate concept_id c_concept_001"
 
 
 def test_level_master_multiple_awards_30_wrong_30(app, test_user):
@@ -286,7 +286,7 @@ def test_level_master_only_bronze_silver_tested(app, test_user):
             if ach.achievement_metadata:
                 try:
                     metadata = json.loads(ach.achievement_metadata)
-                    if metadata.get("level") == 1:
+                    if metadata.get("concept_id") == "c_concept_001":
                         if ach.code == "level-master-bronze":
                             bronze = ach
                         elif ach.code == "level-master-silver":
@@ -300,7 +300,7 @@ def test_level_master_only_bronze_silver_tested(app, test_user):
         assert gold is not None, "Level Master (Gold) should be awarded for 120 consecutive correct"
         assert gold.achievement_metadata is not None, "Achievement should have metadata"
         metadata = json.loads(gold.achievement_metadata)
-        assert metadata.get("level") == 1, "Achievement metadata should indicate level 1"
+        assert metadata.get("concept_id") == "c_concept_001", "Achievement metadata should indicate concept_id c_concept_001"
         assert bronze is None, "Level Master (Bronze) should NOT be awarded when Gold is awarded (only highest tier)"
         assert silver is None, "Level Master (Silver) should NOT be awarded when Gold is awarded (only highest tier)"
 
@@ -351,9 +351,9 @@ def test_level_master_multiple_levels(app, test_user):
             if ach.achievement_metadata:
                 try:
                     metadata = json.loads(ach.achievement_metadata)
-                    if metadata.get("level") == 1:
+                    if metadata.get("concept_id") == "c_concept_001":
                         level1_achievement = ach
-                    elif metadata.get("level") == 2:
+                    elif metadata.get("concept_id") == "c_concept_002":
                         level2_achievement = ach
                 except (json.JSONDecodeError, KeyError):
                     pass
@@ -364,6 +364,6 @@ def test_level_master_multiple_levels(app, test_user):
         
         metadata1 = json.loads(level1_achievement.achievement_metadata)
         metadata2 = json.loads(level2_achievement.achievement_metadata)
-        assert metadata1.get("level") == 1, "First achievement should be for level 1"
-        assert metadata2.get("level") == 2, "Second achievement should be for level 2"
+        assert metadata1.get("concept_id") == "c_concept_001", "First achievement should be for concept_id c_concept_001"
+        assert metadata2.get("concept_id") == "c_concept_002", "Second achievement should be for concept_id c_concept_002"
 

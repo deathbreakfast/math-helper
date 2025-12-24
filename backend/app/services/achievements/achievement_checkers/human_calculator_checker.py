@@ -1,7 +1,8 @@
 """Human Calculator achievement checker.
 
-Checks if user has achieved Lightning Fast (Bronze or Silver) at ALL levels.
+Checks if user has achieved Lightning Fast (Bronze or Silver) for ALL legacy level concepts.
 Similar to Level Grandmaster, but for speed achievements.
+Checks achievements with concept_id c_concept_001 through c_concept_045.
 """
 
 from __future__ import annotations
@@ -29,7 +30,8 @@ class HumanCalculatorChecker(AchievementChecker):
     def check(self, user: User, tier: str = "bronze") -> list[Achievement]:
         """Check and award Human Calculator milestone achievement.
         
-        Requires having Lightning Fast (Bronze or Silver) achievement at ALL levels.
+        Requires having Lightning Fast (Bronze or Silver) achievement for ALL legacy level concepts.
+        Checks achievements with concept_id metadata (c_concept_001 through c_concept_045).
         
         Args:
             user: The user to check
@@ -60,7 +62,8 @@ class HumanCalculatorChecker(AchievementChecker):
         
         for target_level in all_levels:
             # Check if user has lightning-fast achievement for this level
-            # Lightning-fast achievements are stored with metadata {"level": N}
+            # Lightning-fast achievements are stored with metadata {"concept_id": "c_concept_XXX"}
+            target_concept_id = f"c_concept_{target_level:03d}"
             level_achievements = Achievement.query.filter_by(
                 user_id=user.id,
                 code=required_achievement_code
@@ -71,7 +74,7 @@ class HumanCalculatorChecker(AchievementChecker):
                 if achievement.achievement_metadata:
                     try:
                         metadata = json.loads(achievement.achievement_metadata)
-                        if metadata.get("level") == target_level:
+                        if metadata.get("concept_id") == target_concept_id:
                             level_qualified = True
                             break
                     except (json.JSONDecodeError, KeyError):
@@ -87,7 +90,7 @@ class HumanCalculatorChecker(AchievementChecker):
                     if achievement.achievement_metadata:
                         try:
                             metadata = json.loads(achievement.achievement_metadata)
-                            if metadata.get("level") == target_level:
+                            if metadata.get("concept_id") == target_concept_id:
                                 level_qualified = True
                                 break
                         except (json.JSONDecodeError, KeyError):

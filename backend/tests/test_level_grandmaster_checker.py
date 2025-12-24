@@ -47,7 +47,7 @@ def test_check_awards_when_all_levels_qualified(app, test_user, level_grandmaste
         # Create Level Master (Bronze) achievements with metadata for ALL levels
         all_levels = sorted(LEVELS_CONFIG.keys())
         for level in all_levels:
-            metadata = {"level": level}
+            metadata = {"concept_id": f"c_concept_{level:03d}"}
             create_achievement(
                 user_id=test_user.id,
                 code="level-master-bronze",
@@ -87,7 +87,7 @@ def test_check_does_not_award_if_level_missing_consecutive(app, test_user, level
         
         for level in all_levels:
             if level != missing_level:
-                metadata = {"level": level}
+                metadata = {"concept_id": f"c_concept_{level:03d}"}
                 create_achievement(
                     user_id=test_user.id,
                     code="level-master-bronze",
@@ -145,7 +145,7 @@ def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
         for level in all_levels:
             if level == 1:
                 # Level 1: Silver (higher tier qualifies)
-                metadata = {"level": level}
+                metadata = {"concept_id": f"c_concept_{level:03d}"}
                 create_achievement(
                     user_id=test_user.id,
                     code="level-master-silver",
@@ -157,7 +157,7 @@ def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
                 )
             elif level == 2:
                 # Level 2: Gold (higher tier qualifies)
-                metadata = {"level": level}
+                metadata = {"concept_id": f"c_concept_{level:03d}"}
                 create_achievement(
                     user_id=test_user.id,
                     code="level-master-gold",
@@ -169,7 +169,7 @@ def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
                 )
             else:
                 # Other levels: Bronze
-                metadata = {"level": level}
+                metadata = {"concept_id": f"c_concept_{level:03d}"}
                 create_achievement(
                     user_id=test_user.id,
                     code="level-master-bronze",

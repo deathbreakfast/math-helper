@@ -259,7 +259,7 @@ class TestUserService:
                 description="High accuracy",
                 icon="🎯",
                 category="accuracy",
-                metadata={"test_type": "addition-1digit"}
+                metadata={"concept_id": "c_concept_001"}
             )
             
             can_up, missing = UserService.can_level_up(test_user, 2)

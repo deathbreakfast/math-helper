@@ -367,8 +367,8 @@ def test_count_achievements_by_code_with_filters_accuracy(app, test_user, test_s
         assert count == 1, "Should return count of 1 for accuracy >= 95%"
 
 
-def test_count_achievements_by_code_with_filters_concept_id_matches_legacy_level_metadata(app, test_user):
-    """concept_id metadata_filter should match achievements stored with only legacy level metadata."""
+def test_count_achievements_by_code_with_filters_concept_id_matches_metadata(app, test_user):
+    """concept_id metadata_filter should match achievements stored with concept_id metadata."""
     with app.app_context():
         user = db.session.merge(test_user)
 
@@ -380,7 +380,7 @@ def test_count_achievements_by_code_with_filters_concept_id_matches_legacy_level
             icon="🎯",
             category="accuracy",
             earned_at=datetime.utcnow(),
-            achievement_metadata=json.dumps({"level": 7}, sort_keys=True),
+            achievement_metadata=json.dumps({"concept_id": "c_concept_007"}, sort_keys=True),
         )
         db.session.add(achievement)
         db.session.commit()

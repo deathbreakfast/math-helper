@@ -92,10 +92,13 @@ class AccuracyAceChecker(AchievementChecker):
             qualifying_tiers.sort(key=lambda x: get_tier_value(x[0]), reverse=True)
             highest_tier, achievement_code, config = qualifying_tiers[0]
             
-            # Build metadata used by unlock requirements (level-specific).
-            metadata = {"level": session.level} if session.level else None
-            if metadata is not None and session.concept_id:
-                metadata["concept_id"] = session.concept_id
+            # Build metadata used by unlock requirements (concept-specific).
+            metadata = None
+            if session.concept_id:
+                metadata = {"concept_id": session.concept_id}
+            elif session.level:
+                # For legacy level-based sessions, derive concept_id from level
+                metadata = {"concept_id": f"c_concept_{session.level:03d}"}
             
             achievement = AchievementService.create_achievement(
                 user_id=user.id,

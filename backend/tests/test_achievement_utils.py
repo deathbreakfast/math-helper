@@ -99,7 +99,7 @@ class TestAchievementUtils:
     def test_create_achievement_with_metadata(self, app, test_user):
         """Test create_achievement with metadata."""
         with app.app_context():
-            metadata = {"level": 1, "test_type": "addition-1digit"}
+            metadata = {"concept_id": "c_concept_001"}
             
             achievement = create_achievement(
                 user_id=test_user.id,
@@ -226,7 +226,7 @@ class TestAchievementUtils:
     def test_create_achievement_with_metadata_existing_check(self, app, test_user):
         """Test create_achievement checks for existing with metadata."""
         with app.app_context():
-            metadata = {"level": 1}
+            metadata = {"concept_id": "c_concept_001"}
             
             # Create first achievement with metadata
             achievement1 = create_achievement(
@@ -256,7 +256,7 @@ class TestAchievementUtils:
     def test_create_achievement_different_metadata_handles_constraint(self, app, test_user):
         """Test create_achievement handles unique constraint when metadata differs."""
         with app.app_context():
-            metadata1 = {"level": 1}
+            metadata1 = {"concept_id": "c_concept_001"}
             
             # Create first achievement with metadata
             achievement1 = create_achievement(
@@ -303,7 +303,7 @@ class TestAchievementUtils:
     def test_serialize_achievement_with_metadata(self, app, test_user):
         """Test serialize_achievement includes metadata."""
         with app.app_context():
-            metadata = {"level": 1, "test_type": "addition-1digit"}
+            metadata = {"concept_id": "c_concept_001"}
             
             achievement = create_achievement(
                 user_id=test_user.id,

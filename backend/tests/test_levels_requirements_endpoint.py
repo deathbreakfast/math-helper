@@ -36,7 +36,7 @@ def test_levels_requirements_translates_test_type_to_concept_id_and_enriches_cou
         u = db.session.get(User, user.id)
 
         # Level 2 progression includes accuracy-ace-gold with legacy test_type "addition-1digit"
-        # We create an achievement with ONLY legacy "level" metadata to ensure concept_id filters still match.
+        # We create an achievement with concept_id metadata.
         db.session.add(
             Achievement(
                 user_id=u.id,
@@ -46,7 +46,7 @@ def test_levels_requirements_translates_test_type_to_concept_id_and_enriches_cou
                 icon="🎯",
                 category="accuracy",
                 earned_at=datetime.utcnow(),
-                achievement_metadata=json.dumps({"level": 1}, sort_keys=True),
+                achievement_metadata=json.dumps({"concept_id": "c_concept_001"}, sort_keys=True),
             )
         )
         db.session.commit()

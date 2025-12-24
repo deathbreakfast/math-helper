@@ -1,7 +1,8 @@
 """Level Grandmaster achievement checker.
 
-Checks if user has Level Master (Bronze or higher) achievement at ALL levels.
+Checks if user has Level Master (Bronze or higher) achievement for ALL legacy level concepts.
 Similar to Human Calculator, but for accuracy achievements.
+Checks achievements with concept_id c_concept_001 through c_concept_045.
 """
 
 from __future__ import annotations
@@ -29,8 +30,8 @@ class LevelGrandmasterChecker(AchievementChecker):
     def check(self, user: User) -> list[Achievement]:
         """Check and award Level Grandmaster milestone achievement.
         
-        Requires having Level Master (Bronze or higher) achievement at ALL levels.
-        Checks for existing Level Master achievements with metadata, not recalculating counts.
+        Requires having Level Master (Bronze or higher) achievement for ALL legacy level concepts.
+        Checks for existing Level Master achievements with concept_id metadata (c_concept_001 through c_concept_045).
         
         Args:
             user: The user to check
@@ -60,7 +61,8 @@ class LevelGrandmasterChecker(AchievementChecker):
         
         for target_level in all_levels:
             # Check if user has level-master-bronze achievement for this level
-            # Level-master achievements are stored with metadata {"level": N}
+            # Level-master achievements are stored with metadata {"concept_id": "c_concept_XXX"}
+            target_concept_id = f"c_concept_{target_level:03d}"
             level_achievements = Achievement.query.filter_by(
                 user_id=user.id,
                 code=required_achievement_code
@@ -71,7 +73,7 @@ class LevelGrandmasterChecker(AchievementChecker):
                 if achievement.achievement_metadata:
                     try:
                         metadata = json.loads(achievement.achievement_metadata)
-                        if metadata.get("level") == target_level:
+                        if metadata.get("concept_id") == target_concept_id:
                             level_qualified = True
                             break
                     except (json.JSONDecodeError, KeyError):
@@ -87,7 +89,7 @@ class LevelGrandmasterChecker(AchievementChecker):
                     if achievement.achievement_metadata:
                         try:
                             metadata = json.loads(achievement.achievement_metadata)
-                            if metadata.get("level") == target_level:
+                            if metadata.get("concept_id") == target_concept_id:
                                 level_qualified = True
                                 break
                         except (json.JSONDecodeError, KeyError):
@@ -103,7 +105,7 @@ class LevelGrandmasterChecker(AchievementChecker):
                     if achievement.achievement_metadata:
                         try:
                             metadata = json.loads(achievement.achievement_metadata)
-                            if metadata.get("level") == target_level:
+                            if metadata.get("concept_id") == target_concept_id:
                                 level_qualified = True
                                 break
                         except (json.JSONDecodeError, KeyError):

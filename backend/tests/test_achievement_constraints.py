@@ -377,7 +377,7 @@ def test_level_master_multiple_per_tier_multiple_per_session(app, test_user):
             description="30 consecutive correct",
             icon="🎯",
             category="accuracy",
-            metadata={"level": 1},
+            metadata={"concept_id": "c_concept_001"},
             session_id=session1.id
         )
         
@@ -389,7 +389,7 @@ def test_level_master_multiple_per_tier_multiple_per_session(app, test_user):
             description="30 consecutive correct",
             icon="🎯",
             category="accuracy",
-            metadata={"level": 2},
+            metadata={"concept_id": "c_concept_002"},
             session_id=session2.id
         )
         
@@ -408,7 +408,7 @@ def test_level_master_multiple_per_tier_multiple_per_session(app, test_user):
 # ============================================================================
 
 def test_lightning_fast_practice_metadata(app, test_user):
-    """Test: Lightning Fast uses level metadata for practice sessions."""
+    """Test: Lightning Fast uses concept_id metadata for practice sessions."""
     with app.app_context():
         # Get user safely (handles detached instances)
         user = _get_user_safely(app, test_user)
@@ -431,7 +431,7 @@ def test_lightning_fast_practice_metadata(app, test_user):
         AchievementService.check_lightning_fast_achievements(user, session.id)
         db.session.commit()
         
-        # Verify achievement has level metadata, not test_type
+        # Verify achievement has concept_id metadata, not level or test_type
         achievement = Achievement.query.filter_by(
             user_id=user.id,
             code="lightning-fast-bronze"
@@ -439,7 +439,8 @@ def test_lightning_fast_practice_metadata(app, test_user):
         
         if achievement and achievement.achievement_metadata:
             metadata = json.loads(achievement.achievement_metadata)
-            assert metadata.get("level") == 1, "Should have level metadata"
+            assert metadata.get("concept_id") == "c_concept_001", "Should have concept_id metadata"
+            assert "level" not in metadata, "Should not include legacy level metadata"
             assert "test_type" not in metadata, "Should not include legacy test_type metadata"
 
 

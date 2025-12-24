@@ -34,41 +34,15 @@ class AchievementQueryService:
         ach_metadata_for_filter: dict[str, Any],
         metadata_filter: dict[str, Any],
     ) -> bool:
-        """Metadata filter matching with concept_id compatibility.
+        """Metadata filter matching.
 
-        If metadata_filter includes concept_id, allow it to match either:
-        - achievement.metadata.concept_id == concept_id, OR
-        - achievement.metadata.level == legacy level parsed from concept_id
-
-        All other keys must match exactly.
+        All keys in metadata_filter must match exactly in ach_metadata_for_filter.
         """
         if not metadata_filter:
             return True
 
-        # Fast path: exact match
-        if ach_metadata_for_filter == metadata_filter:
-            return True
-
-        if "concept_id" not in metadata_filter:
-            return False
-
-        filter_concept_id = metadata_filter.get("concept_id")
-        legacy_level = AchievementQueryService._legacy_level_from_concept_id(str(filter_concept_id) if filter_concept_id else None)
-
-        # All non-concept keys must match exactly
-        for k, v in metadata_filter.items():
-            if k == "concept_id":
-                continue
-            if ach_metadata_for_filter.get(k) != v:
-                return False
-
-        # concept_id may match by concept_id or legacy level
-        if ach_metadata_for_filter.get("concept_id") == filter_concept_id:
-            return True
-        if legacy_level is not None and ach_metadata_for_filter.get("level") == legacy_level:
-            return True
-
-        return False
+        # Exact match required
+        return ach_metadata_for_filter == metadata_filter
     
     @staticmethod
     @log_query

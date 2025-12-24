@@ -1,8 +1,8 @@
 """Level master achievement checker.
 
-Awards level-specific achievements for consecutive correct answers at each level.
+Awards concept-specific achievements for consecutive correct answers per concept.
 Each bucket gets its own achievement with metadata:
-- {"level": N} for legacy level-based buckets (existing behavior)
+- {"concept_id": "c_concept_XXX"} for legacy level-based buckets (derived from level)
 - {"concept_id": "..."} for concept-based buckets (enables descriptive concept IDs)
 """
 
@@ -107,6 +107,7 @@ class LevelMasterChecker(AchievementChecker):
         """
         if level_filter is not None:
             # Get all responses for this level, ordered chronologically
+            # For legacy levels, derive concept_id from level
             responses = (
                 Response.query.filter_by(user_id=user_id)
                 .join(Question)
@@ -114,7 +115,7 @@ class LevelMasterChecker(AchievementChecker):
                 .order_by(Response.answered_at.asc())
                 .all()
             )
-            metadata = {"level": level_filter}
+            metadata = {"concept_id": f"c_concept_{level_filter:03d}"}
         else:
             # Get all responses for this concept_id, ordered chronologically
             responses = (
@@ -288,9 +289,9 @@ class LevelMasterChecker(AchievementChecker):
     ) -> list[Achievement]:
         """Check and award level master achievements.
         
-        This checks consecutive correct answers at each level separately.
-        Awards separate achievements per level with metadata {"level": N}.
-        Only awards the highest qualifying tier per level.
+        This checks consecutive correct answers at each concept separately.
+        Awards separate achievements per concept with metadata {"concept_id": "..."}.
+        Only awards the highest qualifying tier per concept.
         
         Args:
             user: The user to check achievements for

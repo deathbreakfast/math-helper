@@ -54,8 +54,13 @@ class LightningFastChecker(AchievementChecker):
         if not session or not session.completed_at:
             return new_achievements
         
-        # Must have concept_id to filter responses
-        if not session.concept_id:
+        # Determine concept_id: use session.concept_id if available, otherwise derive from level
+        concept_id = session.concept_id
+        if not concept_id and session.level:
+            # For legacy level-based sessions, derive concept_id from level
+            concept_id = f"c_concept_{session.level:03d}"
+        
+        if not concept_id:
             return new_achievements
         
         # Get lightning-fast achievements from config
@@ -75,7 +80,7 @@ class LightningFastChecker(AchievementChecker):
         concept_responses = (
             Response.query.filter_by(user_id=user.id, is_correct=True)
             .join(PracticeSession, Response.session_id == PracticeSession.id)
-            .filter(PracticeSession.concept_id == session.concept_id)
+            .filter(PracticeSession.concept_id == concept_id)
             .all()
         )
         
@@ -91,7 +96,7 @@ class LightningFastChecker(AchievementChecker):
             return new_achievements
         
         # Get speed multiplier for this concept
-        speed_multiplier = get_concept_speed_multiplier(session.concept_id)
+        speed_multiplier = get_concept_speed_multiplier(concept_id)
         
         # Find all qualifying tiers for this concept
         # Note: We don't check for existing achievements here - create_achievement() handles constraints
@@ -144,7 +149,7 @@ class LightningFastChecker(AchievementChecker):
                         # else: award divine (record not set/broken)
 
             # Create metadata used by unlock requirements (concept-specific).
-            metadata = {"concept_id": session.concept_id}
+            metadata = {"concept_id": concept_id}
 
             achievement = AchievementService.create_achievement(
                 user_id=user.id,

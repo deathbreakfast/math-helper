@@ -1,7 +1,7 @@
 """Lightning fast achievement checker.
 
-Awards level-specific speed achievements based on average speed at a specific level.
-These are awarded per level with metadata {"level": N}.
+Awards concept-specific speed achievements based on average speed for a specific concept.
+These are awarded per concept with metadata {"concept_id": "c_add_1s"}.
 """
 
 from __future__ import annotations
@@ -10,14 +10,13 @@ import json
 from typing import Any
 
 from ....config.concepts_config import get_concept_speed_multiplier
-from ....models import Achievement, PracticeSession, Question, Response, User, db
-from ....utils.legacy_mappings import extract_legacy_level_from_concept_id
+from ....models import Achievement, PracticeSession, Response, User, db
 from ....utils.tier_utils import get_tier_value
 from .base_checker import AchievementChecker
 
 
 class LightningFastChecker(AchievementChecker):
-    """Checker for lightning-fast achievements (level-specific speed)."""
+    """Checker for lightning-fast achievements (concept-specific speed)."""
     
     def __init__(self, achievement_configs: dict[str, Any]):
         """Initialize checker with achievement configs.
@@ -55,8 +54,8 @@ class LightningFastChecker(AchievementChecker):
         if not session or not session.completed_at:
             return new_achievements
         
-        # Must have either level or concept_id to filter responses
-        if not session.level and not session.concept_id:
+        # Must have concept_id to filter responses
+        if not session.concept_id:
             return new_achievements
         
         # Get lightning-fast achievements from config
@@ -71,36 +70,21 @@ class LightningFastChecker(AchievementChecker):
         # Get user's existing achievements
         user_achievement_codes = AchievementService.get_achievement_codes(user.id)
         
-        # Calculate average speed for this level/concept from user's responses
-        # Priority: Use level filtering if level exists (backward compatible with legacy concepts)
-        # Otherwise, use concept_id filtering for descriptive concepts (c_add_1s, etc.)
-        if session.level:
-            # Use level filtering (works for both legacy concepts and level-based practice)
-            level_responses = (
-                Response.query.filter_by(user_id=user.id, is_correct=True)
-                .join(Question)
-                .filter(Question.required_level == session.level)
-                .all()
-            )
-        elif session.concept_id:
-            # No level but has concept_id - must be a descriptive concept (e.g., c_add_1s)
-            # Filter by concept_id
-            level_responses = (
-                Response.query.filter_by(user_id=user.id, is_correct=True)
-                .join(PracticeSession, Response.session_id == PracticeSession.id)
-                .filter(PracticeSession.concept_id == session.concept_id)
-                .all()
-            )
-        else:
-            # No level and no concept_id - can't filter
+        # Calculate average speed for this concept from user's responses
+        # Filter by concept_id
+        concept_responses = (
+            Response.query.filter_by(user_id=user.id, is_correct=True)
+            .join(PracticeSession, Response.session_id == PracticeSession.id)
+            .filter(PracticeSession.concept_id == session.concept_id)
+            .all()
+        )
+        
+        if not concept_responses:
             return new_achievements
         
-        if not level_responses:
-            return new_achievements
-        
-        # Calculate average time per question for this level
-        total_duration = sum(r.duration_ms or 0 for r in level_responses)
-        total_questions = len(level_responses)
+        # Calculate average time per question for this concept
+        total_duration = sum(r.duration_ms or 0 for r in concept_responses)
+        total_questions = len(concept_responses)
         avg_speed_seconds = (total_duration / 1000.0 / total_questions) if total_questions > 0 else None
         
         if not avg_speed_seconds:
@@ -109,7 +93,7 @@ class LightningFastChecker(AchievementChecker):
         # Get speed multiplier for this concept
         speed_multiplier = get_concept_speed_multiplier(session.concept_id)
         
-        # Find all qualifying tiers for this level
+        # Find all qualifying tiers for this concept
         # Note: We don't check for existing achievements here - create_achievement() handles constraints
         qualifying_tiers = []
         # Exclude champion from initial qualifying_tiers - it requires server record check
@@ -159,12 +143,8 @@ class LightningFastChecker(AchievementChecker):
                             config = champion_config
                         # else: award divine (record not set/broken)
 
-            # Create metadata used by unlock requirements (level/concept-specific).
-            metadata = {}
-            if session.concept_id:
-                metadata["concept_id"] = session.concept_id
-            if session.level:
-                metadata["level"] = session.level
+            # Create metadata used by unlock requirements (concept-specific).
+            metadata = {"concept_id": session.concept_id}
 
             achievement = AchievementService.create_achievement(
                 user_id=user.id,

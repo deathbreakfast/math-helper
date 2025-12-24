@@ -15,7 +15,6 @@ from tests.helpers.data_helpers import (
     award_achievement_directly,
     create_test_questions,
     create_test_session_with_responses,
-    set_user_level_directly,
 )
 
 
@@ -194,27 +193,27 @@ def test_speed_demon_bronze_achievement(app, test_user):
 
 
 def test_speed_demon_with_multiplier(app, test_user):
-    """Test speed-demon achievement with concept speed multiplier (2.0x).
+    """Test speed-demon achievement with concept speed multiplier (1.1x).
     
-    Uses concept c_concept_037 which has speed_multiplier 2.0.
-    With 9.0s average, should qualify for bronze (9.0s < 5.0s * 2.0 = 10.0s).
-    Without multiplier, 9.0s would NOT qualify (9.0s > 5.0s).
+    Uses concept c_add_3s which has speed_multiplier 1.1.
+    With 5.4s average, should qualify for bronze (5.4s < 5.0s * 1.1 = 5.5s).
+    Without multiplier, 5.4s would NOT qualify (5.4s > 5.0s).
     """
     with app.app_context():
-        # Create 10 questions with average time 9.0s (would NOT qualify without multiplier)
+        # Create 10 questions with average time 5.4s (would NOT qualify without multiplier)
         questions = create_test_questions(10, 1)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
             'is_correct': True,
-            'duration_ms': 9000  # 9.0 seconds per question
+            'duration_ms': 5400  # 5.4 seconds per question
         } for q in questions]
         
-        # Use concept_id with 2.0 multiplier (c_concept_037)
+        # Use concept_id with 1.1 multiplier (c_add_3s)
         session = create_test_session_with_responses(
             test_user.id, 
             responses_data, 
-            concept_id="c_concept_037"
+            concept_id="c_add_3s"
         )
         
         # Get user and compute metrics, then check and award achievements
@@ -222,13 +221,13 @@ def test_speed_demon_with_multiplier(app, test_user):
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
-        # Verify achievement was awarded (multiplier should make 9.0s qualify for bronze)
+        # Verify achievement was awarded (multiplier should make 5.4s qualify for bronze)
         achievement = Achievement.query.filter_by(
             user_id=test_user.id,
             code="speed-demon-bronze"
         ).first()
         
-        assert achievement is not None, "Speed demon bronze should be awarded with 2.0x multiplier (9.0s < 10.0s)"
+        assert achievement is not None, "Speed demon bronze should be awarded with 1.1x multiplier (5.4s < 5.5s)"
 
 
 # ============================================================================
@@ -397,31 +396,27 @@ def test_speed_demon_champion_divine_flow(app, test_user):
 
 
 def test_lightning_fast_with_multiplier(app, test_user):
-    """Test lightning-fast achievement with concept speed multiplier (2.0x).
+    """Test lightning-fast achievement with concept speed multiplier (1.1x).
     
-    Uses concept c_concept_037 which has speed_multiplier 2.0.
-    With 9.0s average at level 37, should qualify for bronze (9.0s < 5.0s * 2.0 = 10.0s).
-    Without multiplier, 9.0s would NOT qualify (9.0s > 5.0s).
+    Uses concept c_add_3s which has speed_multiplier 1.1.
+    With 5.4s average, should qualify for bronze (5.4s < 5.0s * 1.1 = 5.5s).
+    Without multiplier, 5.4s would NOT qualify (5.4s > 5.0s).
     """
     with app.app_context():
-        # Set user level to 37 to match the concept
-        set_user_level_directly(test_user.id, 37)
-        
-        # Create 50 questions at level 37 (minimum for bronze) with average time 9.0s
-        questions = create_test_questions(50, 37)
+        # Create 50 questions (minimum for bronze) with average time 5.4s
+        questions = create_test_questions(50, 1)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
             'is_correct': True,
-            'duration_ms': 9000  # 9.0 seconds per question
+            'duration_ms': 5400  # 5.4 seconds per question
         } for q in questions]
         
-        # Use concept_id with 2.0 multiplier (c_concept_037) and level 37
+        # Use concept_id with 1.1 multiplier (c_add_3s)
         session = create_test_session_with_responses(
             test_user.id, 
             responses_data, 
-            level=37,
-            concept_id="c_concept_037"
+            concept_id="c_add_3s"
         )
         
         # Get user and compute metrics, then check and award achievements
@@ -431,13 +426,13 @@ def test_lightning_fast_with_multiplier(app, test_user):
         # Lightning-fast achievements are checked separately via check_lightning_fast_achievements
         lightning_fast_achievements = AchievementService.check_lightning_fast_achievements(user, session.id)
         
-        # Verify achievement was awarded (multiplier should make 9.0s qualify for bronze)
+        # Verify achievement was awarded (multiplier should make 5.4s qualify for bronze)
         achievement = Achievement.query.filter_by(
             user_id=test_user.id,
             code="lightning-fast-bronze"
         ).first()
         
-        assert achievement is not None, "Lightning fast bronze should be awarded with 2.0x multiplier (9.0s < 10.0s)"
+        assert achievement is not None, "Lightning fast bronze should be awarded with 1.1x multiplier (5.4s < 5.5s)"
 
 
 # ============================================================================

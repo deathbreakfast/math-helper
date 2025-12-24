@@ -393,10 +393,10 @@ class AchievementService:
     @staticmethod
     @log_query
     def check_lightning_fast_achievements(user: User, session_id: int | None = None) -> list[Achievement]:
-        """Check and award Lightning Fast (level-specific speed) achievements.
+        """Check and award Lightning Fast (concept-specific speed) achievements.
         
-        Awards lightning-fast achievements per level with metadata when user achieves
-        required speed at a specific level.
+        Awards lightning-fast achievements per concept with metadata when user achieves
+        required speed for a specific concept.
         
         Args:
             user: The user to check

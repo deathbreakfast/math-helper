@@ -44,11 +44,19 @@ const SummaryPage = () => {
 
   const handlePracticeAgain = () => {
     if (sessionSummary?.user) {
-      router.navigate('/practice', {
+      const navParams: Record<string, string> = {
         user: sessionSummary.user.name,
         userId: String(sessionSummary.user.id),
         avatar: sessionSummary.user.avatar || '',
-      })
+      }
+      
+      // Preserve concept_id if the session was started with a specific concept
+      if (sessionSummary.concept_id) {
+        navParams.conceptId = sessionSummary.concept_id
+        navParams.isConcept = 'true'
+      }
+      
+      router.navigate('/practice', navParams)
     } else {
       router.navigate('/practice')
     }

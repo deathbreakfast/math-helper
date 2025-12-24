@@ -9,6 +9,7 @@ import type { User } from '../../hooks/useLearners'
 import { logError } from '../../../../utils/logger'
 import { getConceptAttempts, getConceptAttemptDetail, type ConceptAttempt, type ConceptAttemptDetail } from '../../hooks/useConceptAttempts'
 import { getConceptXpPerCorrect } from '../../data/conceptXp'
+import { extractTierFromCode } from '../../utils/achievementUtils'
 
 type MathConceptDetailModalProps = {
   concept: MathConcept | null
@@ -200,14 +201,35 @@ export const MathConceptDetailModal: React.FC<MathConceptDetailModalProps> = ({
                           </div>
                         </div>
                         <div className="text-xs text-gray-600 space-y-1">
-                          {concept.unlockRequirements.map((req, idx) => (
-                            <div
-                              key={idx}
-                              className={req.completed ? 'text-green-600' : 'text-gray-500'}
-                            >
-                              {req.completed ? '✓' : '○'} {req.description}
-                            </div>
-                          ))}
+                          {concept.unlockRequirements.map((req, idx) => {
+                            // Extract tier and quantity from achievement code if available
+                            let tier: string | null = null
+                            let quantity: number | undefined = undefined
+                            
+                            if (req.achievementCode) {
+                              // Extract tier from achievement code
+                              const { tier: extractedTier } = extractTierFromCode(req.achievementCode)
+                              tier = extractedTier
+                              
+                              // Get quantity from maxProgress
+                              quantity = req.maxProgress && req.maxProgress > 1 ? req.maxProgress : undefined
+                            }
+                            
+                            return (
+                              <div
+                                key={idx}
+                                className={req.completed ? 'text-green-600' : 'text-gray-500'}
+                              >
+                                {req.completed ? '✓' : '○'} {req.description}
+                                {tier && (
+                                  <span className="ml-1 font-semibold">({tier}{quantity ? ` • Qty: ${quantity}` : ''})</span>
+                                )}
+                                {!tier && quantity && (
+                                  <span className="ml-1 font-semibold">(Qty: {quantity})</span>
+                                )}
+                              </div>
+                            )
+                          })}
                         </div>
                       </div>
                     )}

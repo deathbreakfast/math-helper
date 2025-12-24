@@ -506,6 +506,164 @@ test.describe('Summary Page', () => {
       await expect(flaggedProblems.first()).toBeVisible({ timeout: 3000 })
     }
   })
+
+  test('SUM-007: Try something else button always visible', async ({ page, testUser, request }) => {
+    // Start a practice session via API
+    const sessionData = await startPracticeSessionViaAPI(request, testUser.id)
+    const { session_id, questions } = sessionData
+    
+    expect(questions.length).toBeGreaterThan(0)
+    
+    // Answer all questions via API
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i]
+      const questionId = question.question_id || question.id
+      const correctAnswer = question.correctAnswer || question.correct_answer
+      
+      if (!questionId || !correctAnswer) {
+        throw new Error(`Question ${i} missing required fields: ${JSON.stringify(question)}`)
+      }
+      
+      await answerQuestionViaAPI(
+        request,
+        session_id,
+        typeof questionId === 'string' ? parseInt(questionId) : questionId,
+        String(correctAnswer),
+        1000
+      )
+    }
+    
+    // Navigate to practice page - this should resume the incomplete session from backend
+    const startSessionResponsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/practice/sessions/start') && response.request().method() === 'POST',
+      { timeout: 15000 }
+    )
+    
+    await navigateToPractice(page, testUser)
+    
+    const startSessionResponse = await startSessionResponsePromise.catch(() => null)
+    if (!startSessionResponse) {
+      throw new Error('Failed to capture /api/practice/sessions/start response')
+    }
+    
+    const responseData = await startSessionResponse.json()
+    await page.waitForLoadState('networkidle')
+    
+    // Handle session restoration and answer questions to reach submit button
+    await handleSessionRestorationAndAnswerToSubmit(
+      page,
+      session_id,
+      responseData.session_id,
+      questions,
+      responseData.questions
+    )
+    
+    // Submit the session via UI
+    await submitPracticeSession(page)
+    await waitForSummaryPage(page)
+    
+    // Wait for and dismiss level-up modal if it appears
+    await waitForAndDismissLevelUpModal(page)
+    
+    // Verify "Try something else" button is visible even if user didn't level up
+    const trySomethingElseButton = page.getByTestId('testid-try-next-level-button')
+    await expect(trySomethingElseButton).toBeVisible({ timeout: 5000 })
+    
+    // Verify button text
+    await expect(trySomethingElseButton).toContainText('Try something else')
+  })
+
+  test('SUM-008: Practice again preserves concept_id', async ({ page, testUser, request }) => {
+    // Start a practice session with a specific concept via API
+    // First, we need to get a concept_id. Let's use a known concept like c_add_1s
+    const conceptId = 'c_add_1s'
+    
+    // Start session with concept_id
+    const startResponse = await request.post('/api/practice/sessions/start', {
+      data: {
+        user_id: testUser.id,
+        mode: 'standard',
+        concept_id: conceptId,
+      },
+    })
+    
+    if (!startResponse.ok) {
+      throw new Error(`Failed to start session: ${startResponse.statusText}`)
+    }
+    
+    const sessionData = await startResponse.json()
+    const { session_id, questions } = sessionData
+    
+    expect(questions.length).toBeGreaterThan(0)
+    
+    // Answer all questions via API
+    for (let i = 0; i < questions.length; i++) {
+      const question = questions[i]
+      const questionId = question.question_id || question.id
+      const correctAnswer = question.correctAnswer || question.correct_answer
+      
+      if (!questionId || !correctAnswer) {
+        throw new Error(`Question ${i} missing required fields: ${JSON.stringify(question)}`)
+      }
+      
+      await answerQuestionViaAPI(
+        request,
+        session_id,
+        typeof questionId === 'string' ? parseInt(questionId) : questionId,
+        String(correctAnswer),
+        1000
+      )
+    }
+    
+    // Navigate to practice page - this should resume the incomplete session from backend
+    const startSessionResponsePromise = page.waitForResponse(
+      (response) => response.url().includes('/api/practice/sessions/start') && response.request().method() === 'POST',
+      { timeout: 15000 }
+    )
+    
+    // Navigate with concept parameters
+    await page.goto(`/practice?user=${testUser.name}&userId=${testUser.id}&conceptId=${conceptId}&isConcept=true`)
+    
+    const startSessionResponse = await startSessionResponsePromise.catch(() => null)
+    if (!startSessionResponse) {
+      throw new Error('Failed to capture /api/practice/sessions/start response')
+    }
+    
+    const responseData = await startSessionResponse.json()
+    await page.waitForLoadState('networkidle')
+    
+    // Handle session restoration and answer questions to reach submit button
+    await handleSessionRestorationAndAnswerToSubmit(
+      page,
+      session_id,
+      responseData.session_id,
+      questions,
+      responseData.questions
+    )
+    
+    // Submit the session via UI
+    await submitPracticeSession(page)
+    await waitForSummaryPage(page)
+    
+    // Wait for and dismiss level-up modal if it appears
+    await waitForAndDismissLevelUpModal(page)
+    
+    // Click Practice Again button
+    const practiceAgainButton = page.getByTestId('testid-practice-again-button')
+    await practiceAgainButton.click()
+    
+    // Should navigate back to practice with the same concept_id preserved
+    await page.waitForURL(/\/practice/, { timeout: 5000 })
+    expect(page.url()).toContain('/practice')
+    
+    // Verify concept_id is preserved in URL
+    const url = new URL(page.url())
+    const conceptIdParam = url.searchParams.get('conceptId')
+    const isConceptParam = url.searchParams.get('isConcept')
+    
+    expect(conceptIdParam).toBe(conceptId)
+    expect(isConceptParam).toBe('true')
+  })
 })
 
 

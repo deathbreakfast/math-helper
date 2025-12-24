@@ -217,6 +217,7 @@ export function createSessionSummary(
     submittedAt: data.session?.completed_at || new Date().toISOString(),
     status: 'completed',
     message: 'Great job completing the practice session!',
+    concept_id: data.session?.concept_id,
     totals: {
       questions: totalQuestions,
       correct,

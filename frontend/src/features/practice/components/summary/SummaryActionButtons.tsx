@@ -22,8 +22,6 @@ export const SummaryActionButtons = ({
   onTryNextLevel,
   onReviewFlagged,
 }: SummaryActionButtonsProps) => {
-  const hasLeveledUp = levelUp?.leveled_up === true
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -47,19 +45,17 @@ export const SummaryActionButtons = ({
         <RotateCcw className="w-5 h-5" />
         Practice Again
       </button>
-      {hasLeveledUp && (
-        <motion.button
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 1.3, type: 'spring' }}
-          onClick={onTryNextLevel}
-          data-testid="testid-try-next-level-button"
-          className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl font-semibold"
-        >
-          Try something else
-          <ChevronRight className="w-5 h-5" />
-        </motion.button>
-      )}
+      <motion.button
+        initial={{ scale: 0 }}
+        animate={{ scale: 1 }}
+        transition={{ delay: 1.3, type: 'spring' }}
+        onClick={onTryNextLevel}
+        data-testid="testid-try-next-level-button"
+        className="flex items-center gap-2 px-8 py-4 bg-gradient-to-r from-purple-500 to-pink-600 text-white rounded-xl hover:from-purple-600 hover:to-pink-700 transition-all shadow-lg hover:shadow-xl font-semibold"
+      >
+        Try something else
+        <ChevronRight className="w-5 h-5" />
+      </motion.button>
       {metrics.flaggedProblems > 0 && (
         <button
           onClick={onReviewFlagged}

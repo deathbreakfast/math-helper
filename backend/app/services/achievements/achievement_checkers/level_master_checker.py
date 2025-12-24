@@ -108,14 +108,20 @@ class LevelMasterChecker(AchievementChecker):
         if level_filter is not None:
             # Get all responses for this level, ordered chronologically
             # For legacy levels, derive concept_id from level
+            # IMPORTANT: Also filter by session concept_id to ensure we only count responses
+            # from sessions with the legacy concept_id format (c_concept_XXX), not descriptive
+            # concept IDs (like c_add_1s, c_add_2s) that might share the same required_level
+            legacy_concept_id = f"c_concept_{level_filter:03d}"
             responses = (
                 Response.query.filter_by(user_id=user_id)
                 .join(Question)
+                .join(PracticeSession, Response.session_id == PracticeSession.id)
                 .filter(Question.required_level == level_filter)
+                .filter(PracticeSession.concept_id == legacy_concept_id)
                 .order_by(Response.answered_at.asc())
                 .all()
             )
-            metadata = {"concept_id": f"c_concept_{level_filter:03d}"}
+            metadata = {"concept_id": legacy_concept_id}
         else:
             # Get all responses for this concept_id, ordered chronologically
             responses = (

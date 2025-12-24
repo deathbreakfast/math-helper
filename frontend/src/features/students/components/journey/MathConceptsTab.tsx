@@ -1,15 +1,15 @@
-import { useMemo, useState, useEffect } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useState } from 'react'
 import { motion } from 'framer-motion'
-import { AlertCircle, Search, Loader2 } from 'lucide-react'
+import { AlertCircle, Loader2 } from 'lucide-react'
 import type { UserProgressData } from '../../utils/progressMapping'
 import type { User } from '../../hooks/useLearners'
 import { useMathConcepts } from '../../hooks/useMathConcepts'
 import type { MathConcept } from '../../data/mathConcepts'
-import { MathConceptCard } from './MathConceptCard'
 import { MathConceptDetailModal } from './MathConceptDetailModal'
+import { ConceptTreeView } from './ConceptTreeView'
 import PINVerificationModal from '../../modals/PINVerificationModal'
 import { useRouter } from '../../../../utils/routing'
+import { useConceptRequirements } from '../../../../lib/concepts/hooks'
 
 type MathConceptsTabProps = {
   userData: UserProgressData
@@ -18,34 +18,6 @@ type MathConceptsTabProps = {
 }
 
 export const MathConceptsTab = ({ userData, isActive, user }: MathConceptsTabProps) => {
-  const [searchParams, setSearchParams] = useSearchParams()
-  const [textFilter, setTextFilter] = useState('')
-  
-  // Read status filter from URL query params, default to 'unlocked' for better first-time experience
-  const statusParam = searchParams.get('status') as 'all' | 'locked' | 'unlocked' | 'attempted' | null
-  const [statusFilter, setStatusFilter] = useState<'all' | 'locked' | 'unlocked' | 'attempted'>(
-    statusParam || 'unlocked'
-  )
-  
-  // Sync status filter with URL query params when component mounts or URL changes
-  useEffect(() => {
-    if (statusParam && statusParam !== statusFilter) {
-      setStatusFilter(statusParam)
-    }
-  }, [statusParam])
-  
-  // Update URL when status filter changes
-  const handleStatusFilterChange = (newStatus: 'all' | 'locked' | 'unlocked' | 'attempted') => {
-    setStatusFilter(newStatus)
-    const newParams = new URLSearchParams(searchParams)
-    if (newStatus !== 'unlocked') {
-      // Only set param if not default 'unlocked' to keep URLs clean
-      newParams.set('status', newStatus)
-    } else {
-      newParams.delete('status')
-    }
-    setSearchParams(newParams, { replace: true })
-  }
   const [selectedConcept, setSelectedConcept] = useState<MathConcept | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [isPinModalOpen, setIsPinModalOpen] = useState(false)
@@ -58,6 +30,10 @@ export const MathConceptsTab = ({ userData, isActive, user }: MathConceptsTabPro
     isActive,
     userId,
   })
+
+  // Get backend requirements for graph building
+  const conceptIds = concepts.map(c => c.conceptId)
+  const { requirements: backendRequirements } = useConceptRequirements(conceptIds, isActive, userId)
 
   const handleConceptClick = (concept: MathConcept) => {
     setSelectedConcept(concept)
@@ -91,47 +67,6 @@ export const MathConceptsTab = ({ userData, isActive, user }: MathConceptsTabPro
     })
   }
 
-  // Filter concepts
-  const filteredConcepts = useMemo(() => {
-    const lowerTextFilter = textFilter.toLowerCase()
-    const visible = concepts.filter((concept) => {
-      // Status filter
-      let statusMatch = true
-      if (statusFilter !== 'all') {
-        if (statusFilter === 'locked') {
-          statusMatch = concept.isLocked
-        } else if (statusFilter === 'unlocked') {
-          statusMatch = !concept.isLocked && concept.attemptCount === 0
-        } else if (statusFilter === 'attempted') {
-          statusMatch = concept.attemptCount > 0
-        }
-      }
-
-      // Text filter
-      const textMatch =
-        !textFilter ||
-        concept.displayName.toLowerCase().includes(lowerTextFilter) ||
-        concept.conceptId.toLowerCase().includes(lowerTextFilter)
-
-      return statusMatch && textMatch
-    })
-
-    // Sort: unlocked (including attempted) first, locked last; within each bucket keep attempted first then alphabetical.
-    const sorted = [...visible].sort((a, b) => {
-      const aLocked = a.isLocked ? 1 : 0
-      const bLocked = b.isLocked ? 1 : 0
-      if (aLocked !== bLocked) return aLocked - bLocked
-
-      const aAttempted = a.attemptCount > 0 ? 0 : 1
-      const bAttempted = b.attemptCount > 0 ? 0 : 1
-      if (aAttempted !== bAttempted) return aAttempted - bAttempted
-
-      return a.displayName.localeCompare(b.displayName)
-    })
-
-    return sorted.map((concept) => ({ concept, matchesFilter: true }))
-  }, [concepts, statusFilter, textFilter])
-
   return (
     <motion.div
       data-testid="testid-concepts-tab"
@@ -157,40 +92,6 @@ export const MathConceptsTab = ({ userData, isActive, user }: MathConceptsTabPro
         </p>
       </div>
 
-      {/* Filters */}
-      <div className="mb-8 rounded-2xl bg-white p-6 shadow-lg">
-        <div className="flex flex-wrap gap-4">
-          <div className="min-w-[200px] flex-1">
-            <label className="mb-2 block text-sm font-medium text-gray-700">Status</label>
-            <select
-              data-testid="testid-concept-filter-status"
-              value={statusFilter}
-              onChange={(e) => handleStatusFilterChange(e.target.value as any)}
-              className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 text-gray-900 outline-none focus:border-transparent focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="all">All Status</option>
-              <option value="unlocked">Unlocked</option>
-              <option value="attempted">Attempted</option>
-              <option value="locked">Locked</option>
-            </select>
-          </div>
-          <div className="min-w-[200px] flex-1">
-            <label className="mb-2 block text-sm font-medium text-gray-700">Search</label>
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-              <input
-                data-testid="testid-concept-search-input"
-                type="text"
-                value={textFilter}
-                onChange={(e) => setTextFilter(e.target.value)}
-                placeholder="Search concepts..."
-                className="w-full rounded-xl border border-gray-300 bg-white px-4 py-2 pl-10 text-gray-900 outline-none placeholder:text-gray-400 focus:border-transparent focus:ring-2 focus:ring-blue-500"
-              />
-            </div>
-          </div>
-        </div>
-      </div>
-
       {isLoading && (
         <div className="flex items-center justify-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
@@ -206,21 +107,15 @@ export const MathConceptsTab = ({ userData, isActive, user }: MathConceptsTabPro
 
       {!isLoading && !error && (
         <>
-          {/* Concept Grid */}
-          <div data-testid="testid-concept-grid" className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {filteredConcepts.map(({ concept, matchesFilter }, index) => (
-              <MathConceptCard
-                key={concept.id}
-                concept={concept}
-                index={index}
-                onClick={handleConceptClick}
-                onStartPractice={handleStartPracticeClick}
-                matchesFilter={matchesFilter}
-              />
-            ))}
-          </div>
-
-          {filteredConcepts.length === 0 && (
+          {concepts.length > 0 ? (
+            <ConceptTreeView
+              concepts={concepts}
+              userData={userData}
+              backendRequirements={backendRequirements}
+              onConceptClick={handleConceptClick}
+              onStartPractice={handleStartPracticeClick}
+            />
+          ) : (
             <div className="py-16 text-center">
               <AlertCircle className="mx-auto mb-4 h-16 w-16 text-gray-300" />
               <p className="text-lg text-gray-500">No concepts available</p>

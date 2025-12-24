@@ -118,6 +118,7 @@ export type PracticeSessionSummary = {
   submittedAt: string
   status: string
   message?: string
+  concept_id?: string
   totals: {
     questions: number
     correct: number

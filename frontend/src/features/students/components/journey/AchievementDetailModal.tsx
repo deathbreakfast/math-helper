@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useMemo } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
 import { X, Calendar, Award, Info } from 'lucide-react'
 import type { Achievement } from '../../data/achievements'
 import type { BackendAchievementDefinition } from '../../../lib/levels/api'
 import { logError } from '../../../../utils/logger'
+import { getConceptDisplayNameByConceptId } from '../../data/mathConcepts'
 
 type AchievementInstance = {
   id: string
@@ -67,12 +68,52 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
   const formatMetadata = (metadata?: Record<string, any>): string => {
     if (!metadata) return ''
     const parts: string[] = []
+    if (metadata.concept_id) {
+      const conceptName = getConceptDisplayNameByConceptId(metadata.concept_id)
+      if (conceptName) {
+        parts.push(conceptName)
+      } else {
+        // Fallback to concept_id if display name not found
+        parts.push(metadata.concept_id)
+      }
+    }
     if (metadata.level) {
       parts.push(`Level ${metadata.level}`)
     }
     if (metadata.operation) parts.push(metadata.operation)
     return parts.join(' • ')
   }
+
+  // Group instances by concept_id to show a summary for level master achievements
+  const conceptSummary = useMemo(() => {
+    if (!achievement || !instances.length) return null
+    
+    // Check if this is a level master achievement
+    const isLevelMaster = achievement.id?.startsWith('level-master-') || 
+                         (achievement as any).code?.startsWith('level-master-')
+    
+    if (!isLevelMaster) return null
+    
+    // Group instances by concept_id
+    const conceptMap = new Map<string, number>()
+    instances.forEach(instance => {
+      if (instance.metadata?.concept_id) {
+        const conceptId = instance.metadata.concept_id
+        conceptMap.set(conceptId, (conceptMap.get(conceptId) || 0) + 1)
+      }
+    })
+    
+    if (conceptMap.size === 0) return null
+    
+    // Convert to array of { conceptId, displayName, count }
+    const concepts = Array.from(conceptMap.entries()).map(([conceptId, count]) => ({
+      conceptId,
+      displayName: getConceptDisplayNameByConceptId(conceptId) || conceptId,
+      count,
+    }))
+    
+    return concepts
+  }, [instances, achievement])
 
   if (!achievement) return null
 
@@ -174,6 +215,21 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
                           Bonus: {(reward.bonus_xp ?? 0).toLocaleString()}xp
                           {(reward.multiplier ?? 0) > 0 ? ` • Multiplier: x${Number(reward.multiplier).toFixed(2)}` : ''}
                         </p>
+                      </div>
+                    )}
+                    {conceptSummary && conceptSummary.length > 0 && (
+                      <div className="mb-6 rounded-lg bg-green-50 p-4 border border-green-200" data-testid="testid-achievement-modal-concept-summary">
+                        <p className="text-sm font-semibold text-gray-700 mb-2">Math Concepts:</p>
+                        <div className="space-y-1">
+                          {conceptSummary.map((concept, idx) => (
+                            <div key={idx} className="text-sm text-gray-700">
+                              <span className="font-medium">{concept.displayName}</span>
+                              {concept.count > 1 && (
+                                <span className="text-gray-500 ml-2">({concept.count}x)</span>
+                              )}
+                            </div>
+                          ))}
+                        </div>
                       </div>
                     )}
                     <div className="mb-6 flex items-center gap-2 text-sm font-semibold text-gray-700">

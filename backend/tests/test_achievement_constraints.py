@@ -195,13 +195,13 @@ def test_accuracy_ace_highest_tier_only(app, test_user):
 # ============================================================================
 
 def test_speed_demon_highest_tier_calculation(app, test_user):
-    """Test: Speed Demon awards highest qualifying tier (1.8s should get Diamond)."""
+    """Test: Speed Demon awards highest qualifying tier (1.8s should get Grandmaster)."""
     with app.app_context():
         # Get user safely (handles detached instances)
         user = _get_user_safely(app, test_user)
         
-        # 1.8s qualifies for: Diamond (≤2.0s), Platinum (≤2.5s), Gold (≤3.0s), Silver (≤4.0s), Bronze (≤5.0s)
-        # Should award Diamond (highest)
+        # 1.8s qualifies for: Grandmaster (≤1.8s), Master (≤2.1s), Diamond (≤2.4s), Platinum (≤2.7s), Gold (≤3.0s), Silver (≤4.0s), Bronze (≤5.0s)
+        # Should award Grandmaster (highest)
         # Create session with 1.8s average per question
         questions = create_test_questions(10, 1)
         responses_data = [{
@@ -223,10 +223,10 @@ def test_speed_demon_highest_tier_calculation(app, test_user):
         AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         db.session.commit()
         
-        # Should award Diamond (highest qualifying tier) based on session speed
-        diamond = Achievement.query.filter_by(
+        # Should award Grandmaster (highest qualifying tier) based on session speed
+        grandmaster = Achievement.query.filter_by(
             user_id=user.id,
-            code="speed-demon-diamond",
+            code="speed-demon-grandmaster",
             session_id=session.id
         ).first()
         bronze = Achievement.query.filter_by(
@@ -235,8 +235,8 @@ def test_speed_demon_highest_tier_calculation(app, test_user):
             session_id=session.id
         ).first()
         
-        assert diamond is not None, "Diamond should be awarded for 1.8s session average"
-        assert bronze is None, "Bronze should NOT be awarded when diamond qualifies"
+        assert grandmaster is not None, "Grandmaster should be awarded for 1.8s session average"
+        assert bronze is None, "Bronze should NOT be awarded when grandmaster qualifies"
 
 
 def test_speed_demon_multiple_instances_across_sessions(app, test_user):

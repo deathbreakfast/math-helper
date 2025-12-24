@@ -51,44 +51,44 @@ class TestAchievementXPService:
     def test_level_master_bronze(self):
         """Test level-master-bronze returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("level-master-bronze")
-        assert reward.bonus_xp == 832
-        assert abs(reward.multiplier - 1.5) < 1e-9
+        assert reward.bonus_xp == 200
+        assert abs(reward.multiplier - 1.05) < 1e-9
     
     def test_level_master_gold(self):
         """Test level-master-gold returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("level-master-gold")
-        assert reward.bonus_xp == 4040
-        assert abs(reward.multiplier - 2.5) < 1e-9
+        assert reward.bonus_xp == 512
+        assert abs(reward.multiplier - 1.19) < 1e-9
     
     def test_level_master_champion(self):
         """Test level-master-champion returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("level-master-champion")
-        assert reward.bonus_xp == 821400
-        assert abs(reward.multiplier - 6.5) < 1e-9
+        assert reward.bonus_xp == 22000
+        assert abs(reward.multiplier - 3.35) < 1e-9
     
     def test_lightning_fast_bronze(self):
         """Test lightning-fast-bronze returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("lightning-fast-bronze")
-        assert reward.bonus_xp == 357
-        assert abs(reward.multiplier - 1.4) < 1e-9
+        assert reward.bonus_xp == 200
+        assert abs(reward.multiplier - 1.05) < 1e-9
     
     def test_lightning_fast_champion(self):
         """Test lightning-fast-champion returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("lightning-fast-champion")
-        assert reward.bonus_xp == 1000000
-        assert abs(reward.multiplier - 9.9) < 1e-9
+        assert reward.bonus_xp == 40341
+        assert abs(reward.multiplier - 3.48) < 1e-9
     
     def test_question_master_bronze(self):
         """Test question-master-bronze returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("question-master-bronze")
-        assert reward.bonus_xp == 160
-        assert abs(reward.multiplier - 2.0) < 1e-9
+        assert reward.bonus_xp == 120
+        assert abs(reward.multiplier - 1.10) < 1e-9
     
     def test_question_master_champion(self):
         """Test question-master-champion returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("question-master-champion")
-        assert reward.bonus_xp == 800000
-        assert abs(reward.multiplier - 12.0) < 1e-9
+        assert reward.bonus_xp == 24192
+        assert abs(reward.multiplier - 3.50) < 1e-9
     
     def test_speed_demon_bronze(self):
         """Test speed-demon-bronze returns correct bonus XP and multiplier."""
@@ -100,37 +100,37 @@ class TestAchievementXPService:
         """Test speed-demon-diamond returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("speed-demon-diamond")
         assert reward.bonus_xp == 50
-        assert abs(reward.multiplier - 1.16) < 1e-9
+        assert abs(reward.multiplier - 1.152) < 1e-9
     
     def test_speed_demon_champion(self):
         """Test speed-demon-champion returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("speed-demon-champion")
         assert reward.bonus_xp == 4860
-        assert abs(reward.multiplier - 11.24) < 1e-9
+        assert abs(reward.multiplier - 1.875) < 1e-9
     
     def test_perfect_streak_bronze(self):
         """Test perfect-streak-bronze returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("perfect-streak-bronze")
-        assert reward.bonus_xp == 1554
-        assert abs(reward.multiplier - 1.4) < 1e-9
+        assert reward.bonus_xp == 50
+        assert abs(reward.multiplier - 1.05) < 1e-9
     
     def test_perfect_streak_champion(self):
         """Test perfect-streak-champion returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("perfect-streak-champion")
-        assert reward.bonus_xp == 1098900
-        assert abs(reward.multiplier - 9.9) < 1e-9
+        assert reward.bonus_xp == 17897
+        assert abs(reward.multiplier - 4.15) < 1e-9
     
     def test_week_warrior_bronze(self):
         """Test week-warrior-bronze returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("week-warrior-bronze")
-        assert reward.bonus_xp == 466
+        assert reward.bonus_xp == 500
         assert abs(reward.multiplier - 1.2) < 1e-9
     
     def test_week_warrior_champion(self):
         """Test week-warrior-champion returns correct bonus XP and multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("week-warrior-champion")
-        assert reward.bonus_xp == 1205321
-        assert abs(reward.multiplier - 8.5) < 1e-9
+        assert reward.bonus_xp == 512000
+        assert abs(reward.multiplier - 9.95) < 1e-9
     
     # ========================================================================
     # Tests for achievements WITHOUT multipliers (bonus XP only)
@@ -151,73 +151,73 @@ class TestAchievementXPService:
     def test_level_grandmaster_bronze(self):
         """Test level-grandmaster-bronze returns bonus XP but no multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("level-grandmaster-bronze")
-        assert reward.bonus_xp == 15540
+        assert reward.bonus_xp == 2200
         assert reward.multiplier == 0.0
     
     def test_level_grandmaster_champion(self):
         """Test level-grandmaster-champion returns bonus XP but no multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("level-grandmaster-champion")
-        assert reward.bonus_xp == 1554000
+        assert reward.bonus_xp == 242000
         assert reward.multiplier == 0.0
     
     def test_human_calculator_bronze(self):
         """Test human-calculator-bronze returns bonus XP but no multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("human-calculator-bronze")
-        assert reward.bonus_xp == 4641
+        assert reward.bonus_xp == 2200
         assert reward.multiplier == 0.0
     
     def test_human_calculator_champion(self):
         """Test human-calculator-champion returns bonus XP but no multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("human-calculator-champion")
-        assert reward.bonus_xp == 13000000
+        assert reward.bonus_xp == 443751
         assert reward.multiplier == 0.0
     
     def test_master_of_times_tables_bronze(self):
         """Test master-of-times-tables-bronze returns bonus XP but no multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("master-of-times-tables-bronze")
-        assert reward.bonus_xp == 12210
+        assert reward.bonus_xp == 4800
         assert reward.multiplier == 0.0
     
     def test_master_of_times_tables_champion(self):
         """Test master-of-times-tables-champion returns bonus XP but no multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("master-of-times-tables-champion")
-        assert reward.bonus_xp == 8805170
+        assert reward.bonus_xp == 748092
         assert reward.multiplier == 0.0
     
     def test_master_of_division_tables_bronze(self):
         """Test master-of-division-tables-bronze returns bonus XP but no multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("master-of-division-tables-bronze")
-        assert reward.bonus_xp == 13431
+        assert reward.bonus_xp == 5200
         assert reward.multiplier == 0.0
     
     def test_master_of_division_tables_champion(self):
         """Test master-of-division-tables-champion returns bonus XP but no multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("master-of-division-tables-champion")
-        assert reward.bonus_xp == 9685687
+        assert reward.bonus_xp == 810433
         assert reward.multiplier == 0.0
     
     def test_master_of_basic_addition_bronze(self):
         """Test master-of-basic-addition-bronze returns bonus XP but no multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("master-of-basic-addition-bronze")
-        assert reward.bonus_xp == 10091
+        assert reward.bonus_xp == 4000
         assert reward.multiplier == 0.0
     
     def test_master_of_basic_addition_champion(self):
         """Test master-of-basic-addition-champion returns bonus XP but no multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("master-of-basic-addition-champion")
-        assert reward.bonus_xp == 7277000
+        assert reward.bonus_xp == 623410
         assert reward.multiplier == 0.0
     
     def test_master_of_basic_subtraction_bronze(self):
         """Test master-of-basic-subtraction-bronze returns bonus XP but no multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("master-of-basic-subtraction-bronze")
-        assert reward.bonus_xp == 11100
+        assert reward.bonus_xp == 4400
         assert reward.multiplier == 0.0
     
     def test_master_of_basic_subtraction_champion(self):
         """Test master-of-basic-subtraction-champion returns bonus XP but no multiplier."""
         reward = AchievementXPService.reward_for_achievement_code("master-of-basic-subtraction-champion")
-        assert reward.bonus_xp == 8004700
+        assert reward.bonus_xp == 685751
         assert reward.multiplier == 0.0
     
     # ========================================================================
@@ -239,18 +239,18 @@ class TestAchievementXPService:
         assert abs(delta - 0.03) < 1e-9
     
     def test_multiplier_factor_to_delta_speed_demon_diamond(self):
-        """Test that multiplier factor (1.16) converts to delta (0.16)."""
+        """Test that multiplier factor (1.152) converts to delta (0.152)."""
         reward = AchievementXPService.reward_for_achievement_code("speed-demon-diamond")
         factor = reward.multiplier
         delta = factor - 1.0
-        assert abs(delta - 0.16) < 1e-9
+        assert abs(delta - 0.152) < 1e-9
     
     def test_multiplier_factor_to_delta_large_multiplier(self):
-        """Test large multiplier factor (11.24) converts to delta (10.24)."""
+        """Test large multiplier factor (1.875) converts to delta (0.875)."""
         reward = AchievementXPService.reward_for_achievement_code("speed-demon-champion")
         factor = reward.multiplier
         delta = factor - 1.0
-        assert abs(delta - 10.24) < 1e-9
+        assert abs(delta - 0.875) < 1e-9
     
     def test_total_multiplier_calculation_multiple_achievements(self):
         """Test that multiple achievements combine multipliers correctly.

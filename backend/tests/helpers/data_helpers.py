@@ -92,6 +92,7 @@ def create_test_session_with_responses(
     responses_data: list[dict],
     mode: str = "standard",
     level: int = 1,
+    concept_id: Optional[str] = None,
     completed_at: Optional[datetime] = None
 ) -> PracticeSession:
     """Create a practice session with responses for testing.
@@ -106,6 +107,7 @@ def create_test_session_with_responses(
             - answered_at: datetime (optional, defaults to now)
         mode: Session mode (default: "standard")
         level: Session level (default: 1)
+        concept_id: Concept ID for the session (optional)
         completed_at: When session was completed (optional, defaults to now)
         
     Returns:
@@ -115,6 +117,7 @@ def create_test_session_with_responses(
         user_id=user_id,
         mode=mode,
         level=level,
+        concept_id=concept_id,
         started_at=datetime.utcnow()
     )
     db.session.add(session)

@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from ....config.concepts_config import get_concept_speed_multiplier
 from ....models import Achievement, PracticeSession, Question, Response, User, db
 from ....utils.tier_utils import get_tier_value
 from .base_checker import AchievementChecker
@@ -85,15 +86,20 @@ class LightningFastChecker(AchievementChecker):
         if not avg_speed_seconds:
             return new_achievements
         
+        # Get speed multiplier for this concept
+        speed_multiplier = get_concept_speed_multiplier(session.concept_id)
+        
         # Find all qualifying tiers for this level
         # Note: We don't check for existing achievements here - create_achievement() handles constraints
         qualifying_tiers = []
         for achievement_code, config in lightning_fast_achievements:
             requirements = config.get("requirements", {})
             max_speed = requirements.get("max_speed_seconds", 999)
+            # Apply speed multiplier to threshold
+            adjusted_max_speed = max_speed * speed_multiplier
             min_questions = requirements.get("min_questions", 50)
             
-            if avg_speed_seconds <= max_speed and total_questions >= min_questions:
+            if avg_speed_seconds <= adjusted_max_speed and total_questions >= min_questions:
                 tier = config.get("tier", "bronze")
                 qualifying_tiers.append((tier, achievement_code, config))
         
@@ -109,7 +115,10 @@ class LightningFastChecker(AchievementChecker):
                 champion_config = self.achievement_configs.get(champion_code)
                 if champion_config:
                     champion_req = champion_config.get("requirements", {})
-                    if avg_speed_seconds <= champion_req.get("max_speed_seconds", 0.5):
+                    champion_max_speed = champion_req.get("max_speed_seconds", 0.5)
+                    # Apply speed multiplier to champion threshold
+                    adjusted_champion_max_speed = champion_max_speed * speed_multiplier
+                    if avg_speed_seconds <= adjusted_champion_max_speed:
                         # Champion tier can be checked during session completion
                         pass
 

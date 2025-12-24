@@ -193,6 +193,44 @@ def test_speed_demon_bronze_achievement(app, test_user):
         assert achievement is not None
 
 
+def test_speed_demon_with_multiplier(app, test_user):
+    """Test speed-demon achievement with concept speed multiplier (2.0x).
+    
+    Uses concept c_concept_037 which has speed_multiplier 2.0.
+    With 9.0s average, should qualify for bronze (9.0s < 5.0s * 2.0 = 10.0s).
+    Without multiplier, 9.0s would NOT qualify (9.0s > 5.0s).
+    """
+    with app.app_context():
+        # Create 10 questions with average time 9.0s (would NOT qualify without multiplier)
+        questions = create_test_questions(10, 1)
+        responses_data = [{
+            'question_id': q.id,
+            'answer': q.correct_answer,
+            'is_correct': True,
+            'duration_ms': 9000  # 9.0 seconds per question
+        } for q in questions]
+        
+        # Use concept_id with 2.0 multiplier (c_concept_037)
+        session = create_test_session_with_responses(
+            test_user.id, 
+            responses_data, 
+            concept_id="c_concept_037"
+        )
+        
+        # Get user and compute metrics, then check and award achievements
+        user = db.session.get(User, test_user.id)
+        metrics = AnalyticsService.compute_user_metrics(user.id)
+        AchievementService.ensure_achievements(user, metrics, session_id=session.id)
+        
+        # Verify achievement was awarded (multiplier should make 9.0s qualify for bronze)
+        achievement = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="speed-demon-bronze"
+        ).first()
+        
+        assert achievement is not None, "Speed demon bronze should be awarded with 2.0x multiplier (9.0s < 10.0s)"
+
+
 # ============================================================================
 # Speed Achievement Tests
 # ============================================================================
@@ -223,6 +261,50 @@ def test_speed_demon_gold_achievement(app, test_user):
         ).first()
         
         assert achievement is not None, "Speed demon achievement (gold or higher) should be awarded"
+
+
+def test_lightning_fast_with_multiplier(app, test_user):
+    """Test lightning-fast achievement with concept speed multiplier (2.0x).
+    
+    Uses concept c_concept_037 which has speed_multiplier 2.0.
+    With 9.0s average at level 37, should qualify for bronze (9.0s < 5.0s * 2.0 = 10.0s).
+    Without multiplier, 9.0s would NOT qualify (9.0s > 5.0s).
+    """
+    with app.app_context():
+        # Set user level to 37 to match the concept
+        set_user_level_directly(test_user.id, 37)
+        
+        # Create 50 questions at level 37 (minimum for bronze) with average time 9.0s
+        questions = create_test_questions(50, 37)
+        responses_data = [{
+            'question_id': q.id,
+            'answer': q.correct_answer,
+            'is_correct': True,
+            'duration_ms': 9000  # 9.0 seconds per question
+        } for q in questions]
+        
+        # Use concept_id with 2.0 multiplier (c_concept_037) and level 37
+        session = create_test_session_with_responses(
+            test_user.id, 
+            responses_data, 
+            level=37,
+            concept_id="c_concept_037"
+        )
+        
+        # Get user and compute metrics, then check and award achievements
+        user = db.session.get(User, test_user.id)
+        metrics = AnalyticsService.compute_user_metrics(user.id)
+        
+        # Lightning-fast achievements are checked separately via check_lightning_fast_achievements
+        lightning_fast_achievements = AchievementService.check_lightning_fast_achievements(user, session.id)
+        
+        # Verify achievement was awarded (multiplier should make 9.0s qualify for bronze)
+        achievement = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="lightning-fast-bronze"
+        ).first()
+        
+        assert achievement is not None, "Lightning fast bronze should be awarded with 2.0x multiplier (9.0s < 10.0s)"
 
 
 # ============================================================================

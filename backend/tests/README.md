@@ -11,7 +11,6 @@ Tests are organized by feature area:
 - `test_api_protection.py` - API protection tests (TESTING environment variable)
 - `test_generic_achievements.py` - Generic achievement system tests
 - `test_server_record_service.py` - Server record service tests (Champion tier)
-- `test_tests_tab.py` - Test definitions and attempts tests
 
 ## Running Tests
 

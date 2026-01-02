@@ -28,7 +28,8 @@ def test_user(app):
         # Use a unique display name to avoid UNIQUE constraint violations
         import uuid
         unique_name = f"TestUser_{uuid.uuid4().hex[:8]}"
-        user = User(display_name=unique_name, pin="1234", avatar="🐯", level=1)
+        # Level is calculated from XP, not set directly
+        user = User(display_name=unique_name, pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)
@@ -40,9 +41,11 @@ def test_user(app):
 @pytest.fixture
 def test_user_with_achievements(app):
     """Create a test user with specified achievements."""
-    def _create_user_with_achievements(achievement_codes: list[str] = None, level: int = 1):
+    def _create_user_with_achievements(achievement_codes: list[str] = None, experience: int = 0):
         with app.app_context():
-            user = User(display_name="TestUser", pin="1234", avatar="🐯", level=level)
+            # Level is calculated from XP, not set directly
+            # If a specific level is needed, calculate XP using XPService.total_xp_for_level(level)
+            user = User(display_name="TestUser", pin="1234", avatar="🐯", experience=experience)
             db.session.add(user)
             db.session.flush()
             
@@ -76,13 +79,13 @@ def test_user_with_achievements(app):
 def test_question(app):
     """Create a basic test question."""
     with app.app_context():
+        # required_level field was removed - questions are selected by concept_id
         question = Question(
             operation="addition",
             operand1=5,
             operand2=3,
             correct_answer="8",
             prompt="5 + 3",
-            required_level=1,
         )
         db.session.add(question)
         db.session.commit()
@@ -99,10 +102,11 @@ def test_session(app, test_user, test_question):
     Returns a practice session with 100 questions, all answered correctly.
     """
     with app.app_context():
+        # level field was removed - sessions use concept_id instead
         session = PracticeSession(
             user_id=test_user.id,
             mode="standard",
-            level=1,
+            concept_id="c_concept_001",  # Use concept_id instead of level
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=100,

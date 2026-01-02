@@ -13,7 +13,6 @@ from app.services.achievement_service import AchievementService
 from app.utils.tier_utils import (
     get_tier_hierarchy,
     get_all_tiers,
-    map_old_tier_to_new,
     is_tier_higher_than,
     get_tier_value,
 )
@@ -147,14 +146,7 @@ def test_tier_utils_002_get_all_tiers(app):
         assert len(tiers) == 11
 
 
-def test_tier_utils_003_map_old_tier_to_new(app):
-    """TIER-UTILS-003: map_old_tier_to_new() correctly maps old letter tiers."""
-    with app.app_context():
-        assert map_old_tier_to_new("b") == "bronze"
-        assert map_old_tier_to_new("a") == "silver"
-        assert map_old_tier_to_new("s") == "gold"
-        assert map_old_tier_to_new("ss") == "platinum"
-        assert map_old_tier_to_new("sss") == "diamond"
+# test_tier_utils_003_map_old_tier_to_new removed - map_old_tier_to_new function was removed with test system
 
 
 def test_tier_utils_004_is_tier_higher_than(app):

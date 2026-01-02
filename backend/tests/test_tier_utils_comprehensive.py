@@ -9,7 +9,6 @@ import pytest
 from app.utils.tier_utils import (
     get_tier_hierarchy,
     get_all_tiers,
-    map_old_tier_to_new,
     is_tier_higher_than,
     get_tier_value,
     get_highest_tier,
@@ -41,40 +40,7 @@ class TestTierUtils:
         assert tiers[-1] == "champion"
         assert len(tiers) == 11
 
-    def test_map_old_tier_to_new_b(self):
-        """Test map_old_tier_to_new maps B to bronze."""
-        assert map_old_tier_to_new("B") == "bronze"
-        assert map_old_tier_to_new("b") == "bronze"
-
-    def test_map_old_tier_to_new_a(self):
-        """Test map_old_tier_to_new maps A to silver."""
-        assert map_old_tier_to_new("A") == "silver"
-        assert map_old_tier_to_new("a") == "silver"
-
-    def test_map_old_tier_to_new_s(self):
-        """Test map_old_tier_to_new maps S to gold."""
-        assert map_old_tier_to_new("S") == "gold"
-        assert map_old_tier_to_new("s") == "gold"
-
-    def test_map_old_tier_to_new_ss(self):
-        """Test map_old_tier_to_new maps SS to platinum."""
-        assert map_old_tier_to_new("SS") == "platinum"
-        assert map_old_tier_to_new("ss") == "platinum"
-
-    def test_map_old_tier_to_new_sss(self):
-        """Test map_old_tier_to_new maps SSS to diamond."""
-        # Note: The mapping checks "ss" before "sss", so we need to check the actual mapping
-        # Looking at the code, "ss" maps to "platinum" and "sss" should map to "diamond"
-        # But the function checks in order, so "ss" might match first
-        # Actually, the OLD_TIER_TO_NEW dict has "ss": "platinum" and "sss": "diamond"
-        # But map_old_tier_to_new uses .get() which doesn't check substring
-        assert map_old_tier_to_new("sss") == "diamond"
-        assert map_old_tier_to_new("SSS") == "diamond"
-
-    def test_map_old_tier_to_new_unknown(self):
-        """Test map_old_tier_to_new returns lowercase for unknown tiers."""
-        assert map_old_tier_to_new("unknown") == "unknown"
-        assert map_old_tier_to_new("gold") == "gold"
+    # Tests for map_old_tier_to_new removed - function was removed with test system
 
     def test_is_tier_higher_than_true(self):
         """Test is_tier_higher_than returns True when tier1 > tier2."""

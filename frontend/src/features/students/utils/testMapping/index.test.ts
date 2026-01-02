@@ -69,7 +69,7 @@ describe('testMapping/index', () => {
       })
     })
 
-    it('should use level_requirement for locked status when unlock_status not provided', () => {
+    it('should default to unlocked when unlock_status not provided', () => {
       const backendTest: BackendTestDefinition = {
         test_type: 'addition-1digit',
         operation: 'addition',
@@ -77,11 +77,9 @@ describe('testMapping/index', () => {
         question_count: 10,
       }
 
-      const resultLocked = mapTestDefinitionToFrontend(backendTest, 3)
-      const resultUnlocked = mapTestDefinitionToFrontend(backendTest, 6)
-
-      expect(resultLocked.isLocked).toBe(true)
-      expect(resultUnlocked.isLocked).toBe(false)
+      const result = mapTestDefinitionToFrontend(backendTest, 3)
+      // Tests are unlocked by default unless unlock_status indicates otherwise
+      expect(result.isLocked).toBe(false)
     })
 
     it('should map unlock_requirements from unlock_requirements property', () => {

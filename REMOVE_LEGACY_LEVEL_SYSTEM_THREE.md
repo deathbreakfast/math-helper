@@ -534,9 +534,15 @@ level_tag = db.Column(db.String(32), nullable=True, index=True)
 - [x] Clean up comments mentioning legacy level system
 
 ### Phase 7: Frontend Verification
-- [ ] Verify level is only used for display (calculated from XP)
-- [ ] Verify no level requirements in frontend
-- [ ] Update concept tree view if it uses level for requirements
+- [x] Verify level is only used for display (calculated from XP)
+- [x] Verify no level requirements in frontend
+- [x] Remove level_requirement gating from testMapping/index.ts
+- [x] Remove level from unlockRequirements in testMapping types
+- [x] Update TestCard.tsx to remove level_requirement display
+- [x] Update testConverters.ts to use isLocked instead of level_requirement
+- [x] Update tests to reflect removal of level-based gating
+- [x] Verify ConceptTreeView.tsx level grouping is only for visual layout (not requirements)
+- [x] Clean up LevelRequirement type comments (no longer used for gating)
 
 ---
 

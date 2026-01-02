@@ -18,5 +18,6 @@ export type LevelRequirement = {
   isLocked: boolean
 }
 
-// Level requirements are fetched from the backend (e.g. `/api/levels/requirements`).
-// This module intentionally contains only the TypeScript type used by the students feature.
+// LevelRequirement type is kept for backward compatibility but is no longer used for gating.
+// Level requirements are not used - concepts use achievement-based unlock requirements instead.
+// The levelRequirements array in UserProgressData is always empty.

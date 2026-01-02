@@ -77,7 +77,6 @@ export interface FrontendTest extends TestDefinition {
     achievementCode?: string  // Single code
     achievementCodes?: string[]  // Multiple codes (new format)
     quantity: number
-    level?: number
     minAccuracy?: number
     operation?: string
     metadataFilters?: Record<string, Record<string, any>>  // Maps achievement code to metadata filter (e.g., {"math-master-bronze": {"concept_id": "c_concept_001"}})

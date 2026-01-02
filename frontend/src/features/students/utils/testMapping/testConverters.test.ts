@@ -10,29 +10,29 @@ import type { BackendTestAttempt, BackendTestAttemptDetail } from './types'
 
 describe('testConverters', () => {
   describe('getTestDiscoveryStatus', () => {
-    it('should return locked when user level is below requirement', () => {
-      const test = { level_requirement: 5 } as any
+    it('should return locked when test is explicitly locked', () => {
+      const test = { isLocked: true, attemptCount: 0 } as any
       expect(getTestDiscoveryStatus(test, 3)).toBe('locked')
     })
 
-    it('should return unlocked when user level meets requirement and no attempts', () => {
-      const test = { level_requirement: 3, attemptCount: 0 } as any
+    it('should return unlocked when test is not locked and no attempts', () => {
+      const test = { isLocked: false, attemptCount: 0 } as any
       expect(getTestDiscoveryStatus(test, 5)).toBe('unlocked')
     })
 
     it('should return attempted when user has attempts', () => {
-      const test = { level_requirement: 1, attemptCount: 2 } as any
+      const test = { isLocked: false, attemptCount: 2 } as any
       expect(getTestDiscoveryStatus(test, 5)).toBe('attempted')
     })
 
-    it('should return unlocked when level meets requirement and attemptCount property missing', () => {
-      const test = { level_requirement: 1 } as any
+    it('should return unlocked when isLocked property missing (defaults to unlocked)', () => {
+      const test = { attemptCount: 0 } as any
       expect(getTestDiscoveryStatus(test, 5)).toBe('unlocked')
     })
 
-    it('should handle edge case where level equals requirement', () => {
-      const test = { level_requirement: 5 } as any
-      expect(getTestDiscoveryStatus(test, 5)).toBe('unlocked')
+    it('should return attempted when test is unlocked and has attempts', () => {
+      const test = { isLocked: false, attemptCount: 1 } as any
+      expect(getTestDiscoveryStatus(test, 5)).toBe('attempted')
     })
   })
 

@@ -37,13 +37,13 @@ export function mapTestDefinitionToFrontend(
   userAttempts: BackendTestAttempt[] = []
 ): FrontendTest {
   // Determine if test is locked
-  // Priority: unlock_status > level_requirement
-  let isLocked: boolean
+  // Tests are unlocked by default unless unlock_status indicates otherwise
+  let isLocked: boolean = false
   let unlockRequirements: FrontendTest['unlockRequirements'] | undefined
   let unlockProgress: FrontendTest['unlockProgress'] | undefined
 
   if (backendTest.unlock_status) {
-    // New achievement-based unlock system
+    // Achievement-based unlock system
     isLocked = !backendTest.unlock_status.is_unlocked
     unlockProgress = {
       met: backendTest.unlock_status.requirements_met,
@@ -56,7 +56,6 @@ export function mapTestDefinitionToFrontend(
         achievementCode: backendTest.unlock_requirements.achievement_code,
         achievementCodes: backendTest.unlock_requirements.achievement_codes,
         quantity: backendTest.unlock_requirements.quantity,
-        level: backendTest.unlock_requirements.level,
         minAccuracy: backendTest.unlock_requirements.min_accuracy,
         operation: backendTest.unlock_requirements.operation,
         metadataFilters: backendTest.unlock_requirements.metadata_filters,
@@ -67,15 +66,11 @@ export function mapTestDefinitionToFrontend(
         achievementCode: backendTest.unlock_status.unlock_requirements.achievement_code,
         achievementCodes: backendTest.unlock_status.unlock_requirements.achievement_codes,
         quantity: backendTest.unlock_status.unlock_requirements.quantity,
-        level: backendTest.unlock_status.unlock_requirements.level,
         minAccuracy: backendTest.unlock_status.unlock_requirements.min_accuracy,
         operation: backendTest.unlock_status.unlock_requirements.operation,
         metadataFilters: backendTest.unlock_status.unlock_requirements.metadata_filters,
       }
     }
-  } else {
-    // Level-based check
-    isLocked = userLevel < backendTest.level_requirement
   }
 
   const testAttempts = userAttempts.filter(attempt => attempt.test_type === backendTest.test_type)
@@ -87,7 +82,7 @@ export function mapTestDefinitionToFrontend(
     test_type: backendTest.test_type,
     display_name: backendTest.display_name || backendTest.test_type.replace(/-/g, ' ').replace(/_/g, ' '),
     operation: backendTest.operation,
-    level_requirement: backendTest.level_requirement,
+    level_requirement: backendTest.level_requirement, // Kept for backward compatibility but not used for gating
     question_count: backendTest.question_count,
     constraints: backendTest.constraints,
     isLocked,

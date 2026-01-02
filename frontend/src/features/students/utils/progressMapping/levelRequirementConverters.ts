@@ -18,7 +18,9 @@ function _formatAchievementCodeForDisplay(code: string): string {
 }
 
 /**
- * Convert backend level requirements to frontend level requirements format
+ * Convert backend achievement requirements to frontend format.
+ * This function is repurposed from level requirements to concept unlock requirements.
+ * The level/nextLevel parameters are kept for backward compatibility but are not used for gating.
  */
 export function convertBackendRequirementsToFrontend(
   backendRequirements: Array<{ 

@@ -4,13 +4,14 @@ import type { FrontendTest, FrontendTestAttempt, FrontendTestAttemptDetail } fro
 import { mapOldTierToNew, compareTiers } from './tierUtils'
 
 /**
- * Get test discovery status based on user level.
+ * Get test discovery status based on unlock status.
  */
 export function getTestDiscoveryStatus(
   test: TestDefinition | FrontendTest,
   userLevel: number
 ): 'locked' | 'unlocked' | 'attempted' {
-  if (userLevel < test.level_requirement) {
+  // Tests are unlocked by default unless explicitly locked via unlockRequirements
+  if ('isLocked' in test && test.isLocked) {
     return 'locked'
   }
   

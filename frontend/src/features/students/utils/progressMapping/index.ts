@@ -72,7 +72,8 @@ export const mapUserToProgressData = (
     allAchievements = Array.from(uniqueAchievements.values())
   }
 
-  // User level is calculated from XP
+  // Level requirements are no longer used - concepts use achievement-based unlock requirements
+  // Keeping empty array for backward compatibility with type definition
   const levelRequirements: LevelRequirement[] = []
 
   return {

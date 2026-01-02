@@ -63,7 +63,6 @@ export const TestCard: React.FC<TestCardProps> = ({ test, index, onClick, onStar
     const metadataFilter = test.unlockRequirements?.metadataFilters?.[code]
     if (metadataFilter) {
       const parts: string[] = []
-      if (metadataFilter.level) parts.push(`Level ${metadataFilter.level}`)
       if (metadataFilter.operation) parts.push(metadataFilter.operation)
       if (parts.length > 0) {
         return `${code.replace(/-/g, ' ')} (${parts.join(', ')})`
@@ -147,20 +146,11 @@ export const TestCard: React.FC<TestCardProps> = ({ test, index, onClick, onStar
               ))}
             </div>
           )}
-          {test.unlockRequirements.level && (
-            <div className="text-xs mt-1">
-              at level {test.unlockRequirements.level}
-            </div>
-          )}
           {test.unlockRequirements.minAccuracy && (
             <div className="text-xs mt-1">
               ({(test.unlockRequirements.minAccuracy * 100).toFixed(0)}%+ accuracy)
             </div>
           )}
-        </div>
-      ) : (
-        <div className={`mb-3 text-xs font-medium ${isLocked ? 'text-gray-400' : 'text-gray-600'}`}>
-          {isLocked ? `Unlocks at Level ${test.level_requirement}` : `Level ${test.level_requirement}+`}
         </div>
       )}
 

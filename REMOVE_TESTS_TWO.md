@@ -434,10 +434,10 @@ The codebase contains a legacy test/quiz system that allows users to take struct
 - [x] Remove test flow from coverage docs
 
 ### Phase 10: Database Cleanup
-- [ ] Identify test attempt storage
-- [ ] Remove test attempt tables/columns
-- [ ] Create migration to drop test-related schema
-- [ ] Clean up test-related data
+- [x] Identify test attempt storage
+- [x] Remove test attempt tables/columns
+- [x] Create migration to drop test-related schema
+- [x] Clean up test-related data
 
 ---
 

@@ -398,10 +398,10 @@ The codebase contains a legacy test/quiz system that allows users to take struct
 - [x] Remove test-related service methods
 
 ### Phase 4: Remove Backend Test Routes
-- [ ] Remove test definition endpoints
-- [ ] Remove test attempt endpoints
-- [ ] Remove test result endpoints
-- [ ] Remove test_type translation logic from routes
+- [x] Remove test definition endpoints
+- [x] Remove test attempt endpoints
+- [x] Remove test result endpoints
+- [x] Remove test_type translation logic from routes
 
 ### Phase 5: Remove Test Configuration
 - [ ] Delete `backend/app/config/legacy_test_type_to_level.py`

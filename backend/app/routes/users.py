@@ -240,19 +240,10 @@ def test_setup_user(user_id: int):
             if achievement_code not in ACHIEVEMENTS_CONFIG:
                 continue  # Skip invalid achievement codes
             
-            # Translate test_type to concept_id if present
+            # Remove test_type from metadata if present (test system removed)
             if metadata and isinstance(metadata, dict) and metadata.get("test_type"):
-                from ..config.legacy_test_type_to_level import LEGACY_TEST_TYPE_TO_LEVEL
-                test_type = str(metadata.get("test_type"))
-                mapped_level = LEGACY_TEST_TYPE_TO_LEVEL.get(test_type)
-                if mapped_level is not None:
-                    concept_id = f"c_concept_{mapped_level:03d}"
-                    metadata = {**metadata, "concept_id": concept_id}
-                    metadata.pop("test_type", None)
-                else:
-                    # Unknown test_type, remove it
-                    metadata = {**metadata}
-                    metadata.pop("test_type", None)
+                metadata = {**metadata}
+                metadata.pop("test_type", None)
             
             # Check if user already has this achievement (with same metadata if applicable)
             existing_query = Achievement.query.filter_by(

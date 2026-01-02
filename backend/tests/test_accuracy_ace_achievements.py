@@ -42,7 +42,7 @@ def test_accuracy_ace_bronze_achievement(app, test_user):
     """Test that Accuracy Ace (Bronze) is awarded for 80%+ accuracy with 10+ questions."""
     with app.app_context():
         # Create 10 questions and answer 8 correctly (80% accuracy)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = []
         for i, q in enumerate(questions):
             responses_data.append({
@@ -72,7 +72,7 @@ def test_accuracy_ace_silver_achievement(app, test_user):
     with app.app_context():
         # Silver now requires 90% accuracy (updated requirement)
         # Create 10 questions and answer 9 correctly (90% accuracy, qualifies for silver)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = []
         for i, q in enumerate(questions):
             responses_data.append({
@@ -102,7 +102,7 @@ def test_accuracy_ace_gold_achievement(app, test_user):
     with app.app_context():
         # Gold now requires 100% accuracy
         # Create 10 questions and answer all correctly (100% accuracy)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -129,7 +129,7 @@ def test_accuracy_ace_minimum_questions_requirement(app, test_user):
     """Test that Accuracy Ace is NOT awarded with less than 10 questions."""
     with app.app_context():
         # Create 9 questions and answer all correctly (100% accuracy but < 10 questions)
-        questions = create_test_questions(9, 1)
+        questions = create_test_questions(9)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -155,7 +155,7 @@ def test_accuracy_ace_not_awarded_below_threshold(app, test_user):
     """Test that Accuracy Ace is NOT awarded for accuracy below 80%."""
     with app.app_context():
         # Create 10 questions and answer 7 correctly (70% accuracy, below 80% threshold)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = []
         for i, q in enumerate(questions):
             responses_data.append({
@@ -183,7 +183,7 @@ def test_accuracy_ace_highest_tier_only(app, test_user):
     """Test that only the highest qualifying tier is awarded."""
     with app.app_context():
         # Test 100% accuracy should award gold (highest), not silver or bronze
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -207,7 +207,7 @@ def test_accuracy_ace_multiple_instances_across_sessions(app, test_user):
     """Test that multiple instances of same tier can be earned across sessions."""
     with app.app_context():
         # Session 1: 80% accuracy = bronze
-        questions1 = create_test_questions(10, 1)
+        questions1 = create_test_questions(10)
         responses_data1 = []
         for i, q in enumerate(questions1):
             responses_data1.append({
@@ -226,7 +226,7 @@ def test_accuracy_ace_multiple_instances_across_sessions(app, test_user):
         assert bronze1 is not None, "Bronze should be awarded in session 1"
         
         # Session 2: 80% accuracy again = another bronze
-        questions2 = create_test_questions(10, 1)
+        questions2 = create_test_questions(10)
         responses_data2 = []
         for i, q in enumerate(questions2):
             responses_data2.append({
@@ -250,7 +250,7 @@ def test_accuracy_ace_only_one_per_session(app, test_user):
     """Test that only one Accuracy Ace can be awarded per session."""
     with app.app_context():
         # 100% accuracy qualifies for all tiers, but should only award gold
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,

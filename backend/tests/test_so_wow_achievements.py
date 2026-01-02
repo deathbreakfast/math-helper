@@ -175,7 +175,7 @@ def test_so_wow_integration_with_session(app, test_user):
     """Test So, Wow! in integration with actual session completion."""
     with app.app_context():
         # Create a session that awards a bronze achievement (e.g., speed-demon-bronze)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,

@@ -51,7 +51,7 @@ class TestPerfectStreakChecker:
         with app.app_context():
             # Create 3 consecutive perfect sessions
             for _ in range(3):
-                questions = create_test_questions(10, 1)
+                questions = create_test_questions(10)
                 responses_data = [{
                     'question_id': q.id,
                     'answer': q.correct_answer,
@@ -73,7 +73,7 @@ class TestPerfectStreakChecker:
         with app.app_context():
             # Create 2 perfect sessions
             for _ in range(2):
-                questions = create_test_questions(10, 1)
+                questions = create_test_questions(10)
                 responses_data = [{
                     'question_id': q.id,
                     'answer': q.correct_answer,
@@ -84,7 +84,7 @@ class TestPerfectStreakChecker:
                 session = create_test_session_with_responses(test_user.id, responses_data)
             
             # Create one imperfect session
-            questions = create_test_questions(10, 1)
+            questions = create_test_questions(10)
             responses_data = []
             for i, q in enumerate(questions):
                 responses_data.append({
@@ -109,7 +109,7 @@ class TestPerfectStreakChecker:
             # Create 3 perfect sessions (via create_test_session_with_responses)
             sessions = []
             for _ in range(3):
-                questions = create_test_questions(10, 1)
+                questions = create_test_questions(10)
                 responses_data = [{
                     'question_id': q.id,
                     'answer': q.correct_answer,
@@ -135,7 +135,7 @@ class TestPerfectStreakChecker:
             assert bronze_count == 1, "Should have exactly one bronze achievement"
             
             # Create 1 more perfect session
-            questions = create_test_questions(10, 1)
+            questions = create_test_questions(10)
             responses_data = [{
                 'question_id': q.id,
                 'answer': q.correct_answer,

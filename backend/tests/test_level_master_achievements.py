@@ -43,7 +43,7 @@ def test_level_master_bronze_exactly_30(app, test_user):
     """Test that exactly 30 correct in a row awards Level Master (Bronze) with metadata."""
     with app.app_context():
         # Create 30 questions at level 1, all answered correctly
-        questions = create_test_questions(30, 1)
+        questions = create_test_questions(30)
         base_time = datetime.utcnow()
         responses_data = []
         for i, q in enumerate(questions):
@@ -76,7 +76,7 @@ def test_level_master_silver_exactly_60(app, test_user):
     """Test that exactly 60 correct in a row awards Level Master (Silver) only (highest tier) with metadata."""
     with app.app_context():
         # Create 60 questions at level 1, all answered correctly
-        questions = create_test_questions(60, 1)
+        questions = create_test_questions(60)
         base_time = datetime.utcnow()
         responses_data = []
         for i, q in enumerate(questions):
@@ -126,7 +126,7 @@ def test_level_master_negative_29_correct_1_incorrect(app, test_user):
     """Test that 29 correct + 1 incorrect does NOT award Level Master."""
     with app.app_context():
         # Create 30 questions: 29 correct, 1 incorrect
-        questions = create_test_questions(30, 1)
+        questions = create_test_questions(30)
         base_time = datetime.utcnow()
         responses_data = []
         for i, q in enumerate(questions):
@@ -157,7 +157,7 @@ def test_level_master_negative_30_correct_1_incorrect(app, test_user):
     with app.app_context():
         # Create 31 questions: 30 correct, then 1 incorrect
         # Max consecutive is 30, which qualifies for bronze
-        questions = create_test_questions(31, 1)
+        questions = create_test_questions(31)
         base_time = datetime.utcnow()
         responses_data = []
         for i, q in enumerate(questions):
@@ -191,7 +191,7 @@ def test_level_master_multiple_awards_30_wrong_30(app, test_user):
     """Test that 30 correct → bronze → 1 wrong → 30 correct → bronze (multiple awards)."""
     with app.app_context():
         # First 30 correct answers
-        questions1 = create_test_questions(30, 1)
+        questions1 = create_test_questions(30)
         base_time = datetime.utcnow()
         responses_data1 = []
         for i, q in enumerate(questions1):
@@ -224,7 +224,7 @@ def test_level_master_multiple_awards_30_wrong_30(app, test_user):
         }])
         
         # Second set of 30 correct answers
-        questions3 = create_test_questions(30, 1)
+        questions3 = create_test_questions(30)
         responses_data3 = []
         for i, q in enumerate(questions3):
             responses_data3.append({
@@ -255,7 +255,7 @@ def test_level_master_only_bronze_silver_tested(app, test_user):
     """Test that only the highest qualifying tier is awarded (gold for 120 consecutive) with metadata."""
     with app.app_context():
         # Create 120 questions (qualifies for gold tier: 120+ consecutive)
-        questions = create_test_questions(120, 1)
+        questions = create_test_questions(120)
         base_time = datetime.utcnow()
         responses_data = []
         for i, q in enumerate(questions):
@@ -309,7 +309,7 @@ def test_level_master_multiple_levels(app, test_user):
     """Test that achievements are awarded per level, and multiple levels can have achievements."""
     with app.app_context():
         # Create 30 correct at level 1
-        questions1 = create_test_questions(30, 1)
+        questions1 = create_test_questions(30)
         base_time = datetime.utcnow()
         responses_data1 = []
         for i, q in enumerate(questions1):
@@ -377,7 +377,7 @@ def test_level_master_silver_not_awarded_mixed_concepts(app, test_user):
     """
     with app.app_context():
         # Create 40 questions at level 1 for c_add_1s concept
-        questions1 = create_test_questions(40, 1)
+        questions1 = create_test_questions(40)
         base_time = datetime.utcnow()
         responses_data1 = []
         for i, q in enumerate(questions1):
@@ -446,7 +446,7 @@ def test_level_master_silver_awarded_same_concept(app, test_user):
     """Test that Level Master Silver IS awarded for 60 consecutive correct from the same descriptive concept."""
     with app.app_context():
         # Create 60 questions at level 1, all with c_add_1s concept
-        questions = create_test_questions(60, 1)
+        questions = create_test_questions(60)
         base_time = datetime.utcnow()
         responses_data = []
         for i, q in enumerate(questions):
@@ -496,7 +496,7 @@ def test_level_master_concept_isolation(app, test_user):
         base_time = datetime.utcnow()
         
         # Create 30 correct responses with c_add_1s
-        questions1 = create_test_questions(30, 1)
+        questions1 = create_test_questions(30)
         responses_data1 = []
         for i, q in enumerate(questions1):
             responses_data1.append({
@@ -515,7 +515,7 @@ def test_level_master_concept_isolation(app, test_user):
         AchievementService.check_level_master_achievements(test_user)
         
         # Create 30 correct responses with c_add_2s
-        questions2 = create_test_questions(30, 1)
+        questions2 = create_test_questions(30)
         responses_data2 = []
         for i, q in enumerate(questions2):
             responses_data2.append({

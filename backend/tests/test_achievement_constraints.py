@@ -82,7 +82,7 @@ def test_accuracy_ace_multiple_instances_across_sessions(app, test_user):
         user = _get_user_safely(app, test_user)
         
         # Session 1: 80% accuracy = bronze
-        questions1 = create_test_questions(10, 1)
+        questions1 = create_test_questions(10)
         responses_data1 = []
         for i, q in enumerate(questions1):
             responses_data1.append({
@@ -103,7 +103,7 @@ def test_accuracy_ace_multiple_instances_across_sessions(app, test_user):
         assert bronze1 is not None, "Bronze should be awarded in session 1"
         
         # Session 2: 80% accuracy again = another bronze
-        questions2 = create_test_questions(10, 1)
+        questions2 = create_test_questions(10)
         responses_data2 = []
         for i, q in enumerate(questions2):
             responses_data2.append({
@@ -133,7 +133,7 @@ def test_accuracy_ace_only_one_per_session(app, test_user):
         
         # 100% accuracy qualifies for all tiers (bronze, silver, gold)
         # Should only award gold (highest)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -161,7 +161,7 @@ def test_accuracy_ace_highest_tier_only(app, test_user):
         user = _get_user_safely(app, test_user)
         
         # 90% accuracy qualifies for bronze (80%) and silver (90%), but not gold (100%)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = []
         for i, q in enumerate(questions):
             responses_data.append({
@@ -203,7 +203,7 @@ def test_speed_demon_highest_tier_calculation(app, test_user):
         # 1.8s qualifies for: Grandmaster (≤1.8s), Master (≤2.1s), Diamond (≤2.4s), Platinum (≤2.7s), Gold (≤3.0s), Silver (≤4.0s), Bronze (≤5.0s)
         # Should award Grandmaster (highest)
         # Create session with 1.8s average per question
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -246,7 +246,7 @@ def test_speed_demon_multiple_instances_across_sessions(app, test_user):
         user = _get_user_safely(app, test_user)
         
         # Session 1: 4.5s = bronze
-        questions1 = create_test_questions(10, 1)
+        questions1 = create_test_questions(10)
         responses_data1 = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -266,7 +266,7 @@ def test_speed_demon_multiple_instances_across_sessions(app, test_user):
         assert bronze1 is not None, "Bronze should be awarded in session 1"
         
         # Session 2: 4.5s again = another bronze
-        questions2 = create_test_questions(10, 1)
+        questions2 = create_test_questions(10)
         responses_data2 = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -414,7 +414,7 @@ def test_lightning_fast_practice_metadata(app, test_user):
         user = _get_user_safely(app, test_user)
         
         # Create practice session
-        questions = create_test_questions(50, 1)
+        questions = create_test_questions(50)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,

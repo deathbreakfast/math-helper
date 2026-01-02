@@ -42,7 +42,7 @@ def test_question_master_bronze_100_questions(app, test_user):
     """Test that Question Master (Bronze) is awarded for 100+ questions."""
     with app.app_context():
         # Create multiple sessions totaling 100+ responses
-        questions = create_test_questions(110, 1)
+        questions = create_test_questions(110)
         
         # Split into multiple sessions
         for i in range(0, 110, 20):
@@ -72,7 +72,7 @@ def test_question_master_silver_500_questions(app, test_user):
     """Test that Question Master (Silver) is awarded for 500+ questions."""
     with app.app_context():
         # Create multiple sessions totaling 500+ responses
-        questions = create_test_questions(510, 1)
+        questions = create_test_questions(510)
         
         # Split into multiple sessions
         for i in range(0, 510, 50):
@@ -102,7 +102,7 @@ def test_question_master_gold_1000_questions(app, test_user):
     """Test that Question Master (Gold) is awarded for 1000+ questions."""
     with app.app_context():
         # Create multiple sessions totaling 1000+ responses
-        questions = create_test_questions(1010, 1)
+        questions = create_test_questions(1010)
         
         # Split into multiple sessions
         for i in range(0, 1010, 100):
@@ -132,7 +132,7 @@ def test_question_master_only_highest_tier_awarded(app, test_user):
     """Test that only the highest qualifying tier is awarded."""
     with app.app_context():
         # Create 1000+ questions (qualifies for gold)
-        questions = create_test_questions(1000, 1)
+        questions = create_test_questions(1000)
         
         # Split into multiple sessions
         for i in range(0, 1000, 100):

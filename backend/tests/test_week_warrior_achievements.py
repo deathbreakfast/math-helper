@@ -44,7 +44,7 @@ def test_week_warrior_bronze_7_days(app, test_user):
         
         # Create responses on 7 consecutive days
         base_date = datetime.utcnow()
-        questions = create_test_questions(1, 1)
+        questions = create_test_questions(1)
         
         for day_offset in range(7):
             response_date = base_date - timedelta(days=6-day_offset)
@@ -88,7 +88,7 @@ def test_week_warrior_silver_14_days(app, test_user):
         
         # Create responses on 14 consecutive days
         base_date = datetime.utcnow()
-        questions = create_test_questions(1, 1)
+        questions = create_test_questions(1)
         
         for day_offset in range(14):
             response_date = base_date - timedelta(days=13-day_offset)
@@ -132,7 +132,7 @@ def test_week_warrior_streak_broken(app, test_user):
         
         # Create responses on 6 consecutive days, skip a day, then 1 more day
         base_date = datetime.utcnow()
-        questions = create_test_questions(1, 1)
+        questions = create_test_questions(1)
         
         # Days 1-6
         for day_offset in range(6):

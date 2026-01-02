@@ -42,7 +42,7 @@ def test_lightning_fast_bronze_minimum_questions(app, test_user):
     """Test that Lightning Fast (Bronze) requires 50 correct questions for a concept."""
     with app.app_context():
         # Create 50 questions with fast correct answers (4s average, qualifies for bronze)
-        questions = create_test_questions(50, 1)
+        questions = create_test_questions(50)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -69,7 +69,7 @@ def test_lightning_fast_bronze_not_awarded_below_minimum(app, test_user):
     """Test that Lightning Fast (Bronze) is NOT awarded with less than 50 questions."""
     with app.app_context():
         # Create 49 questions with fast correct answers
-        questions = create_test_questions(49, 1)
+        questions = create_test_questions(49)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -95,7 +95,7 @@ def test_lightning_fast_silver_minimum_questions(app, test_user):
     """Test that Lightning Fast (Silver) requires 100 correct questions for a concept."""
     with app.app_context():
         # Create 100 questions with fast correct answers (3.5s average, qualifies for silver: <4s)
-        questions = create_test_questions(100, 1)
+        questions = create_test_questions(100)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -124,7 +124,7 @@ def test_lightning_fast_excludes_incorrect_answers(app, test_user):
         # Average of correct answers: 1s (very fast, qualifies for gold: <3s)
         # Need 50 correct answers for bronze minimum
         # But if we included incorrect, average would still be 1s, but we want to verify only correct are counted
-        questions = create_test_questions(75, 1)
+        questions = create_test_questions(75)
         responses_data = []
         for i, q in enumerate(questions):
             responses_data.append({
@@ -152,7 +152,7 @@ def test_lightning_fast_negative_quick_incorrect_answers(app, test_user):
     """Test that answering questions quickly but incorrectly does NOT award Lightning Fast."""
     with app.app_context():
         # Create 50 questions - answer all incorrectly but very quickly
-        questions = create_test_questions(50, 1)
+        questions = create_test_questions(50)
         responses_data = [{
             'question_id': q.id,
             'answer': '999',  # All wrong
@@ -178,7 +178,7 @@ def test_lightning_fast_lifetime_average(app, test_user):
     """Test that Lightning Fast uses lifetime average, not just session average."""
     with app.app_context():
         # First session: 30 questions at 6s average (too slow, doesn't qualify)
-        questions1 = create_test_questions(30, 1)
+        questions1 = create_test_questions(30)
         session1 = create_test_session_with_responses(test_user.id, [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -187,7 +187,7 @@ def test_lightning_fast_lifetime_average(app, test_user):
         } for q in questions1], concept_id="c_add_1s")
         
         # Second session: 20 questions at 2s average (fast, but total is 50 at ~4.4s average)
-        questions2 = create_test_questions(20, 1)
+        questions2 = create_test_questions(20)
         session2 = create_test_session_with_responses(test_user.id, [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -212,7 +212,7 @@ def test_lightning_fast_multiple_tiers_progression(app, test_user):
     """Test that multiple Lightning Fast tiers can be awarded as user progresses."""
     with app.app_context():
         # First: 50 questions at 4.5s average -> Bronze
-        questions1 = create_test_questions(50, 1)
+        questions1 = create_test_questions(50)
         session1 = create_test_session_with_responses(test_user.id, [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -226,7 +226,7 @@ def test_lightning_fast_multiple_tiers_progression(app, test_user):
         assert bronze is not None, "Bronze should be awarded"
         
         # Second: Add 50 more questions at 3.5s average -> Total 100 at ~4s average -> Silver
-        questions2 = create_test_questions(50, 1)
+        questions2 = create_test_questions(50)
         session2 = create_test_session_with_responses(test_user.id, [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -244,7 +244,7 @@ def test_lightning_fast_concept_specific(app, test_user):
     """Test that Lightning Fast achievements are concept-specific."""
     with app.app_context():
         # Create 50 questions with fast answers
-        questions1 = create_test_questions(50, 1)
+        questions1 = create_test_questions(50)
         session1 = create_test_session_with_responses(test_user.id, [{
             'question_id': q.id,
             'answer': q.correct_answer,

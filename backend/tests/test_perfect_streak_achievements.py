@@ -43,7 +43,7 @@ def test_perfect_streak_bronze_3_sessions(app, test_user):
     with app.app_context():
         # Create 3 consecutive perfect sessions (100% accuracy)
         for session_num in range(3):
-            questions = create_test_questions(10, 1)
+            questions = create_test_questions(10)
             responses_data = [{
                 'question_id': q.id,
                 'answer': q.correct_answer,
@@ -70,7 +70,7 @@ def test_perfect_streak_silver_5_sessions(app, test_user):
     with app.app_context():
         # Create 5 consecutive perfect sessions (100% accuracy)
         for session_num in range(5):
-            questions = create_test_questions(10, 1)
+            questions = create_test_questions(10)
             responses_data = [{
                 'question_id': q.id,
                 'answer': q.correct_answer,
@@ -97,7 +97,7 @@ def test_perfect_streak_broken_by_imperfect_session(app, test_user):
     with app.app_context():
         # Create 2 perfect sessions
         for session_num in range(2):
-            questions = create_test_questions(10, 1)
+            questions = create_test_questions(10)
             responses_data = [{
                 'question_id': q.id,
                 'answer': q.correct_answer,
@@ -111,7 +111,7 @@ def test_perfect_streak_broken_by_imperfect_session(app, test_user):
             AchievementService.ensure_achievements(user, metrics, session_id=session.id)
         
         # Create one imperfect session (not 100% accuracy)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = []
         for i, q in enumerate(questions):
             responses_data.append({
@@ -147,7 +147,7 @@ def test_perfect_streak_silver_with_bronze_exists_once(app, test_user):
         sessions = []
         # Create 5 consecutive perfect sessions
         for session_num in range(5):
-            questions = create_test_questions(10, 1)
+            questions = create_test_questions(10)
             responses_data = [{
                 'question_id': q.id,
                 'answer': q.correct_answer,
@@ -200,7 +200,7 @@ def test_perfect_streak_broken_then_re_earned_bronze(app, test_user):
     with app.app_context():
         # Create 3 perfect sessions
         for session_num in range(3):
-            questions = create_test_questions(10, 1)
+            questions = create_test_questions(10)
             responses_data = [{
                 'question_id': q.id,
                 'answer': q.correct_answer,
@@ -221,7 +221,7 @@ def test_perfect_streak_broken_then_re_earned_bronze(app, test_user):
         assert bronze1 is not None, "Perfect Streak (Bronze) should be awarded for 3 consecutive perfect sessions"
         
         # Create 1 imperfect session (breaks streak)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = []
         for i, q in enumerate(questions):
             responses_data.append({
@@ -238,7 +238,7 @@ def test_perfect_streak_broken_then_re_earned_bronze(app, test_user):
         
         # Create 2 perfect sessions (total would be 5, but streak was broken)
         for session_num in range(2):
-            questions = create_test_questions(10, 1)
+            questions = create_test_questions(10)
             responses_data = [{
                 'question_id': q.id,
                 'answer': q.correct_answer,
@@ -259,7 +259,7 @@ def test_perfect_streak_broken_then_re_earned_bronze(app, test_user):
         assert silver is None, "Silver should NOT be awarded (streak was broken, only 2 perfect in new run)"
         
         # Create 1 more perfect session (now 3 in new run, should award bronze again)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,

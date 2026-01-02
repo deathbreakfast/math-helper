@@ -48,7 +48,7 @@ def test_first_victory_achievement(app, test_user):
     """ACH-AWARD-001: first-victory achievement awarded after answering 1 question."""
     with app.app_context():
         # Create a question and answer it
-        questions = create_test_questions(1, 1)
+        questions = create_test_questions(1)
         responses_data = [{
             'question_id': questions[0].id,
             'answer': questions[0].correct_answer,
@@ -105,7 +105,7 @@ def test_question_master_bronze_achievement(app, test_user):
     """ACH-AWARD-003: question-master-bronze achievement awarded after 100+ questions total."""
     with app.app_context():
         # Create multiple sessions totaling 100+ responses
-        questions = create_test_questions(110, 1)
+        questions = create_test_questions(110)
         
         # Split into multiple sessions
         for i in range(0, 110, 20):
@@ -168,7 +168,7 @@ def test_speed_demon_bronze_achievement(app, test_user):
     """ACH-AWARD-005: speed-demon-bronze awarded for avg < 5.0s with 10+ questions."""
     with app.app_context():
         # Create 10 questions with average time < 5.0s (use 4.5s)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -201,7 +201,7 @@ def test_speed_demon_with_multiplier(app, test_user):
     """
     with app.app_context():
         # Create 10 questions with average time 5.4s (would NOT qualify without multiplier)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -238,7 +238,7 @@ def test_speed_demon_gold_achievement(app, test_user):
     """ACH-AWARD-006: speed-demon-gold awarded for avg < 3.0s with 10+ questions."""
     with app.app_context():
         # Create 10 questions with average time < 3.0s but > 2.5s (use 2.8s to get gold, not platinum)
-        questions = create_test_questions(10, 1)
+        questions = create_test_questions(10)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -285,7 +285,7 @@ def test_speed_demon_champion_divine_flow(app, test_user):
             db.session.commit()
         
         # Step 1: Create session with speed 1.1s (sets new record, should get champion)
-        questions1 = create_test_questions(1500, 1)  # Need 1500 for divine/champion
+        questions1 = create_test_questions(1500)  # Need 1500 for divine/champion
         responses_data1 = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -318,7 +318,7 @@ def test_speed_demon_champion_divine_flow(app, test_user):
         assert record1.session_id == session1.id, "Record should be from session1"
         
         # Step 2: Create session with speed 1.15s (qualifies for divine but doesn't break record)
-        questions2 = create_test_questions(1500, 1)
+        questions2 = create_test_questions(1500)
         responses_data2 = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -358,7 +358,7 @@ def test_speed_demon_champion_divine_flow(app, test_user):
         assert champion_count == 1, f"Should only have 1 champion achievement, got {champion_count}"
         
         # Step 3: Create session with speed 1.0s (breaks record, should get champion)
-        questions3 = create_test_questions(1500, 1)
+        questions3 = create_test_questions(1500)
         responses_data3 = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -404,7 +404,7 @@ def test_lightning_fast_with_multiplier(app, test_user):
     """
     with app.app_context():
         # Create 50 questions (minimum for bronze) with average time 5.4s
-        questions = create_test_questions(50, 1)
+        questions = create_test_questions(50)
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -444,7 +444,7 @@ def test_perfect_streak_bronze_achievement(app, test_user):
     with app.app_context():
         # Create 3 consecutive perfect sessions (100% accuracy) - bronze requires 3
         for session_num in range(3):
-            questions = create_test_questions(10, 1)
+            questions = create_test_questions(10)
             responses_data = [{
                 'question_id': q.id,
                 'answer': q.correct_answer,
@@ -476,7 +476,7 @@ def test_week_warrior_bronze_achievement(app, test_user):
         # Create responses on 7 consecutive days (bronze requires 7 days)
         # Streak is calculated from Response.answered_at dates, not session dates
         base_date = datetime.utcnow()
-        questions = create_test_questions(5, 1)
+        questions = create_test_questions(5)
         
         for day_offset in range(7):
             response_date = base_date - timedelta(days=6-day_offset)
@@ -577,7 +577,7 @@ def test_first_victory_only_awarded_once(app, test_user):
     """Test that first-victory achievement is only awarded once."""
     with app.app_context():
         # First session - should award first-victory
-        questions1 = create_test_questions(1, 1)
+        questions1 = create_test_questions(1)
         responses_data1 = [{
             'question_id': questions1[0].id,
             'answer': questions1[0].correct_answer,
@@ -598,7 +598,7 @@ def test_first_victory_only_awarded_once(app, test_user):
         assert achievement1 is not None, "First Victory should be awarded on first session"
         
         # Second session - should NOT award first-victory again
-        questions2 = create_test_questions(1, 1)
+        questions2 = create_test_questions(1)
         responses_data2 = [{
             'question_id': questions2[0].id,
             'answer': questions2[0].correct_answer,
@@ -624,7 +624,7 @@ def test_first_victory_not_awarded_on_incomplete_session(app, test_user):
     """Test that first-victory achievement is NOT awarded when session is not completed."""
     with app.app_context():
         # Create a session with responses but NOT completed
-        questions = create_test_questions(1, 1)
+        questions = create_test_questions(1)
         responses_data = [{
             'question_id': questions[0].id,
             'answer': questions[0].correct_answer,
@@ -679,7 +679,7 @@ def test_first_victory_awarded_only_on_completed_session(app, test_user):
     """Test that first-victory achievement IS awarded when session IS completed."""
     with app.app_context():
         # Create a completed session
-        questions = create_test_questions(1, 1)
+        questions = create_test_questions(1)
         responses_data = [{
             'question_id': questions[0].id,
             'answer': questions[0].correct_answer,

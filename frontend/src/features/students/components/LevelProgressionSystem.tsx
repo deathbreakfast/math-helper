@@ -7,8 +7,7 @@ import { JourneyHeader } from './journey/JourneyHeader'
 import { JourneyStatsOverview } from './journey/JourneyStatsOverview'
 import { JourneyTabNavigation, type TabId } from './journey/JourneyTabNavigation'
 import { OverviewTab } from './journey/OverviewTab'
-import { AchievementsTab } from './journey/AchievementsTab'
-import { MathConceptsTab } from './journey/MathConceptsTab'
+import { ForceGraphTab } from './journey/ForceGraphTab'
 import { useFilteredAchievements } from '../hooks/useFilteredAchievements'
 import { useJourneyFilters } from '../hooks/useJourneyFilters'
 import { useAchievementDefinitions } from '../../../lib/levels/hooks'
@@ -130,28 +129,21 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
                 const userId = userData?.id || params.userId
                 if (userId) {
                   const queryString = searchParams.toString() ? `?${searchParams.toString()}` : ''
-                  router.navigate(`/journey/${userId}/achievements${queryString}`)
+                  router.navigate(`/journey/${userId}/force-graph${queryString}`)
                 }
               }}
               userData={userData}
             />
           )}
 
-          {activeTab === 'achievements' && (
-            <AchievementsTab
-              filteredAchievements={filteredAchievements}
-              achievementFilter={achievementFilter}
-              statusFilter={statusFilter}
-              textFilter={textFilter}
-              onAchievementFilterChange={setAchievementFilter}
-              onStatusFilterChange={setStatusFilter}
-              onTextFilterChange={setTextFilter}
+          {activeTab === 'force-graph' && (
+            <ForceGraphTab
+              achievements={userData.achievements || []}
+              userData={userData}
               userId={userData?.id || params.userId || ''}
               achievementDefinitions={achievementDefinitions}
             />
           )}
-
-          {activeTab === 'concepts' && <MathConceptsTab userData={userData} user={user} isActive={activeTab === 'concepts'} />}
         </AnimatePresence>
       </div>
     </div>

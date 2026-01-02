@@ -1,7 +1,7 @@
 import { Link, useSearchParams } from 'react-router-dom'
-import { TrendingUp, Award, BookOpen } from 'lucide-react'
+import { TrendingUp, Network } from 'lucide-react'
 
-export type TabId = 'overview' | 'achievements' | 'concepts'
+export type TabId = 'overview' | 'force-graph'
 
 type JourneyTabNavigationProps = {
   activeTab: TabId
@@ -20,14 +20,9 @@ export const JourneyTabNavigation = ({ activeTab, onTabChange, userId }: Journey
       icon: TrendingUp,
     },
     {
-      id: 'achievements' as TabId,
-      label: 'All Achievements',
-      icon: Award,
-    },
-    {
-      id: 'concepts' as TabId,
-      label: 'Math Concepts',
-      icon: BookOpen,
+      id: 'force-graph' as TabId,
+      label: 'Force Graph',
+      icon: Network,
     },
   ]
 

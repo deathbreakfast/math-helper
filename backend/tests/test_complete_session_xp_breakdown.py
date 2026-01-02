@@ -42,7 +42,7 @@ def test_xp_breakdown_correct_count_matches_session(app, test_user):
         app.register_blueprint(practice_bp)
         
         # Create 10 questions
-        questions = create_test_questions(10, 1, "addition")
+        questions = create_test_questions(10, concept_id="c_concept_001", operation="addition")
         db.session.add_all(questions)
         db.session.commit()
         
@@ -94,7 +94,7 @@ def test_xp_breakdown_counts_unique_questions_only(app, test_user):
         app.register_blueprint(practice_bp)
         
         # Create 10 questions
-        questions = create_test_questions(10, 1, "addition")
+        questions = create_test_questions(10, concept_id="c_concept_001", operation="addition")
         db.session.add_all(questions)
         db.session.commit()
         
@@ -179,11 +179,11 @@ def test_xp_breakdown_cross_session_isolation(app, test_user):
         app.register_blueprint(practice_bp)
         
         # Create questions for Session A
-        questions_a = create_test_questions(5, 1, "addition")
+        questions_a = create_test_questions(5, concept_id="c_concept_001", operation="addition")
         db.session.add_all(questions_a)
         
         # Create questions for Session B
-        questions_b = create_test_questions(10, 1, "addition")
+        questions_b = create_test_questions(10, concept_id="c_concept_001", operation="addition")
         db.session.add_all(questions_b)
         
         db.session.commit()
@@ -255,7 +255,7 @@ def test_xp_breakdown_uses_latest_response_per_question(app, test_user):
         app.register_blueprint(practice_bp)
         
         # Create 10 questions
-        questions = create_test_questions(10, 1, "addition")
+        questions = create_test_questions(10, concept_id="c_concept_001", operation="addition")
         db.session.add_all(questions)
         db.session.commit()
         
@@ -377,7 +377,7 @@ def test_xp_breakdown_multiplier_delta_calculation(app, test_user):
         app.register_blueprint(practice_bp)
         
         # Create questions
-        questions = create_test_questions(10, 1, "addition")
+        questions = create_test_questions(10, concept_id="c_concept_001", operation="addition")
         db.session.add_all(questions)
         db.session.commit()
         
@@ -473,7 +473,7 @@ def test_xp_breakdown_base_xp_calculation(app, test_user):
         from app.services.concept_xp_service import ConceptXPService
         
         # Create 10 questions
-        questions = create_test_questions(10, 1, "addition")
+        questions = create_test_questions(10, concept_id="c_concept_001", operation="addition")
         db.session.add_all(questions)
         db.session.commit()
         
@@ -538,7 +538,7 @@ def test_xp_breakdown_bonus_xp_only_no_multiplier(app, test_user):
         from tests.helpers.data_helpers import award_achievement_directly
         
         # Create 10 questions
-        questions = create_test_questions(10, 1, "addition")
+        questions = create_test_questions(10, concept_id="c_concept_001", operation="addition")
         db.session.add_all(questions)
         db.session.commit()
         
@@ -607,7 +607,7 @@ def test_xp_breakdown_multiple_achievements_multiplier_and_bonus(app, test_user)
         from tests.helpers.data_helpers import award_achievement_directly
         
         # Create 10 questions
-        questions = create_test_questions(10, 1, "addition")
+        questions = create_test_questions(10, concept_id="c_concept_001", operation="addition")
         db.session.add_all(questions)
         db.session.commit()
         
@@ -696,7 +696,7 @@ def test_xp_breakdown_session_only_achievements_contribute(app, test_user):
         from tests.helpers.data_helpers import award_achievement_directly
         
         # Create 10 questions
-        questions = create_test_questions(10, 1, "addition")
+        questions = create_test_questions(10, concept_id="c_concept_001", operation="addition")
         db.session.add_all(questions)
         db.session.commit()
         

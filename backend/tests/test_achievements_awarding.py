@@ -77,7 +77,7 @@ def test_first_steps_achievement(app, test_user):
     """ACH-AWARD-002: first-steps achievement awarded after 10 addition problems at level 1."""
     with app.app_context():
         # Create 10 addition questions at level 1
-        questions = create_test_questions(10, 1, operation="addition")
+        questions = create_test_questions(10, operation="addition")
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -140,7 +140,7 @@ def test_first_steps_achievement(app, test_user):
     """ACH-AWARD-004: first-steps achievement awarded after answering first question."""
     with app.app_context():
         # Create 1 question and answer it
-        questions = create_test_questions(1, 1, operation="addition")
+        questions = create_test_questions(1, operation="addition")
         responses_data = [{
             'question_id': questions[0].id,
             'answer': questions[0].correct_answer,
@@ -530,7 +530,7 @@ def test_first_steps_only_awarded_once(app, test_user):
     """Test that first-steps achievement is only awarded once."""
     with app.app_context():
         # First session - should award first-steps
-        questions1 = create_test_questions(1, 1, operation="addition")
+        questions1 = create_test_questions(1, operation="addition")
         responses_data1 = [{
             'question_id': questions1[0].id,
             'answer': questions1[0].correct_answer,
@@ -551,7 +551,7 @@ def test_first_steps_only_awarded_once(app, test_user):
         assert achievement1 is not None, "First Steps should be awarded on first question"
         
         # Second session - should NOT award first-steps again
-        questions2 = create_test_questions(1, 1, operation="addition")
+        questions2 = create_test_questions(1, operation="addition")
         responses_data2 = [{
             'question_id': questions2[0].id,
             'answer': questions2[0].correct_answer,

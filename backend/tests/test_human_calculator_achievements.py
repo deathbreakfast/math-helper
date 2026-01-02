@@ -16,7 +16,7 @@ from datetime import datetime
 from app import create_app, db
 from app.models import Achievement, User
 from app.services.achievements.achievement_checkers.human_calculator_checker import HumanCalculatorChecker
-from app.config.levels_config import LEVELS_CONFIG
+from app.config.concepts_config import CONCEPTS_CONFIG
 from app.config.achievements import ACHIEVEMENTS_CONFIG
 
 
@@ -56,7 +56,7 @@ def _create_lightning_fast_achievement(user_id: int, level: int, tier: str):
     Achievement.query.filter_by(user_id=user_id, code=code).delete()
     db.session.commit()
     
-    metadata = {"concept_id": f"c_concept_{level:03d}"}
+    metadata = {"concept_id": concept_id}
     metadata_json = json.dumps(metadata, sort_keys=True)
     
     achievement = Achievement(
@@ -75,62 +75,70 @@ def _create_lightning_fast_achievement(user_id: int, level: int, tier: str):
 
 
 def test_human_calculator_checker_verifies_all_levels(app, test_user):
-    """Test that Human Calculator checker correctly verifies all levels are qualified.
+    """Test that Human Calculator checker correctly verifies all descriptive concepts are qualified.
     
     This test verifies the checker logic works correctly. Due to schema limitations,
-    we can't easily test the full scenario where a user has achievements for all 45 levels.
+    we can't easily test the full scenario where a user has achievements for all descriptive concepts.
     """
     with app.app_context():
-        all_levels = sorted(LEVELS_CONFIG.keys())
+        # Get all descriptive concepts (not c_concept_###)
+        descriptive_concepts = [
+            concept_id for concept_id in CONCEPTS_CONFIG.keys()
+            if not concept_id.startswith("c_concept_")
+        ]
         
-        if not all_levels:
-            pytest.skip("No levels found in config")
+        if not descriptive_concepts:
+            pytest.skip("No descriptive concepts found in config")
         
         achievement_configs = ACHIEVEMENTS_CONFIG
         checker = HumanCalculatorChecker(achievement_configs)
         
-        # Create achievement for just one level
-        _create_lightning_fast_achievement(test_user.id, 1, "bronze")
+        # Create achievement for just one concept
+        _create_lightning_fast_achievement(test_user.id, descriptive_concepts[0], "bronze")
         
-        # Check for human calculator - should NOT be awarded (only 1 level qualified out of 45)
+        # Check for human calculator - should NOT be awarded (only 1 concept qualified out of all)
         new_achievements = checker.check(test_user, tier="bronze")
         achievement = Achievement.query.filter_by(
             user_id=test_user.id,
             code="human-calculator"
         ).first()
         
-        assert achievement is None, "Human Calculator should not be awarded when only 1 level is qualified"
+        assert achievement is None, "Human Calculator should not be awarded when only 1 concept is qualified"
         assert len(new_achievements) == 0, "Should not award any achievements"
         
-        # Verify the checker correctly identifies missing levels
-        # The checker should return empty list because not all levels are qualified
+        # Verify the checker correctly identifies missing concepts
+        # The checker should return empty list because not all concepts are qualified
 
 
 def test_human_calculator_bronze_accepts_silver_as_higher_tier(app, test_user):
     """Test that Human Calculator (Bronze) accepts Silver tier as qualifying (higher tier qualifies)."""
     with app.app_context():
-        all_levels = sorted(LEVELS_CONFIG.keys())
+        # Get all descriptive concepts (not c_concept_###)
+        descriptive_concepts = [
+            concept_id for concept_id in CONCEPTS_CONFIG.keys()
+            if not concept_id.startswith("c_concept_")
+        ]
         
-        if not all_levels:
-            pytest.skip("No levels found in config")
+        if not descriptive_concepts:
+            pytest.skip("No descriptive concepts found in config")
         
         achievement_configs = ACHIEVEMENTS_CONFIG
         checker = HumanCalculatorChecker(achievement_configs)
         
-        # Create silver achievement for one level
-        _create_lightning_fast_achievement(test_user.id, 1, "silver")
+        # Create silver achievement for one concept
+        _create_lightning_fast_achievement(test_user.id, descriptive_concepts[0], "silver")
         
         # Check for human calculator bronze - should check if silver qualifies for bronze requirement
-        # Since we only have 1 level qualified out of 45, it should not award
+        # Since we only have 1 concept qualified out of all, it should not award
         new_achievements = checker.check(test_user, tier="bronze")
         
-        # Should not award because we don't have achievements for all levels
+        # Should not award because we don't have achievements for all concepts
         achievement = Achievement.query.filter_by(
             user_id=test_user.id,
             code="human-calculator"
         ).first()
         
-        assert achievement is None, "Human Calculator should not be awarded when not all levels are qualified"
+        assert achievement is None, "Human Calculator should not be awarded when not all concepts are qualified"
         
         # But verify the checker correctly identifies that silver qualifies for bronze requirement
         # by checking that it doesn't fail when checking silver achievements for bronze tier

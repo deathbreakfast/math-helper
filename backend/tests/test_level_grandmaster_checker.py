@@ -5,6 +5,7 @@ import pytest
 from app.models import Achievement, Question, Response, User
 from app.services.achievements.achievement_checkers.level_grandmaster_checker import LevelGrandmasterChecker
 from app.services.level_config_service import LevelConfigService
+from app.config.concepts_config import CONCEPTS_CONFIG
 
 
 @pytest.fixture
@@ -23,7 +24,6 @@ def test_check_requires_level_master_bronze_first(app, test_user, level_grandmas
     """Test that Level Master (Bronze) with metadata is required before Level Grandmaster."""
     with app.app_context():
         from app import db
-        from app.config.levels_config import LEVELS_CONFIG
         
         # User does not have math-master-bronze achievements with metadata
         # (may have old global achievement, but that doesn't count)
@@ -34,20 +34,24 @@ def test_check_requires_level_master_bronze_first(app, test_user, level_grandmas
 
 
 def test_check_awards_when_all_levels_qualified(app, test_user, level_grandmaster_checker):
-    """Test that Level Grandmaster is awarded when user has Level Master (Bronze) at all levels.
+    """Test that Level Grandmaster is awarded when user has Level Master (Bronze) at all descriptive concepts.
     
     This test verifies that Level Grandmaster checks for existing Level Master achievements
     with metadata, not recalculating consecutive counts.
     """
     with app.app_context():
         from app import db
-        from app.config.levels_config import LEVELS_CONFIG
         from app.services.achievements.achievement_utils import create_achievement
         
-        # Create Level Master (Bronze) achievements with metadata for ALL levels
-        all_levels = sorted(LEVELS_CONFIG.keys())
-        for level in all_levels:
-            metadata = {"concept_id": f"c_concept_{level:03d}"}
+        # Get all descriptive concepts (not c_concept_###)
+        descriptive_concepts = [
+            concept_id for concept_id in CONCEPTS_CONFIG.keys()
+            if not concept_id.startswith("c_concept_")
+        ]
+        
+        # Create Level Master (Bronze) achievements with metadata for ALL descriptive concepts
+        for concept_id in descriptive_concepts:
+            metadata = {"concept_id": concept_id}
             create_achievement(
                 user_id=test_user.id,
                 code="math-master-bronze",
@@ -63,36 +67,37 @@ def test_check_awards_when_all_levels_qualified(app, test_user, level_grandmaste
         # Check Level Grandmaster
         result = level_grandmaster_checker.check(test_user)
         
-        # Should award math-grandmaster (all levels have Level Master Bronze)
-        assert len(result) == 1, "Should award math-grandmaster when all levels have Level Master (Bronze)"
+        # Should award math-grandmaster (all descriptive concepts have Level Master Bronze)
+        assert len(result) == 1, "Should award math-grandmaster when all descriptive concepts have Level Master (Bronze)"
         assert result[0].code == "math-grandmaster", "Should award math-grandmaster achievement"
 
 
 def test_check_does_not_award_if_level_missing_consecutive(app, test_user, level_grandmaster_checker):
-    """Test that Level Grandmaster is not awarded if any level lacks Level Master (Bronze) achievement."""
+    """Test that Level Grandmaster is not awarded if any descriptive concept lacks Level Master (Bronze) achievement."""
     with app.app_context():
         from app import db
-        from app.config.levels_config import LEVELS_CONFIG
         from app.services.achievements.achievement_utils import create_achievement
         
-        # Use a small subset of levels for testing (levels 1-3)
-        test_levels = sorted(LEVELS_CONFIG.keys())[:3]
+        # Get all descriptive concepts (not c_concept_###)
+        descriptive_concepts = [
+            concept_id for concept_id in CONCEPTS_CONFIG.keys()
+            if not concept_id.startswith("c_concept_")
+        ]
         
-        if len(test_levels) < 2:
-            pytest.skip("Need at least 2 levels for this test")
+        if len(descriptive_concepts) < 2:
+            pytest.skip("Need at least 2 descriptive concepts for this test")
         
-        # Create Level Master (Bronze) achievements with metadata for all but one level
-        all_levels = sorted(LEVELS_CONFIG.keys())
-        missing_level = all_levels[-1]  # Use the last level as the missing one
+        # Create Level Master (Bronze) achievements with metadata for all but one concept
+        missing_concept = descriptive_concepts[-1]  # Use the last concept as the missing one
         
-        for level in all_levels:
-            if level != missing_level:
-                metadata = {"concept_id": f"c_concept_{level:03d}"}
+        for concept_id in descriptive_concepts:
+            if concept_id != missing_concept:
+                metadata = {"concept_id": concept_id}
                 create_achievement(
                     user_id=test_user.id,
                     code="math-master-bronze",
                     title="Level Master (Bronze)",
-                    description="30 consecutive correct at level",
+                    description="30 consecutive correct at concept",
                     icon="🏆",
                     category="accuracy",
                     metadata=metadata,
@@ -103,8 +108,8 @@ def test_check_does_not_award_if_level_missing_consecutive(app, test_user, level
         # Check Level Grandmaster
         result = level_grandmaster_checker.check(test_user)
         
-        # Should not award math-grandmaster (one level is missing Level Master achievement)
-        assert len(result) == 0, "Should not award math-grandmaster when one level lacks Level Master (Bronze) achievement"
+        # Should not award math-grandmaster (one concept is missing Level Master achievement)
+        assert len(result) == 0, "Should not award math-grandmaster when one descriptive concept lacks Level Master (Bronze) achievement"
 
 
 def test_check_does_not_duplicate_achievement(app, test_user, level_grandmaster_checker):
@@ -135,17 +140,20 @@ def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
     """Test that Level Grandmaster accepts higher tier Level Master achievements (Silver/Gold qualify for Bronze requirement)."""
     with app.app_context():
         from app import db
-        from app.config.levels_config import LEVELS_CONFIG
         from app.services.achievements.achievement_utils import create_achievement
         
-        all_levels = sorted(LEVELS_CONFIG.keys())
+        # Get all descriptive concepts (not c_concept_###)
+        descriptive_concepts = sorted([
+            concept_id for concept_id in CONCEPTS_CONFIG.keys()
+            if not concept_id.startswith("c_concept_")
+        ])
         
-        # Create Level Master achievements for all levels
-        # Mix: Bronze for most levels, Silver for level 1, Gold for level 2
-        for level in all_levels:
-            if level == 1:
-                # Level 1: Silver (higher tier qualifies)
-                metadata = {"concept_id": f"c_concept_{level:03d}"}
+        # Create Level Master achievements for all descriptive concepts
+        # Mix: Bronze for most concepts, Silver for first concept, Gold for second concept
+        for idx, concept_id in enumerate(descriptive_concepts):
+            if idx == 0:
+                # First concept: Silver (higher tier qualifies)
+                metadata = {"concept_id": concept_id}
                 create_achievement(
                     user_id=test_user.id,
                     code="math-master-silver",
@@ -155,9 +163,9 @@ def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
                     category="accuracy",
                     metadata=metadata,
                 )
-            elif level == 2:
-                # Level 2: Gold (higher tier qualifies)
-                metadata = {"concept_id": f"c_concept_{level:03d}"}
+            elif idx == 1:
+                # Second concept: Gold (higher tier qualifies)
+                metadata = {"concept_id": concept_id}
                 create_achievement(
                     user_id=test_user.id,
                     code="math-master-gold",
@@ -168,13 +176,13 @@ def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
                     metadata=metadata,
                 )
             else:
-                # Other levels: Bronze
-                metadata = {"concept_id": f"c_concept_{level:03d}"}
+                # Other concepts: Bronze
+                metadata = {"concept_id": concept_id}
                 create_achievement(
                     user_id=test_user.id,
                     code="math-master-bronze",
                     title="Level Master (Bronze)",
-                    description="30 consecutive correct at level",
+                    description="30 consecutive correct at concept",
                     icon="🏆",
                     category="accuracy",
                     metadata=metadata,
@@ -185,7 +193,7 @@ def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
         # Check Level Grandmaster
         result = level_grandmaster_checker.check(test_user)
         
-        # Should award math-grandmaster (all levels have Level Master Bronze or higher)
-        assert len(result) == 1, "Should award math-grandmaster when all levels have Level Master (Bronze or higher)"
+        # Should award math-grandmaster (all descriptive concepts have Level Master Bronze or higher)
+        assert len(result) == 1, "Should award math-grandmaster when all descriptive concepts have Level Master (Bronze or higher)"
         assert result[0].code == "math-grandmaster", "Should award math-grandmaster achievement"
 

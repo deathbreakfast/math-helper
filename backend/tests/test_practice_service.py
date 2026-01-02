@@ -133,7 +133,6 @@ class TestPracticeService:
                 operand2=3,
                 correct_answer="8",
                 prompt="5 + 3",
-                required_level=1
             )
             
             assert question.id is not None
@@ -342,7 +341,6 @@ class TestPracticeService:
                 operand2=2,
                 correct_answer="4",
                 prompt="2 + 2",
-                required_level=1
             )
             
             # Flag both questions
@@ -472,7 +470,6 @@ class TestPracticeService:
                 operand2=1,
                 correct_answer="2",
                 prompt="1 + 1",
-                required_level=1
             )
             
             # Set question_ids on session
@@ -583,7 +580,6 @@ class TestPracticeService:
                 operand2=2,
                 correct_answer="4",
                 prompt="2 + 2",
-                required_level=1
             )
             
             session.question_ids = json.dumps([q1.id, q2.id])
@@ -757,7 +753,6 @@ class TestPracticeService:
                 operand2=3,
                 correct_answer="8",
                 prompt="5 + 3",
-                required_level=1
             )
             question.accepted_answers = "invalid json"
             db.session.add(question)

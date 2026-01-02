@@ -57,16 +57,7 @@ Tests are organized into the following spec files:
 | SUB-003 | Session time tracking | Verify time is recorded | Summary stats | `session-submission.spec.ts` |
 | SUB-004 | Incomplete session handling | Navigate away mid-session | Browser navigation | `session-submission.spec.ts` |
 
-### Table 5: Test Flow Tests
-
-| Test ID | Test Name | Description | Test IDs Used | File |
-|---------|-----------|-------------|---------------|------|
-| TEST-001 | Test eligibility check | Verify test requirements displayed | Journey/Test tabs | `test-flow.spec.ts` |
-| TEST-002 | Start eligible test | Begin test when eligible | Test start button | `test-flow.spec.ts` |
-| TEST-003 | Test submission | Complete and submit test | Submit button | `test-flow.spec.ts` |
-| TEST-004 | Test retake eligibility | Check retake requirements | Test UI | `test-flow.spec.ts` |
-
-### Table 6: Leveling Tests
+### Table 5: Leveling Tests
 
 | Test ID | Test Name | Description | Test IDs Used | File |
 |---------|-----------|-------------|---------------|------|

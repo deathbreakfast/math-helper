@@ -416,12 +416,19 @@ class PracticeService:
             
             questions_data.append(question_data)
         
+        # Calculate level from XP for display
+        from ..models import User
+        from ..services.xp_service import XPService
+        user = db.session.get(User, session.user_id)
+        total_xp = int(getattr(user, "experience", 0) or 0) if user else 0
+        display_level = XPService.level_for_total_xp(total_xp)
+        
         return {
             "session": {
                 "id": session.id,
                 "user_id": session.user_id,
                 "mode": session.mode,
-                "level": session.level,
+                "level": display_level,  # Calculated from XP for display
                 "concept_id": session.concept_id,
                 "started_at": session.started_at.isoformat() if session.started_at else None,
                 "completed_at": session.completed_at.isoformat() if session.completed_at else None,

@@ -510,10 +510,10 @@ level_tag = db.Column(db.String(32), nullable=True, index=True)
 - [x] Remove `level` parameters from `AchievementQueryService` methods
 
 ### Phase 3: Remove Level from API
-- [ ] Remove level from practice session responses
-- [ ] Remove level setting endpoints from user routes
-- [ ] Calculate level from XP in all user responses
-- [ ] Remove level from achievement query parameters
+- [x] Remove level from practice session responses
+- [x] Remove level setting endpoints from user routes
+- [x] Calculate level from XP in all user responses
+- [x] Remove level from achievement query parameters
 
 ### Phase 4: Update Tests
 - [ ] Update all test helpers to use `concept_id` instead of `level`

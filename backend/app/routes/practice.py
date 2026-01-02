@@ -26,29 +26,32 @@ practice_bp = Blueprint("practice", __name__)
 
 @practice_bp.get("/practice/sessions")
 def list_practice_sessions():
-    """List practice sessions for a user (optionally filtered by concept_id/level/completion)."""
+    """List practice sessions for a user (optionally filtered by concept_id/completion)."""
     user_id = request.args.get("user_id", type=int) or request.args.get("userId", type=int)
     concept_id = request.args.get("concept_id", type=str)
-    level = request.args.get("level", type=int)
     completed = request.args.get("completed")
 
     if not user_id:
         return create_error_response("user_id is required", 400)
 
     # Fallback to direct model import (kept local to avoid circular imports at module import time)
-    from ..models import PracticeSession
+    from ..models import PracticeSession, User
+    from ..services.xp_service import XPService
 
     query = PracticeSession.query.filter_by(user_id=user_id)
     if concept_id:
         query = query.filter_by(concept_id=concept_id)
-    if level is not None:
-        query = query.filter_by(level=level)
 
     if completed is not None:
         completed_bool = str(completed).lower() in ("1", "true", "yes")
         query = query.filter(PracticeSession.completed_at.isnot(None) if completed_bool else PracticeSession.completed_at.is_(None))
 
     sessions = query.order_by(PracticeSession.completed_at.desc().nullslast(), PracticeSession.started_at.desc()).limit(200).all()
+    
+    # Calculate level from XP for display (if user exists)
+    user = User.query.get(user_id)
+    total_xp = int(getattr(user, "experience", 0) or 0) if user else 0
+    display_level = XPService.level_for_total_xp(total_xp)
 
     return create_success_response({
         "sessions": [
@@ -56,7 +59,7 @@ def list_practice_sessions():
                 "id": s.id,
                 "user_id": s.user_id,
                 "mode": s.mode,
-                "level": s.level,
+                "level": display_level,  # Calculated from XP for display
                 "concept_id": s.concept_id,
                 "started_at": s.started_at.isoformat() if s.started_at else None,
                 "completed_at": s.completed_at.isoformat() if s.completed_at else None,
@@ -90,12 +93,19 @@ def get_incomplete_session():
     # Get session details with questions and responses
     session_data = PracticeService.get_session_with_details(incomplete_session.id)
     
+    # Calculate level from XP for display
+    from ..models import User
+    from ..services.xp_service import XPService
+    user = User.query.get(user_id)
+    total_xp = int(getattr(user, "experience", 0) or 0) if user else 0
+    display_level = XPService.level_for_total_xp(total_xp)
+    
     return create_success_response({
         "session": {
             "id": incomplete_session.id,
             "user_id": incomplete_session.user_id,
             "mode": incomplete_session.mode,
-            "level": incomplete_session.level,
+            "level": display_level,  # Calculated from XP for display
             "concept_id": incomplete_session.concept_id,
             "started_at": incomplete_session.started_at.isoformat() if incomplete_session.started_at else None,
         },

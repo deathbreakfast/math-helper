@@ -96,15 +96,17 @@ def serialize_user_fast(
 
     from ..services.xp_service import XPService
 
-    xp_progress = XPService.progress_for_total_xp(getattr(user, "experience", 0) or 0)
+    total_xp = getattr(user, "experience", 0) or 0
+    xp_progress = XPService.progress_for_total_xp(total_xp)
+    display_level = XPService.level_for_total_xp(int(total_xp))
 
     return {
         "id": user.id,
         "name": user.display_name,
         "avatar": user.avatar,
         # PIN removed for security - use /api/users/<id>/verify-pin endpoint
-        "level": user.level,
-        "experience": getattr(user, "experience", 0) or 0,
+        "level": display_level,  # Calculated from XP for display
+        "experience": int(total_xp),
         "xp_progress": xp_progress,
         "questionsAnswered": metrics.get("questions_answered", 0),
         "averageSpeed": metrics.get("average_speed_seconds", 0.0),

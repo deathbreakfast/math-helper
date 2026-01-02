@@ -47,13 +47,14 @@ def list_users():
     
     # If minimal mode, return lightweight data for fast initial load
     if minimal:
+        from ..services.xp_service import XPService
         return jsonify({
             "users": [
                 {
                     "id": user.id,
                     "name": user.display_name,
                     "avatar": user.avatar,
-                    "level": user.level,
+                    "level": XPService.level_for_total_xp(int(getattr(user, "experience", 0) or 0)),  # Calculated from XP for display
                 }
                 for user in users
             ]
@@ -171,8 +172,8 @@ def reset_user_data(user_id: int):
         # Delete daily stats
         DailyStat.query.filter_by(user_id=user_id).delete()
         
-        # Reset user level to 1
-        user.level = 1
+        # Reset user XP to 0 (level will be calculated from XP)
+        user.experience = 0
         user.updated_at = datetime.utcnow()
         db.session.add(user)
     
@@ -181,7 +182,7 @@ def reset_user_data(user_id: int):
 
     return jsonify({
         "success": True,
-        "message": f"All data for user {user_id} has been reset. User level set to 1.",
+        "message": f"All data for user {user_id} has been reset. User XP reset to 0.",
     })
 
 
@@ -190,13 +191,14 @@ def test_setup_user(user_id: int):
     """Test setup endpoint - DEV ONLY. Set user state for E2E tests.
     
     Allows setting:
-    - User level (directly, bypassing achievement requirements)
     - Awards achievements (directly, without meeting requirements)
     - Creates test data state
     
+    Note: Level is calculated from XP, not set directly. To set a level for testing,
+    calculate the required XP using XPService.total_xp_for_level() and set experience.
+    
     Request body:
     {
-        "level": 5,  # Optional: set user level directly
         "achievements": ["addition-basics", "level-2-mastery"],  # Optional: award achievements
     }
     
@@ -215,16 +217,6 @@ def test_setup_user(user_id: int):
         return jsonify({"error": "User not found"}), 404
     
     data = request.get_json() or {}
-    
-    # Set level if specified (bypasses achievement checks)
-    if 'level' in data:
-        level = data['level']
-        if level < 1 or level > 45:
-            return jsonify({"error": f"Invalid level: {level}. Must be 1-45."}), 400
-        
-        user.level = level
-        user.updated_at = datetime.utcnow()
-        db.session.add(user)
     
     # Award achievements if specified (bypasses requirement checks)
     if 'achievements' in data:
@@ -306,10 +298,15 @@ def test_setup_user(user_id: int):
     # Prevent stale cached user responses after mutating user state
     invalidate_user_cache(user_id)
     
+    # Calculate level from XP for display
+    from ..services.xp_service import XPService
+    total_xp = int(getattr(user, "experience", 0) or 0)
+    display_level = XPService.level_for_total_xp(total_xp)
+    
     return jsonify({
         "success": True,
         "user_id": user_id,
-        "level": user.level,
+        "level": display_level,  # Calculated from XP for display
         "message": f"Test setup completed for user {user_id}"
     })
 

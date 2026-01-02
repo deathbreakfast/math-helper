@@ -410,10 +410,10 @@ The codebase contains a legacy test/quiz system that allows users to take struct
 - [x] Clean up test-related configs
 
 ### Phase 6: Remove Test Achievements
-- [ ] Identify and remove test-based achievements
-- [ ] Remove test achievement checkers
-- [ ] Remove test achievement awarding logic
-- [ ] Clean up achievement configs with test_type metadata
+- [x] Identify and remove test-based achievements
+- [x] Remove test achievement checkers
+- [x] Remove test achievement awarding logic
+- [x] Clean up achievement configs with test_type metadata
 
 ### Phase 7: Remove Tier System (if test-only)
 - [ ] Verify tier utils usage

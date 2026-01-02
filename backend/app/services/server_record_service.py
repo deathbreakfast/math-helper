@@ -223,7 +223,7 @@ class ServerRecordService:
         if "-basics-" in code_lower and "champion" in code_lower:
             return True
         
-        # Test achievements with champion tier
+        # Operation-based achievements with champion tier (legacy pattern, no longer used for tests)
         if "-champion" in code_lower and ("addition-" in code_lower or 
                                           "subtraction-" in code_lower or
                                           "multiplication-" in code_lower or

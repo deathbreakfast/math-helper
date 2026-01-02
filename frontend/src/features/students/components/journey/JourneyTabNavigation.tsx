@@ -26,7 +26,7 @@ export const JourneyTabNavigation = ({ activeTab, onTabChange, userId }: Journey
     },
   ]
 
-  // If onTabChange is provided, use it (for modal/backward compatibility)
+  // If onTabChange is provided, use it (for modal)
   // Otherwise, use Link components (for route-based navigation)
   if (onTabChange) {
     return (

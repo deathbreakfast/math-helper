@@ -1,7 +1,6 @@
 """Unlock requirements for concept IDs.
 
-All concepts (both legacy c_concept_### and descriptive c_add_*, c_sub_*, etc.) 
-use this mapping for unlock requirements. Concepts without entries are unlocked by default.
+All concepts use this mapping for unlock requirements. Concepts without entries are unlocked by default.
 """
 
 from __future__ import annotations
@@ -13,7 +12,6 @@ ConceptRequirement = dict[str, Any]
 
 
 CONCEPT_UNLOCK_REQUIREMENTS: dict[str, list[ConceptRequirement]] = {
-    # Legacy concepts (c_concept_001 through c_concept_045)
     # Only concepts with explicit requirements are listed here.
     # Concepts without entries are unlocked by default (no requirements).
     # Basic Single Digit Addition (c_concept_001) should not be the starter concept in the new system.

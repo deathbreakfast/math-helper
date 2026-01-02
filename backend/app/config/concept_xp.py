@@ -1,13 +1,8 @@
-"""Concept XP values (XP per correct answer).
-
-For now this includes:
-- Legacy `c_concept_###` concepts (1-45)
-- A first set of descriptive concept IDs (e.g. `c_add_1s`) defined in `MATH_CONCEPTS.md`
-"""
+"""Concept XP values (XP per correct answer)."""
 
 from __future__ import annotations
 
-# XP per correct answer for legacy concepts (levels 1-45 mapped to concept IDs).
+# XP per correct answer for concepts.
 CONCEPT_XP_PER_CORRECT: dict[str, int] = {
     "c_concept_001": 97,
     # c_concept_002 removed (merged into c_concept_001)

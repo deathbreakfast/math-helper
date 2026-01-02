@@ -180,38 +180,6 @@ describe('levelRequirementConverters', () => {
       expect(result.requirements[0].description).toContain('(Single Digit Addition (1s))')
     })
 
-    it('should add level to description from metadata filter', () => {
-      const backendRequirements = [
-        {
-          achievement_code: 'test-achievement',
-          order: 1,
-          metadata_filter: {
-            level: 5,
-          },
-        },
-      ]
-
-      const result = convertBackendRequirementsToFrontend(backendRequirements, [], 1, 2)
-
-      expect(result.requirements[0].description).toContain('(Level 5)')
-    })
-
-    it('should combine test type and level in description', () => {
-      const backendRequirements = [
-        {
-          achievement_code: 'test-achievement',
-          order: 1,
-          metadata_filter: {
-            concept_id: 'c_concept_001',
-            level: 5,
-          },
-        },
-      ]
-
-      const result = convertBackendRequirementsToFrontend(backendRequirements, [], 1, 2)
-
-      expect(result.requirements[0].description).toContain('(Basic Single Digit Addition, Level 5)')
-    })
 
     it('should set isLocked correctly', () => {
       const backendRequirements = [

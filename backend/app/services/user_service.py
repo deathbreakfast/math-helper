@@ -79,9 +79,6 @@ class UserService:
         """Verify a PIN for a user."""
         return user.pin == pin
 
-    # Legacy achievement-based level up methods removed
-    # User level is now automatically calculated from XP (XPService)
-
     @staticmethod
     @log_query
     def update_user(user: User, **kwargs: Any) -> User:

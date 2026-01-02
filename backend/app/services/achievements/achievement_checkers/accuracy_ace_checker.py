@@ -96,7 +96,6 @@ class AccuracyAceChecker(AchievementChecker):
             metadata = None
             if session.concept_id:
                 metadata = {"concept_id": session.concept_id}
-            # Note: session.level fallback removed - all sessions must have concept_id set
             
             achievement = AchievementService.create_achievement(
                 user_id=user.id,

@@ -14,7 +14,7 @@ from ..config.concepts_config import CONCEPTS_CONFIG
 class ConceptConfigService:
     @staticmethod
     def normalize_concept_id(concept_id: str) -> str:
-        """Normalize legacy concept ids to the canonical `c_concept_###` format."""
+        """Normalize concept ids to the canonical `c_concept_###` format."""
         if not concept_id:
             return concept_id
 

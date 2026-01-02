@@ -170,7 +170,6 @@ def reset_all_data():
         db.session.execute(delete(User))
         db.session.execute(delete(Question))
         
-        # Legacy level config tables removed - no longer needed
     
     return jsonify({
         "success": True,

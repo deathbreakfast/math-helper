@@ -40,7 +40,7 @@ export function convertBackendRequirementsToFrontend(
     const achievementIds = Array.isArray(frontendIds) ? frontendIds : frontendIds ? [frontendIds] : []
 
     // Count how many times the user has earned this achievement code
-    const quantity = req.quantity ?? 1 // Default to 1 if not specified (backward compatibility)
+    const quantity = req.quantity ?? 1
     
     // Use server-calculated count and completion status if available (preferred)
     // Otherwise, calculate client-side
@@ -97,24 +97,11 @@ export function convertBackendRequirementsToFrontend(
     const achievementTitle = userAchievement?.title || _formatAchievementCodeForDisplay(req.achievement_code)
     let baseDescription = `Complete: ${achievementTitle}`
     
-    // Add metadata to description if present (concept_id or level)
-    if (req.metadata_filter) {
-      const metadataParts: string[] = []
-      
-      // Prefer concept_id (concept-aware requirements)
-      if (req.metadata_filter.concept_id) {
-        const conceptName = getConceptDisplayNameByConceptId(req.metadata_filter.concept_id)
-        metadataParts.push(conceptName ? conceptName : `Concept ${req.metadata_filter.concept_id}`)
-      }
-      
-      // Add level if present
-      if (req.metadata_filter.level) {
-        metadataParts.push(`Level ${req.metadata_filter.level}`)
-      }
-      
-      // Append metadata to description in parentheses
-      if (metadataParts.length > 0) {
-        baseDescription = `${baseDescription} (${metadataParts.join(', ')})`
+    // Add metadata to description if present (concept_id)
+    if (req.metadata_filter?.concept_id) {
+      const conceptName = getConceptDisplayNameByConceptId(req.metadata_filter.concept_id)
+      if (conceptName) {
+        baseDescription = `${baseDescription} (${conceptName})`
       }
     }
     

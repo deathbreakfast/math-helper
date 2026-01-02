@@ -18,19 +18,6 @@ class AchievementQueryService:
     """Service for querying achievement data."""
 
     @staticmethod
-    def _legacy_level_from_concept_id(concept_id: str | None) -> int | None:
-        """Extract level number from c_concept_### format concept ID.
-        
-        Note: Legacy level system removed. This is kept for minimal backward compatibility.
-        """
-        if not concept_id:
-            return None
-        m = __import__("re").match(r"^c_concept_(\d+)$", str(concept_id))
-        if m:
-            return int(m.group(1))
-        return None
-
-    @staticmethod
     def _metadata_matches_filter(
         ach_metadata_for_filter: dict[str, Any],
         metadata_filter: dict[str, Any],

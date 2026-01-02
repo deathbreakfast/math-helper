@@ -2,7 +2,6 @@
 
 Awards concept-specific achievements for consecutive correct answers per concept.
 Each bucket gets its own achievement with metadata:
-- {"concept_id": "c_concept_XXX"} for legacy level-based buckets (derived from level)
 - {"concept_id": "..."} for concept-based buckets (enables descriptive concept IDs)
 """
 
@@ -29,15 +28,7 @@ class LevelMasterChecker(AchievementChecker):
     
     @staticmethod
     def _get_all_levels() -> list[int]:
-        """Get all distinct legacy levels from questions.
-        
-        Note: This method is deprecated - level-based filtering has been removed.
-        Level master achievements now operate on concept_id only.
-        
-        Returns:
-            Empty list (method kept for backward compatibility but returns empty)
-        """
-        # Level-based filtering removed - return empty list
+        """Get all distinct levels from questions (no longer used)."""
         return []
     
     @staticmethod
@@ -293,7 +284,7 @@ class LevelMasterChecker(AchievementChecker):
         if not level_master_configs:
             return new_achievements
         
-        # Award per concept_id (level-based filtering removed)
+        # Award per concept_id
         for cid in concept_ids:
             achievement = self._award_for_bucket(
                 user=user,

@@ -37,7 +37,7 @@ export function mapTestDefinitionToFrontend(
   userAttempts: BackendTestAttempt[] = []
 ): FrontendTest {
   // Determine if test is locked
-  // Priority: unlock_status (new system) > level_requirement (backward compatibility)
+  // Priority: unlock_status > level_requirement
   let isLocked: boolean
   let unlockRequirements: FrontendTest['unlockRequirements'] | undefined
   let unlockProgress: FrontendTest['unlockProgress'] | undefined
@@ -74,7 +74,7 @@ export function mapTestDefinitionToFrontend(
       }
     }
   } else {
-    // Backward compatibility: level-based check
+    // Level-based check
     isLocked = userLevel < backendTest.level_requirement
   }
 

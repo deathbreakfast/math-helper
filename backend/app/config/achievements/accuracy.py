@@ -4,9 +4,8 @@ from typing import Any
 
 from app.utils.tier_utils import ALL_TIERS
 
-# Legacy {operation}-basics-{tier} achievements removed
+# {operation}-basics-{tier} achievements removed
 # These are redundant and covered by test achievements and regular speed/accuracy achievements
-# All references have been replaced with test achievements in level progression
 
 def _generate_math_master_achievements() -> dict[str, dict[str, Any]]:
     """Generate Math Master (consecutive correct per concept) achievement definitions."""

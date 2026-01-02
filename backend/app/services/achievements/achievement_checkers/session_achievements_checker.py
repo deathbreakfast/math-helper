@@ -77,10 +77,7 @@ class SessionAchievementsChecker(AchievementChecker):
         self, user: User, achievement_code: str, config: dict[str, Any],
         requirements: dict[str, Any], session_id: int | None
     ) -> list[Achievement]:
-        """Check session_accuracy_and_consecutive achievements.
-        
-        Note: Level filtering removed - this checker now operates across all concepts.
-        """
+        """Check session_accuracy_and_consecutive achievements."""
         min_sessions = requirements.get("min_sessions", 0)
         min_session_accuracy = requirements.get("min_session_accuracy", 0.0)
         consecutive_correct = requirements.get("consecutive_correct", 0)
@@ -141,13 +138,10 @@ class SessionAchievementsChecker(AchievementChecker):
         self, user: User, achievement_code: str, config: dict[str, Any],
         requirements: dict[str, Any], session_id: int | None
     ) -> list[Achievement]:
-        """Check perfect_sessions achievements.
-        
-        Note: Level filtering removed - this checker now operates across all concepts.
-        """
+        """Check perfect_sessions achievements."""
         min_sessions = requirements.get("min_sessions", 0)
         
-        # Count perfect sessions (100% accuracy) - level filtering removed
+        # Count perfect sessions (100% accuracy)
         perfect_sessions = (
             PracticeSession.query.filter_by(user_id=user.id)
             .filter(
@@ -178,15 +172,12 @@ class SessionAchievementsChecker(AchievementChecker):
         self, user: User, achievement_code: str, config: dict[str, Any],
         requirements: dict[str, Any], session_id: int | None
     ) -> list[Achievement]:
-        """Check level_mastery achievements.
-        
-        Note: Level filtering removed - this checker now operates across all concepts.
-        """
+        """Check level_mastery achievements."""
         min_accuracy = requirements.get("min_accuracy", 0.0)
         min_questions = requirements.get("min_questions", 0)
         consecutive_correct = requirements.get("consecutive_correct", 0)
         
-        # Get all responses (level filtering removed)
+        # Get all responses
         responses = (
             Response.query.filter_by(user_id=user.id)
             .all()

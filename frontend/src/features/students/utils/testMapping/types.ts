@@ -74,7 +74,7 @@ export interface FrontendTest extends TestDefinition {
   }
   attemptCount: number
   unlockRequirements?: {
-    achievementCode?: string  // Single code (backward compatible)
+    achievementCode?: string  // Single code
     achievementCodes?: string[]  // Multiple codes (new format)
     quantity: number
     level?: number

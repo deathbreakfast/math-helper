@@ -79,11 +79,7 @@ class PracticeService:
         layout_config: dict[str, Any] | None = None,
         math_type_label: str | None = None,
     ) -> Question:
-        """Create and store a question.
-        
-        Note: required_level and level_tag parameters removed in Phase 5.
-        Questions are now identified by concept_id in sessions, not by level fields.
-        """
+        """Create and store a question."""
         accepted_answers_json = json.dumps(accepted_answers) if accepted_answers else None
         layout_config_json = json.dumps(layout_config) if layout_config else None
 
@@ -205,8 +201,6 @@ class PracticeService:
             query = query.filter_by(session_id=session_id)
 
         return query.order_by(FlaggedQuestion.flagged_at.desc()).all()
-
-    # Legacy level problem config methods removed - level system no longer uses database configs
 
     @staticmethod
     @log_query
@@ -337,7 +331,7 @@ class PracticeService:
         
         Uses stored question_ids from session to fetch all questions.
         Orders questions: answered first (by answered_at time), then unanswered.
-        Falls back to inferring from responses if question_ids is NULL (backward compatibility).
+        Falls back to inferring from responses if question_ids is NULL.
         """
         session = db.session.get(PracticeSession, session_id)
         if not session:
@@ -353,10 +347,8 @@ class PracticeService:
             try:
                 question_id_list = json.loads(session.question_ids)
             except (json.JSONDecodeError, TypeError):
-                # Invalid JSON, fall back to inferring from responses
                 question_id_list = list(response_map.keys())
         else:
-            # Backward compatibility: infer from responses
             question_id_list = list(response_map.keys())
         
         # Get all questions for this session

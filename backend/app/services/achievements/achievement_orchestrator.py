@@ -94,7 +94,7 @@ class AchievementOrchestrator:
 
         # DEBUG: Print user info and metrics
         debug_print("\n" + "="*80)
-        debug_print(f"[ACHIEVEMENT DEBUG] ensure_achievements called for User ID: {user.id}, Name: {user.display_name}, Level: {user.level}")
+        debug_print(f"[ACHIEVEMENT DEBUG] ensure_achievements called for User ID: {user.id}, Name: {user.display_name}")
         debug_print(f"[ACHIEVEMENT DEBUG] Metrics: {metrics}")
         
         current_codes = [a.code for a in current_achievements]

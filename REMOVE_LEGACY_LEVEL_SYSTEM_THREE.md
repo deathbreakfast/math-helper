@@ -529,9 +529,9 @@ level_tag = db.Column(db.String(32), nullable=True, index=True)
 - [x] Remove `PracticeSession.level` column entirely
 
 ### Phase 6: Remove Legacy Code
-- [ ] Remove `legacy_mappings.py` file
-- [ ] Remove all imports of legacy mapping functions
-- [ ] Clean up comments mentioning legacy level system
+- [x] Remove `legacy_mappings.py` file
+- [x] Remove all imports of legacy mapping functions
+- [x] Clean up comments mentioning legacy level system
 
 ### Phase 7: Frontend Verification
 - [ ] Verify level is only used for display (calculated from XP)

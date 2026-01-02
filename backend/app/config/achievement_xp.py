@@ -74,7 +74,7 @@ ACHIEVEMENT_XP_TABLE: dict[str, dict[str, object]] = {
         "bonus_xp": [100],
         "multiplier": [1.02],
     },
-    # Present in doc but currently used as legacy/rare; no multipliers.
+    # Present in doc but currently used as rare; no multipliers.
     "math-grandmaster": {
         "tiers": TIERS_11,
         "bonus_xp": [2200, 3520, 5632, 9009, 14421, 23078, 36927, 59081, 94534, 151250, 242000],

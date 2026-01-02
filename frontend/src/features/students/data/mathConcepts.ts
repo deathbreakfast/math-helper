@@ -3,8 +3,6 @@
  * Each concept has independent unlock requirements and can be practiced in any order.
  */
 
-import { conceptIdFromLegacyLevel, legacyLevelFromConceptId } from '../utils/conceptIdUtils'
-
 export type MathConceptUnlockRequirement = {
   description: string
   achievementIds?: string[]
@@ -33,262 +31,447 @@ export type MathConcept = {
   lastAttemptedAt?: Date
 }
 
-/**
- * Concept display names mapped by legacy level number
- * These match the names defined in MATH_CONCEPTS.md (Name field, without "Level" prefix)
- */
-const CONCEPT_DISPLAY_NAMES: Record<number, string> = {
-  1: 'Basic Single Digit Addition',
-  2: 'Addition with Zero (Adding 0)',
-  3: 'Basic Single Digit Subtraction',
-  4: 'Subtraction with Zero (Subtracting 0)',
-  5: 'Single and Two Digit Addition',
-  6: 'Single and Two Digit Subtraction',
-  7: 'Two Digit Addition',
-  8: 'Two Digit Subtraction',
-  9: 'Subtraction with Borrowing (Small Numbers)',
-  10: 'Negative Number Subtraction',
-  11: 'Multiplication by 1',
-  12: 'Multiplication by 4',
-  13: 'Multiplication by 5',
-  14: 'Multiplication by 6',
-  15: 'Multiplication by 7',
-  16: 'Multiplication by 8',
-  17: 'Multiplication by 9',
-  18: 'Multiplication by 0',
-  19: 'Multiplication by 10',
-  20: 'Multiplication by 11',
-  21: 'Multiplication by 12',
-  22: 'Three Digit Addition',
-  23: 'Three Digit Subtraction',
-  24: 'Two Digit by Single Digit Multiplication (Partial Products)',
-  25: 'Two Digit by Two Digit Multiplication (Partial Products)',
-  26: 'Division by 1',
-  27: 'Division by 2',
-  28: 'Division by 3',
-  29: 'Division by 4',
-  30: 'Division by 5',
-  31: 'Division by 6',
-  32: 'Division by 7',
-  33: 'Division by 8',
-  34: 'Division by 9',
-  35: 'Division by 10',
-  36: 'Division by 11',
-  37: 'Division by 0 (Special Case)',
-  38: 'Division by 10 (Repeated)',
-  39: 'Division with Remainders (Single Digit Divisors)',
-  40: 'Division with Remainders (Two Digit Dividends)',
-  41: 'Division with Fractional Answers (Single Digit Divisors)',
-  42: 'Division with Fractional Answers (Two Digit Dividends)',
-  43: 'Three Digit by Two Digit Multiplication (Partial Products)',
-  44: 'Division with Fractional Answers (Three Digit Dividends)',
-  45: 'Division with Decimal Answers (Single Digit Divisors)',
+type ConceptConfig = {
+  displayName: string
+  operation: string
+  layoutType: string
+  answerFormat: string
 }
 
+/**
+ * Concept configuration keyed by concept_id.
+ * Contains display name, operation, layout type, and answer format for each concept.
+ */
+const CONCEPT_CONFIG_BY_ID: Record<string, ConceptConfig> = {
+  // c_concept_XXX concepts (numbered concepts)
+  'c_concept_001': {
+    displayName: 'Basic Single Digit Addition',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_003': {
+    displayName: 'Basic Single Digit Subtraction',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_005': {
+    displayName: 'Single and Two Digit Addition',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_006': {
+    displayName: 'Single and Two Digit Subtraction',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_007': {
+    displayName: 'Two Digit Addition',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_008': {
+    displayName: 'Two Digit Subtraction',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_010': {
+    displayName: 'Negative Number Subtraction',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_011': {
+    displayName: 'Multiplication by 1',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_012': {
+    displayName: 'Multiplication by 4',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_013': {
+    displayName: 'Multiplication by 5',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_014': {
+    displayName: 'Multiplication by 6',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_015': {
+    displayName: 'Multiplication by 7',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_016': {
+    displayName: 'Multiplication by 8',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_017': {
+    displayName: 'Multiplication by 9',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_018': {
+    displayName: 'Multiplication by 0',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_019': {
+    displayName: 'Multiplication by 10',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_020': {
+    displayName: 'Multiplication by 11',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_021': {
+    displayName: 'Multiplication by 12',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_022': {
+    displayName: 'Three Digit Addition',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_023': {
+    displayName: 'Three Digit Subtraction',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_concept_024': {
+    displayName: 'Two Digit by Single Digit Multiplication (Partial Products)',
+    operation: 'multiplication',
+    layoutType: 'partialProducts',
+    answerFormat: 'integer',
+  },
+  'c_concept_025': {
+    displayName: 'Two Digit by Two Digit Multiplication (Partial Products)',
+    operation: 'multiplication',
+    layoutType: 'partialProducts',
+    answerFormat: 'integer',
+  },
+  'c_concept_026': {
+    displayName: 'Division by 1',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_027': {
+    displayName: 'Division by 2',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_028': {
+    displayName: 'Division by 3',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_029': {
+    displayName: 'Division by 4',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_030': {
+    displayName: 'Division by 5',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_031': {
+    displayName: 'Division by 6',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_032': {
+    displayName: 'Division by 7',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_033': {
+    displayName: 'Division by 8',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_034': {
+    displayName: 'Division by 9',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_035': {
+    displayName: 'Division by 10',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_036': {
+    displayName: 'Division by 11',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_037': {
+    displayName: 'Division by 0 (Special Case)',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_038': {
+    displayName: 'Division by 10 (Repeated)',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'integer',
+  },
+  'c_concept_039': {
+    displayName: 'Division with Remainders (Single Digit Divisors)',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'remainder',
+  },
+  'c_concept_040': {
+    displayName: 'Division with Remainders (Two Digit Dividends)',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'remainder',
+  },
+  'c_concept_041': {
+    displayName: 'Division with Fractional Answers (Single Digit Divisors)',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'fraction',
+  },
+  'c_concept_042': {
+    displayName: 'Division with Fractional Answers (Two Digit Dividends)',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'fraction',
+  },
+  'c_concept_043': {
+    displayName: 'Three Digit by Two Digit Multiplication (Partial Products)',
+    operation: 'multiplication',
+    layoutType: 'partialProducts',
+    answerFormat: 'integer',
+  },
+  'c_concept_044': {
+    displayName: 'Division with Fractional Answers (Three Digit Dividends)',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'fraction',
+  },
+  'c_concept_045': {
+    displayName: 'Division with Decimal Answers (Single Digit Divisors)',
+    operation: 'division',
+    layoutType: 'longDivision',
+    answerFormat: 'decimal',
+  },
+  // Descriptive concept IDs
+  'c_add_0s': {
+    displayName: 'Single Digit Addition (0s)',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_add_1s': {
+    displayName: 'Single Digit Addition (1s)',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_add_2s': {
+    displayName: 'Single Digit Addition (2s)',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_add_3s': {
+    displayName: 'Single Digit Addition (3s)',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_add_4s': {
+    displayName: 'Single Digit Addition (4s)',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_add_5s': {
+    displayName: 'Single Digit Addition (5s)',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_add_6s': {
+    displayName: 'Single Digit Addition (6s)',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_add_7s': {
+    displayName: 'Single Digit Addition (7s)',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_add_8s': {
+    displayName: 'Single Digit Addition (8s)',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_add_9s': {
+    displayName: 'Single Digit Addition (9s)',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_add_10s': {
+    displayName: 'Single Digit Addition (10s)',
+    operation: 'addition',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_sub_0s': {
+    displayName: 'Single Digit Subtraction (0s)',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_sub_1s': {
+    displayName: 'Single Digit Subtraction (1s)',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_sub_2s': {
+    displayName: 'Single Digit Subtraction (2s)',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_sub_3s': {
+    displayName: 'Single Digit Subtraction (3s)',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_sub_4s': {
+    displayName: 'Single Digit Subtraction (4s)',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_sub_5s': {
+    displayName: 'Single Digit Subtraction (5s)',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_sub_6s': {
+    displayName: 'Single Digit Subtraction (6s)',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_sub_7s': {
+    displayName: 'Single Digit Subtraction (7s)',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_sub_8s': {
+    displayName: 'Single Digit Subtraction (8s)',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_sub_9s': {
+    displayName: 'Single Digit Subtraction (9s)',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_sub_10s': {
+    displayName: 'Single Digit Subtraction (10s)',
+    operation: 'subtraction',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_mul_2s': {
+    displayName: 'Multiplication by 2',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+  'c_mul_3s': {
+    displayName: 'Multiplication by 3',
+    operation: 'multiplication',
+    layoutType: 'vertical',
+    answerFormat: 'integer',
+  },
+}
+
+/**
+ * Get display name for a concept by concept_id
+ */
 export function getConceptDisplayNameByConceptId(conceptId: string | undefined | null): string | null {
   if (!conceptId) return null
-  const level = legacyLevelFromConceptId(conceptId)
-  if (level) {
-    return CONCEPT_DISPLAY_NAMES[level] || null
-  }
-
-  // Descriptive concept IDs: look up in the catalog.
-  const match = getAllMathConcepts().find(c => c.conceptId === conceptId)
-  return match?.displayName || null
+  return CONCEPT_CONFIG_BY_ID[conceptId]?.displayName || null
 }
 
 /**
- * Generate display name from level config
- * Uses descriptive names from CONCEPT_DISPLAY_NAMES mapping (no "Level" prefix)
+ * Create a math concept from a concept_id
  */
-function generateDisplayName(level: number, operation: string): string {
-  // Use the descriptive name from the mapping if available
-  if (CONCEPT_DISPLAY_NAMES[level]) {
-    return CONCEPT_DISPLAY_NAMES[level]
-  }
-  
-  // Fallback to operation name only (no "Level" prefix)
-  const operationNames: Record<string, string> = {
-    addition: 'Addition',
-    subtraction: 'Subtraction',
-    multiplication: 'Multiplication',
-    division: 'Division',
-  }
-  
-  return operationNames[operation] || operation
-}
-
-const CONCEPT_OPERATION_BY_LEVEL: Record<number, string> = {
-  1: 'addition',
-  2: 'addition',
-  3: 'subtraction',
-  4: 'subtraction',
-  5: 'addition',
-  6: 'subtraction',
-  7: 'addition',
-  8: 'subtraction',
-  9: 'subtraction',
-  10: 'subtraction',
-  11: 'multiplication',
-  12: 'multiplication',
-  13: 'multiplication',
-  14: 'multiplication',
-  15: 'multiplication',
-  16: 'multiplication',
-  17: 'multiplication',
-  18: 'multiplication',
-  19: 'multiplication',
-  20: 'multiplication',
-  21: 'multiplication',
-  22: 'addition',
-  23: 'subtraction',
-  24: 'multiplication',
-  25: 'multiplication',
-  26: 'division',
-  27: 'division',
-  28: 'division',
-  29: 'division',
-  30: 'division',
-  31: 'division',
-  32: 'division',
-  33: 'division',
-  34: 'division',
-  35: 'division',
-  36: 'division',
-  37: 'division',
-  38: 'division',
-  39: 'division',
-  40: 'division',
-  41: 'division',
-  42: 'division',
-  43: 'multiplication',
-  44: 'division',
-  45: 'division',
-}
-
-const CONCEPT_LAYOUT_BY_LEVEL: Record<number, string> = {
-  // Most arithmetic concepts
-  1: 'vertical',
-  2: 'vertical',
-  3: 'vertical',
-  4: 'vertical',
-  5: 'vertical',
-  6: 'vertical',
-  7: 'vertical',
-  8: 'vertical',
-  9: 'vertical',
-  10: 'vertical',
-  11: 'vertical',
-  12: 'vertical',
-  13: 'vertical',
-  14: 'vertical',
-  15: 'vertical',
-  16: 'vertical',
-  17: 'vertical',
-  18: 'vertical',
-  19: 'vertical',
-  20: 'vertical',
-  21: 'vertical',
-  22: 'vertical',
-  23: 'vertical',
-
-  // Partial products multiplication concepts
-  24: 'partialProducts',
-  25: 'partialProducts',
-  43: 'partialProducts',
-
-  // Division concepts
-  26: 'longDivision',
-  27: 'longDivision',
-  28: 'longDivision',
-  29: 'longDivision',
-  30: 'longDivision',
-  31: 'longDivision',
-  32: 'longDivision',
-  33: 'longDivision',
-  34: 'longDivision',
-  35: 'longDivision',
-  36: 'longDivision',
-  37: 'longDivision',
-  38: 'longDivision',
-  39: 'longDivision',
-  40: 'longDivision',
-  41: 'longDivision',
-  42: 'longDivision',
-  44: 'longDivision',
-  45: 'longDivision',
-}
-
-const CONCEPT_ANSWER_FORMAT_BY_LEVEL: Record<number, string> = {
-  // Defaults
-  1: 'integer',
-  2: 'integer',
-  3: 'integer',
-  4: 'integer',
-  5: 'integer',
-  6: 'integer',
-  7: 'integer',
-  8: 'integer',
-  9: 'integer',
-  10: 'integer',
-  11: 'integer',
-  12: 'integer',
-  13: 'integer',
-  14: 'integer',
-  15: 'integer',
-  16: 'integer',
-  17: 'integer',
-  18: 'integer',
-  19: 'integer',
-  20: 'integer',
-  21: 'integer',
-  22: 'integer',
-  23: 'integer',
-  24: 'integer',
-  25: 'integer',
-  26: 'integer',
-  27: 'integer',
-  28: 'integer',
-  29: 'integer',
-  30: 'integer',
-  31: 'integer',
-  32: 'integer',
-  33: 'integer',
-  34: 'integer',
-  35: 'integer',
-  36: 'integer',
-  37: 'integer',
-  38: 'integer',
-  // Special answer formats from doc
-  39: 'remainder',
-  40: 'remainder',
-  41: 'fraction',
-  42: 'fraction',
-  43: 'integer',
-  44: 'fraction',
-  45: 'decimal',
-}
-
-/**
- * Create a math concept from a level number
- * This is a 1:1 mapping initially - each level becomes a concept
- */
-export function createConceptFromLevel(
-  level: number,
-  operation: string,
+function createConceptFromId(
+  conceptId: string,
   unlockRequirements: MathConceptUnlockRequirement[] = [],
   isLocked: boolean = false,
   attemptCount: number = 0
-): MathConcept {
-  const category = operation.charAt(0).toUpperCase() + operation.slice(1)
+): MathConcept | null {
+  const config = CONCEPT_CONFIG_BY_ID[conceptId]
+  if (!config) return null
+
+  const category = config.operation.charAt(0).toUpperCase() + config.operation.slice(1)
   return {
-    id: `concept-${level}`,
-    conceptId: conceptIdFromLegacyLevel(level), // Use new format: c_concept_001, c_concept_002, etc.
-    displayName: generateDisplayName(level, operation),
+    id: `concept-${conceptId}`,
+    conceptId,
+    displayName: config.displayName,
     category,
-    operation,
-    layoutType: CONCEPT_LAYOUT_BY_LEVEL[level],
-    answerFormat: CONCEPT_ANSWER_FORMAT_BY_LEVEL[level],
+    operation: config.operation,
+    layoutType: config.layoutType,
+    answerFormat: config.answerFormat,
     unlockRequirements,
     isLocked,
     attemptCount,
@@ -296,94 +479,19 @@ export function createConceptFromLevel(
 }
 
 /**
- * Get all math concepts (1:1 with levels 1-45 for now)
- * This will be replaced with a proper data source later
+ * Get all math concepts
  */
 export function getAllMathConcepts(): MathConcept[] {
   const concepts: MathConcept[] = []
 
-  for (let level = 1; level <= 45; level++) {
-    const operation = CONCEPT_OPERATION_BY_LEVEL[level] || 'addition'
-    concepts.push(createConceptFromLevel(level, operation))
-  }
+  // Get all concept_ids from the config
+  const conceptIds = Object.keys(CONCEPT_CONFIG_BY_ID)
 
-  // Descriptive concept IDs (initial set from MATH_CONCEPTS.md)
-  const addFixed = [
-    { id: 'c_add_0s', name: 'Single Digit Addition (0s)', operand2: 0, answerMin: 1 },
-    { id: 'c_add_1s', name: 'Single Digit Addition (1s)', operand2: 1, answerMin: 2 },
-    { id: 'c_add_2s', name: 'Single Digit Addition (2s)', operand2: 2, answerMin: 3 },
-    { id: 'c_add_3s', name: 'Single Digit Addition (3s)', operand2: 3, answerMin: 4 },
-    { id: 'c_add_4s', name: 'Single Digit Addition (4s)', operand2: 4, answerMin: 5 },
-    { id: 'c_add_5s', name: 'Single Digit Addition (5s)', operand2: 5, answerMin: 6 },
-    { id: 'c_add_6s', name: 'Single Digit Addition (6s)', operand2: 6, answerMin: 7 },
-    { id: 'c_add_7s', name: 'Single Digit Addition (7s)', operand2: 7, answerMin: 8 },
-    { id: 'c_add_8s', name: 'Single Digit Addition (8s)', operand2: 8, answerMin: 9 },
-    { id: 'c_add_9s', name: 'Single Digit Addition (9s)', operand2: 9, answerMin: 10 },
-    { id: 'c_add_10s', name: 'Single Digit Addition (10s)', operand2: 10, answerMin: 11 },
-  ]
-
-  for (const c of addFixed) {
-    concepts.push({
-      id: `concept-${c.id}`,
-      conceptId: c.id,
-      displayName: c.name,
-      category: 'Addition',
-      operation: 'addition',
-      layoutType: 'vertical',
-      answerFormat: 'integer',
-      unlockRequirements: [],
-      isLocked: false,
-      attemptCount: 0,
-    })
-  }
-
-  const subFixed = [
-    { id: 'c_sub_0s', name: 'Single Digit Subtraction (0s)' },
-    { id: 'c_sub_1s', name: 'Single Digit Subtraction (1s)' },
-    { id: 'c_sub_2s', name: 'Single Digit Subtraction (2s)' },
-    { id: 'c_sub_3s', name: 'Single Digit Subtraction (3s)' },
-    { id: 'c_sub_4s', name: 'Single Digit Subtraction (4s)' },
-    { id: 'c_sub_5s', name: 'Single Digit Subtraction (5s)' },
-    { id: 'c_sub_6s', name: 'Single Digit Subtraction (6s)' },
-    { id: 'c_sub_7s', name: 'Single Digit Subtraction (7s)' },
-    { id: 'c_sub_8s', name: 'Single Digit Subtraction (8s)' },
-    { id: 'c_sub_9s', name: 'Single Digit Subtraction (9s)' },
-    { id: 'c_sub_10s', name: 'Single Digit Subtraction (10s)' },
-  ]
-
-  for (const c of subFixed) {
-    concepts.push({
-      id: `concept-${c.id}`,
-      conceptId: c.id,
-      displayName: c.name,
-      category: 'Subtraction',
-      operation: 'subtraction',
-      layoutType: 'vertical',
-      answerFormat: 'integer',
-      unlockRequirements: [],
-      isLocked: false,
-      attemptCount: 0,
-    })
-  }
-
-  const mulFixed = [
-    { id: 'c_mul_2s', name: 'Multiplication by 2', multiplier: 2 },
-    { id: 'c_mul_3s', name: 'Multiplication by 3', multiplier: 3 },
-  ]
-
-  for (const c of mulFixed) {
-    concepts.push({
-      id: `concept-${c.id}`,
-      conceptId: c.id,
-      displayName: c.name,
-      category: 'Multiplication',
-      operation: 'multiplication',
-      layoutType: 'vertical',
-      answerFormat: 'integer',
-      unlockRequirements: [],
-      isLocked: false,
-      attemptCount: 0,
-    })
+  for (const conceptId of conceptIds) {
+    const concept = createConceptFromId(conceptId)
+    if (concept) {
+      concepts.push(concept)
+    }
   }
 
   return concepts

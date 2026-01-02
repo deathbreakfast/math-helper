@@ -29,9 +29,9 @@ export type UserProgressData = {
 
 export const mapUserToProgressData = (
   user: User,
-  _levelRequirementsCache?: unknown, // Deprecated: level requirements removed
+  _levelRequirementsCache?: unknown,
   achievementDefinitions?: AchievementDefinitionsCache,
-  _devMode: boolean = false // Deprecated: dev mode for levels removed
+  _devMode: boolean = false
 ): UserProgressData => {
   // Get user's earned achievements from backend
   const userBackendAchievements = user.achievements || []
@@ -46,7 +46,7 @@ export const mapUserToProgressData = (
       convertBackendDefinitionToFrontend(code, definition, userBackendAchievements)
     )
   } else {
-    // Fallback: only show earned achievements (for backward compatibility)
+    // Fallback: only show earned achievements
     allAchievements = userBackendAchievements.map((backendAchievement) =>
       convertBackendAchievementToFrontend(backendAchievement, userBackendAchievements)
     )
@@ -72,8 +72,7 @@ export const mapUserToProgressData = (
     allAchievements = Array.from(uniqueAchievements.values())
   }
 
-  // Level requirements removed - legacy level progression system no longer exists
-  // User level is now automatically calculated from XP
+  // User level is calculated from XP
   const levelRequirements: LevelRequirement[] = []
 
   return {

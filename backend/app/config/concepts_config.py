@@ -8,8 +8,7 @@ from __future__ import annotations
 from typing import Any
 
 
-# Legacy concept definitions (c_concept_001 through c_concept_045)
-# These are explicitly defined without dependency on LEVELS_CONFIG
+# Concept definitions (c_concept_001 through c_concept_045)
 CONCEPTS_CONFIG: dict[str, dict[str, Any]] = {
     "c_concept_001": {
         "operation": "addition",

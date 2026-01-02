@@ -30,7 +30,6 @@ class GenericAccuracyChecker(AchievementChecker):
         """Extract operation, concept_id, and metrics from session.
         
         Returns a dict with operation, concept_id, and metrics, or None if session is invalid.
-        Note: This checker may be legacy - level-based achievements are being phased out.
         """
         if not session.completed_at or not session.concept_id:
             return None

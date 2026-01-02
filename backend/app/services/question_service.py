@@ -375,7 +375,7 @@ class QuestionService:
         op1_range = config["operand1_range"]
         op2_range = config["operand2_range"]
         
-        # Step 1: Normalize constraints (level parameter deprecated, using placeholder)
+        # Step 1: Normalize constraints
         normalized = QuestionService._normalize_constraints(
             constraints, test_constraints, operation, level=1
         )
@@ -387,7 +387,7 @@ class QuestionService:
         if result is not None:
             return result
         
-        # Step 3: Try fixed operand2 strategy (level parameter deprecated, using placeholder)
+        # Step 3: Try fixed operand2 strategy
         result = QuestionService._generate_with_fixed_operand2(
             normalized, op1_range, op2_range, level=1
         )
@@ -722,7 +722,6 @@ class QuestionService:
         constraints = config.get("constraints", {}) or {}
         op1_range = config["operand1_range"]
         op2_range = config["operand2_range"]
-        # Use a placeholder level since we don't have it from config
         level = 1
         
         # Normalize constraints using the same helper

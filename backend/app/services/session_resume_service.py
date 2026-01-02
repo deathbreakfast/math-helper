@@ -102,7 +102,7 @@ class SessionResumeService:
         # Transform questions to match generate_session format
         transformed_questions = SessionResumeService._transform_session_questions_to_generate_format(questions)
         
-        # Calculate level from XP for display (backward compatibility during transition)
+        # Calculate level from XP for display
         from ..models import db
         from ..services.xp_service import XPService
         user = db.session.get(User, user_id)

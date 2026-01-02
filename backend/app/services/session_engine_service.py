@@ -55,7 +55,7 @@ class SessionEngineService:
         
         # No resumable session found, create a new one
         # Select concept (either provided or random from unlocked)
-        selected_concept_id, _ = ConceptSelectionService.select_concept_for_practice(
+        selected_concept_id = ConceptSelectionService.select_concept_for_practice(
             user_id=user_id,
             concept_id=concept_id,
         )
@@ -75,7 +75,7 @@ class SessionEngineService:
             level=None,
         )
         
-        # Calculate level from XP for display (backward compatibility during transition)
+        # Calculate level from XP for display
         total_xp = int(getattr(user, "experience", 0) or 0)
         display_level = XPService.level_for_total_xp(total_xp)
         

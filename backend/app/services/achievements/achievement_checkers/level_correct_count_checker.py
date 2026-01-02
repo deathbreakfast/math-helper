@@ -51,14 +51,10 @@ class LevelCorrectCountChecker(AchievementChecker):
         self, user: User, achievement_code: str, config: dict[str, Any],
         requirements: dict[str, Any], session_id: int | None
     ) -> list[Achievement]:
-        """Check level_correct_count achievements.
-        
-        Note: Level filtering removed - this checker now operates across all concepts.
-        This checker may be legacy as level-based achievements are being phased out.
-        """
+        """Check level_correct_count achievements."""
         min_correct = requirements.get("min_correct", 0)
         
-        # Count correct answers (level filtering removed - no longer filtering by Question.required_level)
+        # Count correct answers
         correct_count = (
             db.session.query(func.count())
             .select_from(Response)

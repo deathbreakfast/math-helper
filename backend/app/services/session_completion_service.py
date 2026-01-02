@@ -163,8 +163,6 @@ class SessionCompletionService:
 
             # Update user XP (level is calculated from XP, not stored)
             user.experience = new_total_xp
-            # Note: user.level field is deprecated but kept in model for backward compatibility
-            # Level is always calculated from XP using XPService.level_for_total_xp()
             db.session.add(user)
             
             # Build response DTO
@@ -199,7 +197,6 @@ class SessionCompletionService:
             }
             
             # Return DTO (transaction will commit when exiting context manager)
-            # Note: level is not returned in session response - it should be calculated from XP (Phase 3 will remove it entirely)
             return {
                 "session": {
                     "id": session.id,

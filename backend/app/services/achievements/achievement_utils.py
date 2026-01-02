@@ -36,13 +36,13 @@ def get_achievement_constraint(achievement_code: str) -> dict[str, Any]:
         
     Returns:
         Constraint dict with allow_multiple_per_tier, allow_multiple_per_session, unique_achievement
-        Defaults to unique behavior if not specified (backward compatibility)
+        Defaults to unique behavior if not specified
     """
     configs = get_achievement_configs()
     config = configs.get(achievement_code, {})
     constraint = config.get("constraint", {})
     
-    # Default constraint (unique behavior) for backward compatibility
+    # Default constraint (unique behavior)
     if not constraint:
         return {
             "allow_multiple_per_tier": False,

@@ -45,7 +45,7 @@ export function evaluateConceptUnlock(
   let metCount = 0
   const evaluatedRequirements = concept.unlockRequirements.map((req) => {
     // Use the already-calculated completed status if available
-    // Otherwise fall back to simple checks for backward compatibility
+    // Otherwise fall back to simple checks
     let completed = req.completed ?? false
 
     if (!completed && req.progress !== undefined && req.maxProgress !== undefined) {

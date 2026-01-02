@@ -1,9 +1,9 @@
 /**
  * Concept XP values (XP per correct answer).
  *
- * For now this supports legacy `c_concept_###` IDs (1-45), sourced from `MATH_CONCEPTS.md`.
+ * For now this supports `c_concept_###` IDs (1-45), sourced from `MATH_CONCEPTS.md`.
  * Descriptive concept IDs (e.g. `c_add_1s`) will be supported once the frontend concept
- * catalog is driven from the doc/config instead of placeholder level mapping.
+ * catalog is driven from the doc/config.
  */
 
 export const CONCEPT_XP_PER_CORRECT: Record<string, number> = {

@@ -135,11 +135,6 @@ def verify_user_pin(user_id: int):
     else:
         return jsonify({"error": "Incorrect PIN", "verified": False}), 403
 
-
-# Legacy achievement-based level up endpoints removed
-# User level is now automatically calculated from XP (XPService)
-
-
 @users_bp.delete("/users/<int:user_id>/reset")
 def reset_user_data(user_id: int):
     """Reset all user data (achievements, sessions, responses) - DEV ONLY."""
@@ -194,7 +189,7 @@ def test_setup_user(user_id: int):
     - Awards achievements (directly, without meeting requirements)
     - Creates test data state
     
-    Note: Level is calculated from XP, not set directly. To set a level for testing,
+    Level is calculated from XP, not set directly. To set a level for testing,
     calculate the required XP using XPService.total_xp_for_level() and set experience.
     
     Request body:
@@ -226,9 +221,8 @@ def test_setup_user(user_id: int):
         # Support both string array and object array formats
         # String format: ["first-steps", "first-victory"]
         # Object format: [{"code": "accuracy-ace-platinum", "metadata": {"concept_id": "c_concept_001"}}]
-        # Legacy: [{"code": "accuracy-ace-platinum", "metadata": {"test_type": "addition-1digit"}}] (will be translated)
         for achievement_item in achievements_list:
-            # Handle string format (backward compatible)
+            # Handle string format
             if isinstance(achievement_item, str):
                 achievement_code = achievement_item
                 metadata = None
@@ -246,13 +240,12 @@ def test_setup_user(user_id: int):
             if achievement_code not in ACHIEVEMENTS_CONFIG:
                 continue  # Skip invalid achievement codes
             
-            # Translate legacy test_type to concept_id if present
+            # Translate test_type to concept_id if present
             if metadata and isinstance(metadata, dict) and metadata.get("test_type"):
                 from ..config.legacy_test_type_to_level import LEGACY_TEST_TYPE_TO_LEVEL
                 test_type = str(metadata.get("test_type"))
                 mapped_level = LEGACY_TEST_TYPE_TO_LEVEL.get(test_type)
                 if mapped_level is not None:
-                    # Convert level to concept_id format: c_concept_{level:03d}
                     concept_id = f"c_concept_{mapped_level:03d}"
                     metadata = {**metadata, "concept_id": concept_id}
                     metadata.pop("test_type", None)

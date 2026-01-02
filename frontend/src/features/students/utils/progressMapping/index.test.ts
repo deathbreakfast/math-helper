@@ -151,80 +151,8 @@ describe('progressMapping/index', () => {
       expect(result.achievements).toHaveLength(1)
     })
 
-    it('should build level requirements from cache', () => {
-      const levelRequirementsCache = {
-        2: [
-          {
-            achievement_code: 'test-achievement',
-            order: 1,
-          },
-        ],
-        3: [
-          {
-            achievement_code: 'other-achievement',
-            order: 1,
-          },
-        ],
-      }
-
-      const result = mapUserToProgressData(mockUser, levelRequirementsCache)
-
-      expect(levelRequirementConverters.convertBackendRequirementsToFrontend).toHaveBeenCalled()
-      expect(result.levelRequirements.length).toBeGreaterThan(0)
-    })
-
-    it('should show all 45 levels in dev mode', () => {
-      const levelRequirementsCache: Record<number, any[]> = {}
-      for (let i = 2; i <= 45; i++) {
-        levelRequirementsCache[i] = [{ achievement_code: 'test', order: 1 }]
-      }
-
-      const result = mapUserToProgressData(mockUser, levelRequirementsCache, undefined, true)
-
-      expect(result.levelRequirements.length).toBe(44) // Levels 1-44 (each has requirements for next level)
-    })
-
-    it('should show levels up to user.level + 2 in normal mode', () => {
-      const levelRequirementsCache: Record<number, any[]> = {}
-      for (let i = 2; i <= 10; i++) {
-        levelRequirementsCache[i] = [{ achievement_code: 'test', order: 1 }]
-      }
-
-      const result = mapUserToProgressData(mockUser, levelRequirementsCache, undefined, false)
-
-      // User level is 2, maxLevelToShow = min(2 + 2, 45) = 4
-      // Loop goes from level 1 to 4, checking for requirements at nextLevel (2-5)
-      // Only levels 2-5 have requirements, so we get 4 level requirements
-      expect(result.levelRequirements.length).toBeLessThanOrEqual(4)
-    })
-
-    it('should use fallback level requirements when cache not provided', () => {
-      const result = mapUserToProgressData(mockUser)
-
-      expect(result.levelRequirements).toHaveLength(1)
-      expect(result.levelRequirements[0].id).toBe('l1-2')
-    })
-
-    it('should set isLocked based on dev mode', () => {
-      const levelRequirementsCache = {
-        3: [{ achievement_code: 'test', order: 1 }],
-      }
-
-      const resultNormal = mapUserToProgressData(mockUser, levelRequirementsCache, undefined, false)
-      const resultDev = mapUserToProgressData(mockUser, levelRequirementsCache, undefined, true)
-
-      // In normal mode, level 3 requirements (from level 2 -> 3) should be locked if user.level (2) > level (2)
-      // But the check is: level > user.level, so level 2 > user.level 2 is false, not locked
-      // Level 3 requirements would come from level 2->3, so level=2, and 2 > 2 is false
-      // Let's check with a level that would actually be locked
-      const userLevel1 = { ...mockUser, level: 1 }
-      const resultNormalLevel1 = mapUserToProgressData(userLevel1, levelRequirementsCache, undefined, false)
-      
-      // Level 2 -> 3 requirement: level=2, user.level=1, so 2 > 1 = true, should be locked
-      expect(resultNormalLevel1.levelRequirements.some((req) => req.isLocked)).toBe(true)
-      // In dev mode, nothing should be locked
-      expect(resultDev.levelRequirements.every((req) => !req.isLocked)).toBe(true)
-    })
+    // Level requirement tests removed - level requirements are no longer used
+    // levelRequirements array is always empty now
 
     it('should handle empty achievements array', () => {
       const userWithoutAchievements = {
@@ -260,7 +188,7 @@ describe('progressMapping/index', () => {
       expect(result.bestStreak).toBe(0)
     })
 
-    it('should handle empty level requirements cache', () => {
+    it('should always have empty level requirements', () => {
       const result = mapUserToProgressData(mockUser, {})
 
       expect(result.levelRequirements).toHaveLength(0)

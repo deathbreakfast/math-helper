@@ -122,13 +122,16 @@ export function convertBackendRequirementsToFrontend(
     }
   })
 
+  // This function is repurposed for concept unlock requirements
+  // level/nextLevel parameters are kept for backward compatibility but are not used for gating
+  // All concept unlock requirements are unlocked (no level-based locking)
   return {
     id: `l${level}-${nextLevel}`,
     level,
     nextLevel,
-    title: `Reach Level ${nextLevel}`,
+    title: `Reach Level ${nextLevel}`, // Title kept for backward compatibility
     requirements,
-    isLocked: level > nextLevel - 1, // Lock if current level is less than target - 1
+    isLocked: false, // Concept unlock requirements are not locked by level
   }
 }
 

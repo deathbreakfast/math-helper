@@ -1,15 +1,15 @@
 import React, { useState, useEffect } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Play } from 'lucide-react'
+import { X, Play, ChevronDown, ChevronUp, Clock, Target, CheckCircle, XCircle } from 'lucide-react'
 import { useNavigate, useParams } from 'react-router-dom'
 import type { MathConcept } from '../../data/mathConcepts'
-import { AttemptCard } from './AttemptCard'
 import PINVerificationModal from '../../modals/PINVerificationModal'
 import type { User } from '../../hooks/useLearners'
 import { logError } from '../../../../utils/logger'
 import { getConceptAttempts, getConceptAttemptDetail, type ConceptAttempt, type ConceptAttemptDetail } from '../../hooks/useConceptAttempts'
 import { getConceptXpPerCorrect } from '../../data/conceptXp'
 import { extractTierFromCode } from '../../utils/achievementUtils'
+import { QuestionResponseCard } from './QuestionResponseCard'
 
 type MathConceptDetailModalProps = {
   concept: MathConcept | null
@@ -26,9 +26,10 @@ export const MathConceptDetailModal: React.FC<MathConceptDetailModalProps> = ({
   onStartPractice,
   selectedUser,
 }) => {
-  const [attempts, setAttempts] = useState<ConceptAttempt[]>([])
+  const [attempts, setAttempts] = useState<(ConceptAttempt | ConceptAttemptDetail)[]>([])
   const [isLoadingAttempts, setIsLoadingAttempts] = useState(false)
   const [isPinModalOpen, setIsPinModalOpen] = useState(false)
+  const [expandedAttemptIds, setExpandedAttemptIds] = useState<Set<number>>>(new Set())
   const navigate = useNavigate()
   const params = useParams<{ userId?: string }>()
   const xpPerCorrect = concept ? getConceptXpPerCorrect(concept.conceptId) : null
@@ -61,7 +62,16 @@ export const MathConceptDetailModal: React.FC<MathConceptDetailModalProps> = ({
     }
   }
 
-  const handleExpandAttempt = async (attemptId: number): Promise<ConceptAttemptDetail | null> => {
+  const handleExpandAttempt = async (attemptId: number) => {
+    if (expandedAttemptIds.has(attemptId)) {
+      setExpandedAttemptIds((prev) => {
+        const next = new Set(prev)
+        next.delete(attemptId)
+        return next
+      })
+      return
+    }
+
     try {
       const detail = await getConceptAttemptDetail(attemptId)
       if (detail) {
@@ -84,12 +94,27 @@ export const MathConceptDetailModal: React.FC<MathConceptDetailModalProps> = ({
             return attempt
           })
         )
+        setExpandedAttemptIds((prev) => new Set(prev).add(attemptId))
       }
-      return detail
     } catch (error) {
       logError('Error loading attempt detail:', error)
-      return null
     }
+  }
+
+  const formatDate = (date: Date): string => {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    })
+  }
+
+  const formatTime = (ms: number | null | undefined): string => {
+    if (!ms) return 'N/A'
+    const seconds = ms / 1000
+    return `${seconds.toFixed(1)}s`
   }
 
   const handleStartPracticeClick = () => {
@@ -253,35 +278,109 @@ export const MathConceptDetailModal: React.FC<MathConceptDetailModalProps> = ({
                   ) : (
                     <div className="space-y-3">
                       {attempts.map((attempt, index) => {
-                        // Calculate tier based on accuracy ace logic (Bronze, Silver, Gold)
-                        const getTier = (accuracy: number): 'bronze' | 'silver' | 'gold' => {
-                          if (accuracy >= 100) return 'gold'   // 100% = Gold
-                          if (accuracy >= 90) return 'silver'  // 90-99% = Silver
-                          if (accuracy >= 80) return 'bronze' // 80-89% = Bronze
-                          return 'bronze' // Below 80% still shows bronze (but marked as failed)
-                        }
+                        const isExpanded = expandedAttemptIds.has(attempt.attempt_id)
+                        const hasQuestions = 'questions' in attempt && attempt.questions && attempt.questions.length > 0
+                        const avgTimePerQuestion = attempt.total_duration_ms && attempt.total_questions
+                          ? attempt.total_duration_ms / attempt.total_questions
+                          : null
+                        const passed = attempt.accuracy >= 80
 
                         return (
-                          <AttemptCard
+                          <motion.div
                             key={attempt.attempt_id || `attempt-${index}`}
-                            attempt={{
-                              attempt_id: attempt.attempt_id,
-                              test_type: concept.conceptId,
-                              score: attempt.accuracy / 100, // Convert to 0-1 range
-                              accuracy: attempt.accuracy,
-                              tier: getTier(attempt.accuracy),
-                              question_count: attempt.total_questions,
-                              correct_count: attempt.correct_count,
-                              avg_time_per_question_ms: attempt.total_duration_ms 
-                                ? attempt.total_duration_ms / attempt.total_questions 
-                                : undefined,
-                              total_duration_ms: attempt.total_duration_ms,
-                              attempted_at: attempt.attempted_at.toISOString(),
-                              passed: attempt.accuracy >= 80, // 80% passing threshold
-                            }}
-                            index={index}
-                            onExpand={handleExpandAttempt}
-                          />
+                            data-testid={`testid-practice-attempt-${attempt.attempt_id}`}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ delay: index * 0.05 }}
+                            className={`rounded-xl border-2 p-4 ${
+                              passed
+                                ? 'border-green-300 bg-gradient-to-br from-green-50 to-emerald-50'
+                                : 'border-red-300 bg-gradient-to-br from-red-50 to-pink-50'
+                            }`}
+                          >
+                            {/* Header */}
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-3">
+                                {passed ? (
+                                  <CheckCircle className="h-5 w-5 text-green-500" data-testid="testid-attempt-passed" />
+                                ) : (
+                                  <XCircle className="h-5 w-5 text-red-500" data-testid="testid-attempt-failed" />
+                                )}
+                                <div>
+                                  <div className="text-sm font-medium text-gray-600">{formatDate(attempt.attempted_at)}</div>
+                                  <div className="text-xs text-gray-500">
+                                    {passed ? 'Passed' : 'Failed'} - {attempt.accuracy.toFixed(1)}% accuracy
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Stats */}
+                            <div className="mt-3 flex gap-4 text-sm">
+                              <div className="flex items-center gap-1 text-gray-600" data-testid="testid-attempt-accuracy">
+                                <Target className="h-4 w-4" />
+                                {attempt.accuracy.toFixed(1)}%
+                              </div>
+                              <div className="flex items-center gap-1 text-gray-600" data-testid="testid-attempt-avg-time">
+                                <Clock className="h-4 w-4" />
+                                {formatTime(avgTimePerQuestion)} avg
+                              </div>
+                              <div className="text-gray-600" data-testid="testid-attempt-question-count">
+                                {attempt.total_questions} questions
+                              </div>
+                            </div>
+
+                            {/* Expand Button */}
+                            {!hasQuestions && (
+                              <button
+                                data-testid="testid-attempt-expand-button"
+                                onClick={() => handleExpandAttempt(attempt.attempt_id)}
+                                className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-gray-100 px-3 py-2 text-sm font-medium text-gray-700 transition-all hover:bg-gray-200"
+                              >
+                                {isExpanded ? (
+                                  <>
+                                    <ChevronUp className="h-4 w-4" />
+                                    Hide Questions
+                                  </>
+                                ) : (
+                                  <>
+                                    <ChevronDown className="h-4 w-4" />
+                                    View Questions
+                                  </>
+                                )}
+                              </button>
+                            )}
+
+                            {/* Questions List */}
+                            <AnimatePresence>
+                              {isExpanded && hasQuestions && (
+                                <motion.div
+                                  initial={{ height: 0, opacity: 0 }}
+                                  animate={{ height: 'auto', opacity: 1 }}
+                                  exit={{ height: 0, opacity: 0 }}
+                                  transition={{ duration: 0.3 }}
+                                  className="mt-4 space-y-2 overflow-hidden"
+                                  data-testid="testid-attempt-questions-list"
+                                >
+                                  {attempt.questions?.map((question, qIndex) => (
+                                    <QuestionResponseCard
+                                      key={question.question_id || qIndex}
+                                      question={{
+                                        question_id: question.question_id,
+                                        prompt: question.prompt,
+                                        correct_answer: question.correct_answer,
+                                        user_answer: question.submitted_answer,
+                                        is_correct: question.is_correct,
+                                        time_taken_ms: question.duration_ms || 0,
+                                        answered_at: null,
+                                      }}
+                                      index={qIndex}
+                                    />
+                                  ))}
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </motion.div>
                         )
                       })}
                     </div>

@@ -55,7 +55,7 @@ def test_level_master_bronze_exactly_30(app, test_user):
                 'answered_at': base_time + timedelta(seconds=i)
             })
         
-        session = create_test_session_with_responses(test_user.id, responses_data, level=1)
+        session = create_test_session_with_responses(test_user.id, responses_data, concept_id="c_concept_001")
         
         # Check achievements
         level_master_achievements = AchievementService.check_level_master_achievements(test_user)
@@ -66,7 +66,7 @@ def test_level_master_bronze_exactly_30(app, test_user):
             code="math-master-bronze"
         ).first()
         
-        assert achievement is not None, "Level Master (Bronze) should be awarded for exactly 30 consecutive correct"
+        assert achievement is not None, "Math Master (Bronze) should be awarded for exactly 30 consecutive correct"
         assert achievement.achievement_metadata is not None, "Achievement should have metadata"
         metadata = json.loads(achievement.achievement_metadata)
         assert metadata.get("concept_id") == "c_concept_001", "Achievement metadata should indicate concept_id c_concept_001"
@@ -88,7 +88,7 @@ def test_level_master_silver_exactly_60(app, test_user):
                 'answered_at': base_time + timedelta(seconds=i)
             })
         
-        session = create_test_session_with_responses(test_user.id, responses_data, level=1)
+        session = create_test_session_with_responses(test_user.id, responses_data, concept_id="c_concept_001")
         
         # Check achievements
         level_master_achievements = AchievementService.check_level_master_achievements(test_user)
@@ -138,7 +138,7 @@ def test_level_master_negative_29_correct_1_incorrect(app, test_user):
                 'answered_at': base_time + timedelta(seconds=i)
             })
         
-        session = create_test_session_with_responses(test_user.id, responses_data, level=1)
+        session = create_test_session_with_responses(test_user.id, responses_data, concept_id="c_concept_001")
         
         # Check achievements
         level_master_achievements = AchievementService.check_level_master_achievements(test_user)
@@ -169,7 +169,7 @@ def test_level_master_negative_30_correct_1_incorrect(app, test_user):
                 'answered_at': base_time + timedelta(seconds=i)
             })
         
-        session = create_test_session_with_responses(test_user.id, responses_data, level=1)
+        session = create_test_session_with_responses(test_user.id, responses_data, concept_id="c_concept_001")
         
         # Check achievements
         level_master_achievements = AchievementService.check_level_master_achievements(test_user)
@@ -203,7 +203,7 @@ def test_level_master_multiple_awards_30_wrong_30(app, test_user):
                 'answered_at': base_time + timedelta(seconds=i)
             })
         
-        session1 = create_test_session_with_responses(test_user.id, responses_data1, level=1)
+        session1 = create_test_session_with_responses(test_user.id, responses_data1, concept_id="c_concept_001")
         AchievementService.check_level_master_achievements(test_user)
         
         # Verify first bronze was awarded
@@ -235,7 +235,7 @@ def test_level_master_multiple_awards_30_wrong_30(app, test_user):
                 'answered_at': base_time + timedelta(seconds=31+i)
             })
         
-        session3 = create_test_session_with_responses(test_user.id, responses_data3, level=1)
+        session3 = create_test_session_with_responses(test_user.id, responses_data3, concept_id="c_concept_002")
         AchievementService.check_level_master_achievements(test_user)
         
         # Verify we can have multiple bronze achievements
@@ -267,7 +267,7 @@ def test_level_master_only_bronze_silver_tested(app, test_user):
                 'answered_at': base_time + timedelta(seconds=i)
             })
         
-        session = create_test_session_with_responses(test_user.id, responses_data, level=1)
+        session = create_test_session_with_responses(test_user.id, responses_data, concept_id="c_concept_001")
         
         # Check achievements
         level_master_achievements = AchievementService.check_level_master_achievements(test_user)
@@ -320,10 +320,10 @@ def test_level_master_multiple_levels(app, test_user):
                 'duration_ms': 3000,
                 'answered_at': base_time + timedelta(seconds=i)
             })
-        session1 = create_test_session_with_responses(test_user.id, responses_data1, level=1)
+        session1 = create_test_session_with_responses(test_user.id, responses_data1, concept_id="c_concept_001")
         
-        # Create 30 correct at level 2
-        questions2 = create_test_questions(30, 2)
+        # Create 30 correct at c_concept_002
+        questions2 = create_test_questions(30, concept_id="c_concept_002")
         responses_data2 = []
         for i, q in enumerate(questions2):
             responses_data2.append({
@@ -333,7 +333,7 @@ def test_level_master_multiple_levels(app, test_user):
                 'duration_ms': 3000,
                 'answered_at': base_time + timedelta(seconds=100+i)
             })
-        session2 = create_test_session_with_responses(test_user.id, responses_data2, level=2)
+        session2 = create_test_session_with_responses(test_user.id, responses_data2, concept_id="c_concept_002")
         
         # Check achievements
         AchievementService.check_level_master_achievements(test_user)

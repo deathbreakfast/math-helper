@@ -516,10 +516,10 @@ level_tag = db.Column(db.String(32), nullable=True, index=True)
 - [x] Remove level from achievement query parameters
 
 ### Phase 4: Update Tests
-- [ ] Update all test helpers to use `concept_id` instead of `level`
-- [ ] Remove level-based tests
-- [ ] Update test assertions to not check level requirements
-- [ ] Remove `get_questions_for_level()` tests
+- [x] Update all test helpers to use `concept_id` instead of `level`
+- [x] Remove level-based tests
+- [x] Update test assertions to not check level requirements
+- [x] Remove `get_questions_for_level()` tests
 
 ### Phase 5: Database Cleanup
 - [ ] Drop `ix_questions_required_level` index

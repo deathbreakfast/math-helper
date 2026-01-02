@@ -63,13 +63,14 @@ class TestPracticeService:
             session = PracticeService.create_session(
                 user_id=test_user.id,
                 mode="standard",
-                level=1
+                concept_id="c_concept_001"
             )
             
             assert session.id is not None
             assert session.user_id == test_user.id
             assert session.mode == "standard"
-            assert session.level == 1
+            assert session.concept_id == "c_concept_001"
+            # Note: session.level is deprecated and should be None for new sessions
             assert session.started_at is not None
             assert session.completed_at is None
 
@@ -79,7 +80,7 @@ class TestPracticeService:
             session = PracticeService.create_session(
                 user_id=test_user.id,
                 mode="standard",
-                level=1
+                concept_id="c_concept_001"
             )
             session_id = session.id
             
@@ -102,7 +103,7 @@ class TestPracticeService:
             session = PracticeService.create_session(
                 user_id=test_user.id,
                 mode="standard",
-                level=1
+                concept_id="c_concept_001"
             )
             
             completed = PracticeService.complete_session(
@@ -142,7 +143,7 @@ class TestPracticeService:
             assert question.operand2 == 3
             assert question.correct_answer == "8"
             assert question.prompt == "5 + 3"
-            assert question.required_level == 1
+            # Note: question.required_level is deprecated (will be removed in Phase 5)
 
     def test_create_question_with_all_fields(self, app):
         """Test create_question with all optional fields."""
@@ -169,7 +170,7 @@ class TestPracticeService:
             )
             
             assert question.difficulty == "Level 1"
-            assert question.level_tag == "1"
+            # Note: question.level_tag is deprecated (will be removed in Phase 5)
             assert question.target_ms == 4000
             assert question.hint == "Add the numbers"
             assert question.answer_format == "integer"
@@ -196,7 +197,7 @@ class TestPracticeService:
     def test_record_response(self, app, test_user, test_question):
         """Test record_response creates a response."""
         with app.app_context():
-            session = PracticeService.create_session(user_id=test_user.id)
+            session = PracticeService.create_session(user_id=test_user.id, concept_id="c_concept_001")
             
             response = PracticeService.record_response(
                 session_id=session.id,
@@ -236,7 +237,7 @@ class TestPracticeService:
     def test_record_response_flagged(self, app, test_user, test_question):
         """Test record_response with is_flagged=True."""
         with app.app_context():
-            session = PracticeService.create_session(user_id=test_user.id)
+            session = PracticeService.create_session(user_id=test_user.id, concept_id="c_concept_001")
             
             response = PracticeService.record_response(
                 session_id=session.id,
@@ -370,8 +371,8 @@ class TestPracticeService:
     def test_get_flagged_questions_with_session(self, app, test_user):
         """Test get_flagged_questions filters by session_id."""
         with app.app_context():
-            session1 = PracticeService.create_session(user_id=test_user.id)
-            session2 = PracticeService.create_session(user_id=test_user.id)
+            session1 = PracticeService.create_session(user_id=test_user.id, concept_id="c_concept_001")
+            session2 = PracticeService.create_session(user_id=test_user.id, concept_id="c_concept_001")
             
             q1 = PracticeService.create_question(
                 operation="addition",
@@ -379,7 +380,7 @@ class TestPracticeService:
                 operand2=1,
                 correct_answer="2",
                 prompt="1 + 1",
-                required_level=1
+                required_level=1  # Placeholder until Phase 5 removes this field
             )
             
             # Flag in session1

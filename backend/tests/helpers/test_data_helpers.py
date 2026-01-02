@@ -68,30 +68,55 @@ def award_achievement_directly(
     return achievement
 
 
-def set_user_level_directly(user_id: int, level: int) -> Optional[User]:
-    """Set user level directly without checking requirements (for testing).
+def set_user_xp_directly(user_id: int, total_xp: int) -> Optional[User]:
+    """Set user XP directly (level will be calculated from XP).
     
     Args:
         user_id: The user ID to update
-        level: The level to set
+        total_xp: Total XP to set
         
     Returns:
         The updated User object, or None if user not found
     """
+    from app.services.xp_service import XPService
+    
     user = db.session.get(User, user_id)
     if user:
-        user.level = level
+        user.experience = total_xp
+        # Level is calculated from XP, but we update user.level for backward compatibility
+        # until it's removed in Phase 5
+        user.level = XPService.level_for_total_xp(total_xp)
         user.updated_at = datetime.utcnow()
         db.session.commit()
         return user
     return None
 
 
+def set_user_level_directly(user_id: int, level: int) -> Optional[User]:
+    """DEPRECATED: Set user level by calculating required XP.
+    
+    This function is deprecated. Use set_user_xp_directly() instead.
+    For backward compatibility, this calculates the XP needed for the level.
+    
+    Args:
+        user_id: The user ID to update
+        level: The level to set (XP will be calculated)
+        
+    Returns:
+        The updated User object, or None if user not found
+    """
+    from app.services.xp_service import XPService
+    
+    total_xp = XPService.total_xp_for_level(level)
+    return set_user_xp_directly(user_id, total_xp)
+
+
 def create_test_session_with_responses(
     user_id: int,
     responses_data: list[dict],
     mode: str = "standard",
-    level: int = 1,
+    level: Optional[int] = None,
+    concept_id: Optional[str] = None,
     completed_at: Optional[datetime] = None
 ) -> PracticeSession:
     """Create a practice session with responses for testing.
@@ -105,16 +130,19 @@ def create_test_session_with_responses(
             - duration_ms: int (optional, defaults to 3000)
             - answered_at: datetime (optional, defaults to now)
         mode: Session mode (default: "standard")
-        level: Session level (default: 1)
+        level: DEPRECATED - Session level (ignored, use concept_id instead)
+        concept_id: Concept ID for the session (required for new system)
         completed_at: When session was completed (optional, defaults to now)
         
     Returns:
         The created PracticeSession object
     """
+    # Level is deprecated - session.level will be None for new sessions
     session = PracticeSession(
         user_id=user_id,
         mode=mode,
-        level=level,
+        level=None,  # No longer setting session.level
+        concept_id=concept_id,
         started_at=datetime.utcnow()
     )
     db.session.add(session)
@@ -168,19 +196,31 @@ def create_test_session_with_responses(
 
 def create_test_questions(
     count: int,
-    level: int,
+    level: Optional[int] = None,
+    concept_id: Optional[str] = None,
     operation: str = "addition"
 ) -> list[Question]:
     """Create test questions for achievement testing.
     
     Args:
         count: Number of questions to create
-        level: Required level for the questions
+        level: DEPRECATED - Legacy level parameter. Use concept_id instead.
+               If provided and concept_id is None, maps to c_concept_{level:03d}
+        concept_id: Concept ID for the questions (preferred). Defaults to c_concept_001 if neither provided.
         operation: Operation type (default: "addition")
         
     Returns:
         List of created Question objects
     """
+    # Map legacy level to concept_id if needed
+    if concept_id is None:
+        if level is not None:
+            # Map legacy level to concept_id (e.g., level 1 -> c_concept_001)
+            concept_id = f"c_concept_{level:03d}"
+        else:
+            # Default to c_concept_001 (basic addition)
+            concept_id = "c_concept_001"
+    
     questions = []
     for i in range(count):
         operand1 = 1 + i
@@ -203,14 +243,24 @@ def create_test_questions(
             correct_answer = str(operand1 + operand2)
             prompt = f"{operand1} + {operand2}"
         
+        # Extract level from concept_id for required_level (placeholder until Phase 5 removes it)
+        # Format: c_concept_XXX -> XXX
+        legacy_level = 1  # Default placeholder
+        if concept_id.startswith("c_concept_"):
+            try:
+                level_str = concept_id.replace("c_concept_", "")
+                legacy_level = int(level_str)
+            except ValueError:
+                pass
+        
         question = Question(
             operation=operation,
             operand1=operand1,
             operand2=operand2,
             correct_answer=correct_answer,
             prompt=prompt,
-            required_level=level,
-            level_tag=f"Level {level}"
+            required_level=legacy_level,  # Placeholder until Phase 5 removes this field
+            level_tag=None,  # No longer setting level_tag
         )
         db.session.add(question)
         questions.append(question)

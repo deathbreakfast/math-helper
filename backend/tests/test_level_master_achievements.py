@@ -392,12 +392,11 @@ def test_level_master_silver_not_awarded_mixed_concepts(app, test_user):
         session1 = create_test_session_with_responses(
             test_user.id, 
             responses_data1, 
-            level=1,
             concept_id="c_add_1s"
         )
         
-        # Create 10 questions at level 1 for c_add_2s concept (may share same required_level)
-        questions2 = create_test_questions(10, 1)
+        # Create 10 questions for c_add_2s concept
+        questions2 = create_test_questions(10, concept_id="c_add_2s")
         responses_data2 = []
         for i, q in enumerate(questions2):
             responses_data2.append({
@@ -411,7 +410,6 @@ def test_level_master_silver_not_awarded_mixed_concepts(app, test_user):
         session2 = create_test_session_with_responses(
             test_user.id,
             responses_data2,
-            level=1,
             concept_id="c_add_2s"
         )
         
@@ -463,7 +461,6 @@ def test_level_master_silver_awarded_same_concept(app, test_user):
         session = create_test_session_with_responses(
             test_user.id,
             responses_data,
-            level=1,
             concept_id="c_add_1s"
         )
         
@@ -513,7 +510,6 @@ def test_level_master_concept_isolation(app, test_user):
         session1 = create_test_session_with_responses(
             test_user.id,
             responses_data1,
-            level=1,
             concept_id="c_add_1s"
         )
         AchievementService.check_level_master_achievements(test_user)
@@ -533,7 +529,6 @@ def test_level_master_concept_isolation(app, test_user):
         session2 = create_test_session_with_responses(
             test_user.id,
             responses_data2,
-            level=1,
             concept_id="c_add_2s"
         )
         AchievementService.check_level_master_achievements(test_user)

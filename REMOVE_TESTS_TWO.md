@@ -404,10 +404,10 @@ The codebase contains a legacy test/quiz system that allows users to take struct
 - [x] Remove test_type translation logic from routes
 
 ### Phase 5: Remove Test Configuration
-- [ ] Delete `backend/app/config/legacy_test_type_to_level.py`
-- [ ] Remove test definition configs
-- [ ] Remove test tier requirements
-- [ ] Clean up test-related configs
+- [x] Delete `backend/app/config/legacy_test_type_to_level.py`
+- [x] Remove test definition configs
+- [x] Remove test tier requirements
+- [x] Clean up test-related configs
 
 ### Phase 6: Remove Test Achievements
 - [ ] Identify and remove test-based achievements

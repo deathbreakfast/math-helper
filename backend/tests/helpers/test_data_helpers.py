@@ -115,7 +115,6 @@ def create_test_session_with_responses(
     user_id: int,
     responses_data: list[dict],
     mode: str = "standard",
-    level: Optional[int] = None,
     concept_id: Optional[str] = None,
     completed_at: Optional[datetime] = None
 ) -> PracticeSession:
@@ -130,18 +129,19 @@ def create_test_session_with_responses(
             - duration_ms: int (optional, defaults to 3000)
             - answered_at: datetime (optional, defaults to now)
         mode: Session mode (default: "standard")
-        level: DEPRECATED - Session level (ignored, use concept_id instead)
-        concept_id: Concept ID for the session (required for new system)
+        concept_id: Concept ID for the session (defaults to c_concept_001 if not provided)
         completed_at: When session was completed (optional, defaults to now)
         
     Returns:
         The created PracticeSession object
     """
-    # Level is deprecated - session.level will be None for new sessions
+    # level field was removed - sessions use concept_id instead
+    if concept_id is None:
+        concept_id = "c_concept_001"  # Default concept
+    
     session = PracticeSession(
         user_id=user_id,
         mode=mode,
-        level=None,  # No longer setting session.level
         concept_id=concept_id,
         started_at=datetime.utcnow()
     )
@@ -196,7 +196,6 @@ def create_test_session_with_responses(
 
 def create_test_questions(
     count: int,
-    level: Optional[int] = None,
     concept_id: Optional[str] = None,
     operation: str = "addition"
 ) -> list[Question]:
@@ -204,22 +203,15 @@ def create_test_questions(
     
     Args:
         count: Number of questions to create
-        level: DEPRECATED - Legacy level parameter. Use concept_id instead.
-               If provided and concept_id is None, maps to c_concept_{level:03d}
-        concept_id: Concept ID for the questions (preferred). Defaults to c_concept_001 if neither provided.
+        concept_id: Concept ID for the questions. Defaults to c_concept_001 if not provided.
         operation: Operation type (default: "addition")
         
     Returns:
         List of created Question objects
     """
-    # Map legacy level to concept_id if needed
+    # Use default concept_id if not provided
     if concept_id is None:
-        if level is not None:
-            # Map legacy level to concept_id (e.g., level 1 -> c_concept_001)
-            concept_id = f"c_concept_{level:03d}"
-        else:
-            # Default to c_concept_001 (basic addition)
-            concept_id = "c_concept_001"
+        concept_id = "c_concept_001"
     
     questions = []
     for i in range(count):

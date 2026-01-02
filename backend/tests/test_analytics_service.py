@@ -27,7 +27,7 @@ def app():
 def test_user(app):
     """Create a test user."""
     with app.app_context():
-        user = User(display_name="Test User", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="Test User", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)
@@ -644,8 +644,8 @@ class TestAnalyticsService:
     def test_compute_user_metrics_batch_multiple_users(self, app, test_question):
         """Test compute_user_metrics_batch with multiple users."""
         with app.app_context():
-            user1 = User(display_name="User 1", pin="1234", avatar="🐯", level=1)
-            user2 = User(display_name="User 2", pin="5678", avatar="🐰", level=1)
+            user1 = User(display_name="User 1", pin="1234", avatar="🐯", experience=0)
+            user2 = User(display_name="User 2", pin="5678", avatar="🐰", experience=0)
             db.session.add_all([user1, user2])
             db.session.commit()
             
@@ -812,8 +812,8 @@ class TestAnalyticsService:
     def test_get_weekly_gain_batch_multiple_users(self, app, test_question):
         """Test get_weekly_gain_batch with multiple users."""
         with app.app_context():
-            user1 = User(display_name="User 1", pin="1234", avatar="🐯", level=1)
-            user2 = User(display_name="User 2", pin="5678", avatar="🐰", level=1)
+            user1 = User(display_name="User 1", pin="1234", avatar="🐯", experience=0)
+            user2 = User(display_name="User 2", pin="5678", avatar="🐰", experience=0)
             db.session.add_all([user1, user2])
             db.session.commit()
             

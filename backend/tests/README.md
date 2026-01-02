@@ -139,7 +139,7 @@ def app():
 def test_user_creation(app):
     """Test user creation."""
     with app.app_context():
-        user = User(display_name="Test", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="Test", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         

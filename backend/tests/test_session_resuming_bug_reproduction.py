@@ -26,7 +26,7 @@ def app():
 @pytest.fixture
 def test_user(app):
     with app.app_context():
-        user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1, experience=0)
+        user = User(display_name="TestUser", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)

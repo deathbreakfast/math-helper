@@ -32,7 +32,7 @@ def app():
 def test_user_id(app):
     """Create a test user and return ID."""
     with app.app_context():
-        user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="TestUser", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         return user.id

@@ -32,7 +32,7 @@ def app():
 def test_user(app):
     """Create a test user."""
     with app.app_context():
-        user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="TestUser", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         # Access id to ensure it's loaded before returning (prevents DetachedInstanceError)
@@ -85,7 +85,7 @@ def test_first_steps_achievement(app, test_user):
             'duration_ms': 3000
         } for q in questions]
         
-        session = create_test_session_with_responses(test_user.id, responses_data, level=1)
+        session = create_test_session_with_responses(test_user.id, responses_data, experience=0)
         
         # Get user and compute metrics, then check and award achievements
         user = db.session.get(User, test_user.id)
@@ -148,7 +148,7 @@ def test_first_steps_achievement(app, test_user):
             'duration_ms': 3000
         }]
         
-        session = create_test_session_with_responses(test_user.id, responses_data, level=1)
+        session = create_test_session_with_responses(test_user.id, responses_data, experience=0)
         
         # Get user and compute metrics, then check and award achievements
         user = db.session.get(User, test_user.id)
@@ -538,7 +538,7 @@ def test_first_steps_only_awarded_once(app, test_user):
             'duration_ms': 3000
         }]
         
-        session1 = create_test_session_with_responses(test_user.id, responses_data1, level=1)
+        session1 = create_test_session_with_responses(test_user.id, responses_data1, experience=0)
         user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session1.id)
@@ -559,7 +559,7 @@ def test_first_steps_only_awarded_once(app, test_user):
             'duration_ms': 3000
         }]
         
-        session2 = create_test_session_with_responses(test_user.id, responses_data2, level=1)
+        session2 = create_test_session_with_responses(test_user.id, responses_data2, experience=0)
         user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session2.id)

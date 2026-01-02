@@ -23,7 +23,7 @@ def app():
 @pytest.fixture
 def user(app):
     with app.app_context():
-        u = User(display_name="ConceptReqUser", pin="1234", avatar="🐯", level=1)
+        u = User(display_name="ConceptReqUser", pin="1234", avatar="🐯", experience=0)
         db.session.add(u)
         db.session.commit()
         _ = u.id

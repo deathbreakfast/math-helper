@@ -23,7 +23,7 @@ def app():
 def test_user(app):
     """Create a test user."""
     with app.app_context():
-        user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="TestUser", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)
@@ -35,7 +35,7 @@ def test_user(app):
 def test_user2(app):
     """Create a second test user."""
     with app.app_context():
-        user = User(display_name="TestUser2", pin="5678", avatar="🐰", level=2)
+        user = User(display_name="TestUser2", pin="5678", avatar="🐰", experience=)
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)

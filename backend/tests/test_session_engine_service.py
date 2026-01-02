@@ -19,7 +19,8 @@ def app():
 @pytest.fixture
 def user(app):
     with app.app_context():
-        u = User(display_name="SessionUser", pin="1234", avatar="🐯", level=10, experience=0)
+        from app.services.xp_service import XPService
+        u = User(display_name="SessionUser", pin="1234", avatar="🐯", experience=XPService.total_xp_for_level(10))
         db.session.add(u)
         db.session.commit()
         db.session.refresh(u)

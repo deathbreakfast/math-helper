@@ -31,7 +31,7 @@ def app():
 def test_user(app):
     """Create a test user."""
     with app.app_context():
-        user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="TestUser", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         _ = user.id
@@ -287,7 +287,7 @@ def test_lightning_fast_with_descriptive_concept_id(app, test_user):
         total_sessions = 6
         avg_duration_ms = 1300  # 1.3 seconds per question
         
-        all_questions = create_test_questions(questions_per_session * total_sessions, level=1)
+        all_questions = create_test_questions(questions_per_session * total_sessions, experience=0)
         question_idx = 0
         
         sessions = []

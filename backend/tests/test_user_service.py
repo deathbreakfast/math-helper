@@ -26,7 +26,7 @@ def app():
 def test_user(app):
     """Create a test user."""
     with app.app_context():
-        user = User(display_name="Test User", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="Test User", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)
@@ -134,8 +134,8 @@ class TestUserService:
     def test_list_users(self, app):
         """Test list_users returns all users."""
         with app.app_context():
-            user1 = User(display_name="User 1", pin="1111", avatar="🐯", level=1)
-            user2 = User(display_name="User 2", pin="2222", avatar="🐰", level=1)
+            user1 = User(display_name="User 1", pin="1111", avatar="🐯", experience=0)
+            user2 = User(display_name="User 2", pin="2222", avatar="🐰", experience=0)
             db.session.add_all([user1, user2])
             db.session.commit()
             
@@ -149,14 +149,14 @@ class TestUserService:
     def test_list_users_ordered_by_created_at(self, app):
         """Test list_users orders by creation date."""
         with app.app_context():
-            user1 = User(display_name="User 1", pin="1111", avatar="🐯", level=1)
+            user1 = User(display_name="User 1", pin="1111", avatar="🐯", experience=0)
             db.session.add(user1)
             db.session.commit()
             
             import time
             time.sleep(0.1)  # Small delay to ensure different timestamps
             
-            user2 = User(display_name="User 2", pin="2222", avatar="🐰", level=1)
+            user2 = User(display_name="User 2", pin="2222", avatar="🐰", experience=0)
             db.session.add(user2)
             db.session.commit()
             

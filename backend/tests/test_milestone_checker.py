@@ -22,7 +22,7 @@ def app():
 def test_user(app):
     """Create a test user."""
     with app.app_context():
-        user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="TestUser", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         _ = user.id
@@ -162,7 +162,7 @@ def test_speed_demon_not_awarded_below_minimum_questions(app, milestone_checker)
     """Test that speed-demon is not awarded below minimum questions."""
     with app.app_context():
         # Create a fresh user for this test to avoid interference from other tests
-        user = User(display_name="TestUser2", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="TestUser2", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         

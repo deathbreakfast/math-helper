@@ -33,7 +33,7 @@ def app_without_testing():
 def test_user(app_with_testing):
     """Create a test user."""
     with app_with_testing.app_context():
-        user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="TestUser", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         # Access id to ensure it's loaded before returning (prevents DetachedInstanceError)
@@ -58,7 +58,7 @@ def test_api_protection_002_test_setup_with_testing_disabled(app_without_testing
     """API-PROT-002: Test setup endpoint returns 403 when TESTING=false."""
     # Create user in app_without_testing context
     with app_without_testing.app_context():
-        user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="TestUser", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         user_id = user.id
@@ -87,7 +87,7 @@ def test_api_protection_004_reset_user_with_testing_disabled(app_without_testing
     """API-PROT-004: Reset user endpoint returns 403 when TESTING=false."""
     # Create user in app_without_testing context
     with app_without_testing.app_context():
-        user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="TestUser", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         user_id = user.id
@@ -113,7 +113,7 @@ def test_api_protection_006_delete_user_with_testing_disabled(app_without_testin
     """API-PROT-006: Delete user endpoint returns 403 when TESTING=false."""
     # Create user in app_without_testing context
     with app_without_testing.app_context():
-        user = User(display_name="TestUser", pin="1234", avatar="🐯", level=1)
+        user = User(display_name="TestUser", pin="1234", avatar="🐯", experience=0)
         db.session.add(user)
         db.session.commit()
         user_id = user.id

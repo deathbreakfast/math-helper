@@ -107,7 +107,6 @@ Both the backend and frontend servers must be running for E2E tests to work prop
 - `dashboard.spec.ts` - Dashboard UI and navigation
 - `practice-flow.spec.ts` - Practice session interactions
 - `session-submission.spec.ts` - Session completion and submission
-- `test-flow.spec.ts` - Test sessions and eligibility
 - `leveling.spec.ts` - Level progression functionality
 - `achievements.spec.ts` - Achievement earning and display
 - `journey-page.spec.ts` - Journey/Progress page features

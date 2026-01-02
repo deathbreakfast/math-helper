@@ -48,7 +48,6 @@ def test_question_id(app):
             operand2=3,
             correct_answer="8",
             prompt="5 + 3",
-            required_level=1,
         )
         db.session.add(question)
         db.session.commit()

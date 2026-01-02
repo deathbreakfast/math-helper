@@ -44,7 +44,6 @@ def test_question(app):
             operand2=3,
             correct_answer="8",
             prompt="5 + 3",
-            required_level=1,
             difficulty="Level 1",
             target_ms=4000,
         )

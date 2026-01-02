@@ -45,7 +45,6 @@ def test_questions(app):
                 operand2=1,
                 correct_answer=str(i + 1),
                 prompt=f"{i} + 1",
-                required_level=1,
             )
             db.session.add(question)
             questions.append(question)

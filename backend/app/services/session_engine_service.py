@@ -1,4 +1,4 @@
-"""Session engine service for generating practice and test sessions."""
+"""Session engine service for generating practice sessions."""
 
 from __future__ import annotations
 

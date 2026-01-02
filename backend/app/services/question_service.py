@@ -132,7 +132,6 @@ class QuestionService:
     @staticmethod
     def _normalize_constraints(
         constraints: dict[str, Any],
-        test_constraints: dict[str, Any] | None,
         operation: str,
         level: int,
     ) -> dict[str, Any]:
@@ -149,42 +148,8 @@ class QuestionService:
             "multiple_of": constraints.get("multiple_of"),
             "exclude_zeros": constraints.get("exclude_zeros", False),
             "answer_min": constraints.get("answer_min"),
-            "test_multiplication_table": test_constraints.get("multiplication_table") if test_constraints else None,
-            "test_division_table": test_constraints.get("division_table") if test_constraints else None,
         }
         return normalized
-
-    @staticmethod
-    def _generate_with_test_constraints(
-        normalized_constraints: dict[str, Any],
-        op1_range: dict[str, int],
-        op2_range: dict[str, int],
-    ) -> tuple[int, int] | None:
-        """Generate operands using test constraints (multiplication_table or division_table).
-        
-        Returns operands if test constraints are present, None otherwise.
-        """
-        # Handle multiplication_table test constraint
-        if normalized_constraints["test_multiplication_table"] is not None:
-            operand2 = normalized_constraints["test_multiplication_table"]
-            operand1 = random.randint(op1_range["min"], op1_range["max"])
-            return operand1, operand2
-        
-        # Handle division_table test constraint
-        if normalized_constraints["test_division_table"] is not None:
-            operand2 = normalized_constraints["test_division_table"]
-            if operand2 == 0:
-                # Division by zero - use default generation
-                operand1 = random.randint(op1_range["min"], op1_range["max"])
-            else:
-                # Generate operand1 as multiple of operand2
-                min_quotient = max(1, op1_range["min"] // operand2)
-                max_quotient = op1_range["max"] // operand2
-                quotient = random.randint(min_quotient, max_quotient)
-                operand1 = operand2 * quotient
-            return operand1, operand2
-        
-        return None
 
     @staticmethod
     def _generate_with_fixed_operand2(
@@ -346,21 +311,18 @@ class QuestionService:
     def generate_operands_with_constraints(
         operation: str,
         concept_id: str,
-        test_constraints: dict[str, Any] | None = None,
         max_attempts: int = 100,
     ) -> tuple[int, int]:
         """Generate operands that satisfy concept constraints.
         
         Uses a pipeline pattern:
-        1. Normalize constraints from config and test_constraints
-        2. Try test constraint strategies first (multiplication_table, division_table)
-        3. Try fixed operand2 strategy if applicable
-        4. Fall back to general random generation with validation
+        1. Normalize constraints from config
+        2. Try fixed operand2 strategy if applicable
+        3. Fall back to general random generation with validation
         
         Args:
             operation: The math operation (addition, subtraction, multiplication, division)
             concept_id: The concept identifier (e.g., "c_concept_001", "c_add_1s")
-            test_constraints: Optional test-specific constraints
             max_attempts: Maximum attempts for general strategy generation
             
         Returns:
@@ -377,15 +339,8 @@ class QuestionService:
         
         # Step 1: Normalize constraints
         normalized = QuestionService._normalize_constraints(
-            constraints, test_constraints, operation, level=1
+            constraints, operation, level=1
         )
-        
-        # Step 2: Try test constraint strategies (highest priority)
-        result = QuestionService._generate_with_test_constraints(
-            normalized, op1_range, op2_range
-        )
-        if result is not None:
-            return result
         
         # Step 3: Try fixed operand2 strategy
         result = QuestionService._generate_with_fixed_operand2(
@@ -516,7 +471,6 @@ class QuestionService:
         operand2: int,
         concept_id: str | None = None,
         answer_format: str = "integer",
-        test_constraints: dict[str, Any] | None = None,
         config_override: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Create layout configuration matching frontend ProblemLayoutConfig type."""
@@ -587,7 +541,6 @@ class QuestionService:
     def generate_question(
         operation: str,
         concept_id: str | None = None,
-        test_constraints: dict[str, Any] | None = None,
         config_override: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Generate a question with solution and work steps.
@@ -595,7 +548,6 @@ class QuestionService:
         Args:
             operation: The operation type (addition, subtraction, multiplication, division)
             concept_id: The concept identifier (e.g., "c_concept_001", "c_add_1s")
-            test_constraints: Optional constraints for test sessions (e.g., {"multiplication_table": 5})
             config_override: Optional config dict to use instead of looking up by concept_id
         
         Returns:
@@ -611,13 +563,12 @@ class QuestionService:
         if not config:
             raise ValueError(f"Concept {concept_id} configuration not found")
         
-        # Override operation from config if test_constraints don't specify
-        if not test_constraints or "operation" not in test_constraints:
-            operation = config["operation"]
+        # Use operation from config
+        operation = config["operation"]
         
         # Generate operands with constraints (always use config_override path when available)
         operand1, operand2 = QuestionService._generate_operands_with_config(
-            operation, config, test_constraints
+            operation, config
         )
         
         # Get answer format from config
@@ -635,7 +586,7 @@ class QuestionService:
         
         # Create layout config
         layout_config = QuestionService.create_layout_config(
-            operation, operand1, operand2, concept_id=concept_id, answer_format=answer_format, test_constraints=test_constraints, config_override=config
+            operation, operand1, operand2, concept_id=concept_id, answer_format=answer_format, config_override=config
         )
         
         # Override layout type if specified in config
@@ -712,7 +663,6 @@ class QuestionService:
     def _generate_operands_with_config(
         operation: str,
         config: dict[str, Any],
-        test_constraints: dict[str, Any] | None = None,
         max_attempts: int = 100,
     ) -> tuple[int, int]:
         """Generate operands using an explicit config dict (no LevelConfigService lookup).
@@ -726,15 +676,10 @@ class QuestionService:
         
         # Normalize constraints using the same helper
         normalized = QuestionService._normalize_constraints(
-            constraints, test_constraints, operation, level
+            constraints, operation, level
         )
         
-        # Use the same pipeline: test constraints -> fixed operand2 -> general strategy
-        result = QuestionService._generate_with_test_constraints(
-            normalized, op1_range, op2_range
-        )
-        if result is not None:
-            return result
+        # Use the same pipeline: fixed operand2 -> general strategy
         
         result = QuestionService._generate_with_fixed_operand2(
             normalized, op1_range, op2_range, level=1

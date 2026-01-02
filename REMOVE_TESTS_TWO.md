@@ -392,10 +392,10 @@ The codebase contains a legacy test/quiz system that allows users to take struct
 - [x] Update components that reference test types
 
 ### Phase 3: Remove Backend Test Services
-- [ ] Remove test session creation logic
-- [ ] Remove test attempt storage logic
-- [ ] Remove tier calculation for tests
-- [ ] Remove test-related service methods
+- [x] Remove test session creation logic
+- [x] Remove test attempt storage logic
+- [x] Remove tier calculation for tests
+- [x] Remove test-related service methods
 
 ### Phase 4: Remove Backend Test Routes
 - [ ] Remove test definition endpoints

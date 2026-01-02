@@ -46,7 +46,6 @@ class QuestionGenerationService:
                     question_data = QuestionService.generate_question(
                         operation=operation,
                         concept_id=concept_id,
-                        test_constraints=None,
                         config_override=config,
                     )
                     break  # Success, exit retry loop

@@ -38,9 +38,7 @@ export {
   setupUserForLevelUp,
   getLevelUpEligibility,
   getTestEligibility,
-  startTestSession,
   createCompletedPracticeSessions,
-  createPassedTestAttempt,
 } from './api/test-setup-api'
 
 // UI Helpers - Dashboard
@@ -59,9 +57,6 @@ export {
   clickJourneyTab,
   navigateToAchievementsTab,
   navigateToLevelsTab,
-  navigateToTestsTab,
-  waitForTestCards,
-  clickTestCardSafely,
   handlePinVerification,
 } from './ui/journey-helpers'
 

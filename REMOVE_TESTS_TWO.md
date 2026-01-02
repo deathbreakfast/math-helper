@@ -422,10 +422,10 @@ The codebase contains a legacy test/quiz system that allows users to take struct
 - [x] Remove old tier mapping (B/A/S/SS/SSS)
 
 ### Phase 8: Remove E2E Tests
-- [ ] Delete `frontend/e2e/test-flow.spec.ts`
-- [ ] Remove test helpers from E2E framework
-- [ ] Update test coverage documentation
-- [ ] Update framework guide
+- [x] Delete `frontend/e2e/test-flow.spec.ts`
+- [x] Remove test helpers from E2E framework
+- [x] Update test coverage documentation
+- [x] Update framework guide
 
 ### Phase 9: Clean Up Documentation
 - [ ] Remove test/quiz mentions from READMEs

@@ -98,63 +98,6 @@ export async function navigateToLevelsTab(page: Page): Promise<void> {
 }
 
 /**
- * Navigate to tests tab in journey modal
- */
-export async function navigateToTestsTab(page: Page): Promise<void> {
-  const testsTab = page.getByTestId('testid-journey-tab-tests')
-  await testsTab.click()
-  await page.waitForTimeout(300)
-  
-  // Wait for tests tab content to be visible
-  const testsTabContent = page.getByTestId('testid-tests-tab')
-  await expect(testsTabContent).toBeVisible({ timeout: 5000 })
-  
-  // Wait for test grid to be visible
-  const testGrid = page.getByTestId('testid-test-achievements-grid')
-  await expect(testGrid).toBeVisible({ timeout: 10000 })
-  
-  // Wait for test cards to render (framer-motion animations)
-  await page.waitForTimeout(1000)
-}
-
-/**
- * Wait for test cards to be visible and rendered
- * Useful for ensuring animations complete before interacting with cards
- */
-export async function waitForTestCards(page: Page, minCount: number = 1): Promise<number> {
-  // Wait for test grid
-  const testGrid = page.getByTestId('testid-test-achievements-grid')
-  await expect(testGrid).toBeVisible({ timeout: 10000 })
-  
-  // Wait for animations to complete
-  await page.waitForTimeout(1000)
-  
-  // Wait for at least minCount test cards to be visible
-  const testCards = page.locator('[data-testid^="testid-test-card-"]')
-  await expect(testCards.nth(minCount - 1)).toBeVisible({ timeout: 10000 }).catch(() => {
-    // If we don't have enough cards, at least wait for the first one
-    return expect(testCards.first()).toBeVisible({ timeout: 10000 })
-  })
-  
-  const count = await testCards.count()
-  return count
-}
-
-/**
- * Safely click on a test card by clicking on the test name (h3) instead of the entire card.
- * This avoids accidentally clicking on achievement links or other interactive elements within the card.
- * @param page Playwright page object
- * @param testCardLocator Locator for the test card (e.g., page.locator('[data-testid^="testid-test-card-"]').first())
- */
-export async function clickTestCardSafely(page: Page, testCardLocator: ReturnType<Page['locator']>): Promise<void> {
-  // Click on the test name (h3) which is a safe click target that will trigger the card's onClick handler
-  // This avoids clicking on achievement links or other interactive elements
-  const testName = testCardLocator.locator('h3').first()
-  await expect(testName).toBeVisible({ timeout: 5000 })
-  await testName.click()
-}
-
-/**
  * Handle PIN verification modal that appears when starting tests
  * Enters the provided PIN and clicks Start button
  * @param page Playwright page object

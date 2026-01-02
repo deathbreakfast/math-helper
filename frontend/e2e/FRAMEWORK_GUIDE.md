@@ -329,5 +329,4 @@ test('Practice session displays questions', async ({ page, testUser }) => {
 See migrated test files for complete examples:
 - `achievements.spec.ts` - Router navigation, component waiting
 - `leveling.spec.ts` - Router navigation, data loading
-- `test-flow.spec.ts` - Scenario builder, router navigation
 

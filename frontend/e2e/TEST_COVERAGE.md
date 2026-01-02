@@ -11,7 +11,6 @@ Tests are organized into the following spec files:
 - `dashboard.spec.ts` - Dashboard UI and navigation
 - `practice-flow.spec.ts` - Practice session interactions
 - `session-submission.spec.ts` - Session completion and submission
-- `test-flow.spec.ts` - Test sessions and eligibility
 - `leveling.spec.ts` - Level progression functionality
 - `achievements.spec.ts` - Achievement earning and display
 - `journey-page.spec.ts` - Journey/Progress page features
@@ -84,7 +83,6 @@ Tests are organized into the following spec files:
 | ACH-002 | Accuracy achievements | Earn accuracy-based achievements | Accuracy | `achievements.spec.ts` |
 | ACH-003 | Speed achievements | Earn speed-based achievements | Speed | `achievements.spec.ts` |
 | ACH-004 | Consistency achievements | Earn consistency achievements | Consistency | `achievements.spec.ts` |
-| ACH-005 | Test tier achievements | Earn B/A/S/SS/SSS tier achievements | Test | `achievements.spec.ts` |
 | ACH-006 | Level mastery achievements | Earn level-specific achievements | Level Mastery | `achievements.spec.ts` |
 | ACH-007 | Progression achievements | Earn progression achievements | Progression | `achievements.spec.ts` |
 | ACH-008 | Achievement display | Verify achievements shown on dashboard | Achievement cards | `achievements.spec.ts` |
@@ -97,7 +95,6 @@ Tests are organized into the following spec files:
 | JRN-001 | Journey page loads | Open journey modal | Journey modal | `journey-page.spec.ts` |
 | JRN-002 | Overview tab | View overview tab | Overview tab | `journey-page.spec.ts` |
 | JRN-003 | Achievements tab | View achievements tab | Achievements tab | `journey-page.spec.ts` |
-| JRN-004 | Tests tab | View tests tab | Tests tab | `journey-page.spec.ts` |
 | JRN-005 | Level progression | View level requirements | Level progression UI | `journey-page.spec.ts` |
 | JRN-006 | Filter achievements | Filter by category/tier | Filter controls | `journey-page.spec.ts` |
 

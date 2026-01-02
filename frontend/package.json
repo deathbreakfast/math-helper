@@ -16,10 +16,11 @@
     "test:e2e:workers": "playwright test --workers=4"
   },
   "dependencies": {
+    "d3-force": "^3.0.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
-    "react-router-dom": "^6.30.2",
     "react-force-graph-2d": "^1.29.0",
+    "react-router-dom": "^6.30.2",
     "recharts": "^3.4.1"
   },
   "devDependencies": {

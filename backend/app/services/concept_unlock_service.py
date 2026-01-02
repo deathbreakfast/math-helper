@@ -7,7 +7,6 @@ from typing import Any
 from ..config.concept_unlock_requirements import CONCEPT_UNLOCK_REQUIREMENTS
 from ..config.concepts_config import CONCEPTS_CONFIG
 from ..services.achievement_service import AchievementService
-from ..services.level_config_service import LevelConfigService
 
 
 class ConceptUnlockService:
@@ -58,20 +57,11 @@ class ConceptUnlockService:
         Returns:
             List of requirement dictionaries
         """
-        # Prefer explicit concept unlock requirements
+        # Get explicit concept unlock requirements
         if concept_id in CONCEPT_UNLOCK_REQUIREMENTS:
             return list(CONCEPT_UNLOCK_REQUIREMENTS.get(concept_id, []))
         
-        # Fallback: legacy concepts use level progression configs
-        if concept_id.startswith("c_concept_"):
-            try:
-                level_num = int(concept_id.split("_")[-1])
-            except ValueError:
-                level_num = None
-            
-            if level_num is not None:
-                return list(LevelConfigService.get_level_progression_config(level_num) or [])
-        
+        # No requirements found - concept is unlocked by default
         return []
     
     @staticmethod

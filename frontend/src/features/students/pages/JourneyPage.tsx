@@ -4,7 +4,7 @@ import { Loader2 } from 'lucide-react'
 import { LevelProgressionSystem } from '../components/LevelProgressionSystem'
 import { mapUserToProgressData } from '../utils/progressMapping'
 import { useLearners } from '../hooks/useLearners'
-import { useLevelRequirements, useAchievementDefinitions } from '../../../lib/levels/hooks'
+import { useAchievementDefinitions } from '../../../lib/levels/hooks'
 import type { TabId } from '../components/journey/JourneyTabNavigation'
 import { logError } from '../../../utils/logger'
 
@@ -18,10 +18,8 @@ const JourneyPage = () => {
   // Find the user by ID
   const user = users.find((u) => u.id === userId) || null
 
-  // Don't fetch level requirements on mount - will be lazy loaded when Levels tab is opened
-  const { requirements: levelRequirementsCache } = useLevelRequirements(user?.level ? user.level + 2 : 45, false)
   const { definitions: achievementDefinitions } = useAchievementDefinitions()
-  const userProgressData = user ? mapUserToProgressData(user, levelRequirementsCache, achievementDefinitions) : undefined
+  const userProgressData = user ? mapUserToProgressData(user, undefined, achievementDefinitions) : undefined
 
   // Redirect to add tab if missing (preserve query params)
   useEffect(() => {

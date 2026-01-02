@@ -10,7 +10,7 @@ from typing import Any
 from ...models import Achievement
 from ... import db
 from ...database import transaction
-from ...services.level_config_service import LevelConfigService
+from ...config.achievements import ACHIEVEMENTS_CONFIG
 
 # Debug logging configuration
 DEBUG_ACHIEVEMENTS = os.getenv("DEBUG_ACHIEVEMENTS", "false").lower() == "true"
@@ -24,7 +24,7 @@ def get_achievement_configs() -> dict[str, Any]:
     """Get achievement configs with caching."""
     global _achievement_configs_cache
     if _achievement_configs_cache is None:
-        _achievement_configs_cache = LevelConfigService.get_all_achievement_configs()
+        _achievement_configs_cache = ACHIEVEMENTS_CONFIG.copy()
     return _achievement_configs_cache
 
 

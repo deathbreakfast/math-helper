@@ -9,7 +9,7 @@ from typing import Any
 from sqlalchemy import select
 
 from ..database import log_query, transaction
-from ..models import FlaggedQuestion, LevelProblemConfig, PracticeSession, Question, Response, db
+from ..models import FlaggedQuestion, PracticeSession, Question, Response, db
 
 
 class PracticeService:
@@ -224,64 +224,7 @@ class PracticeService:
 
         return query.order_by(FlaggedQuestion.flagged_at.desc()).all()
 
-    @staticmethod
-    @log_query
-    def get_level_problem_config(level: int, operation: str | None = None) -> list[LevelProblemConfig]:
-        """Get problem configuration for a level."""
-        query = LevelProblemConfig.query.filter_by(level=level, is_available=True)
-
-        if operation:
-            query = query.filter_by(operation=operation)
-
-        return query.all()
-
-    @staticmethod
-    @log_query
-    def create_level_problem_config(
-        level: int,
-        operation: str,
-        min_operand1: int | None = None,
-        max_operand1: int | None = None,
-        min_operand2: int | None = None,
-        max_operand2: int | None = None,
-        layout_types: list[str] | None = None,
-        answer_formats: list[str] | None = None,
-        is_available: bool = True,
-    ) -> LevelProblemConfig:
-        """Create or update level problem configuration."""
-        layout_types_json = json.dumps(layout_types) if layout_types else None
-        answer_formats_json = json.dumps(answer_formats) if answer_formats else None
-
-        # Check if config already exists
-        existing = LevelProblemConfig.query.filter_by(level=level, operation=operation).first()
-
-        with transaction():
-            if existing:
-                existing.min_operand1 = min_operand1
-                existing.max_operand1 = max_operand1
-                existing.min_operand2 = min_operand2
-                existing.max_operand2 = max_operand2
-                existing.layout_types = layout_types_json
-                existing.answer_formats = answer_formats_json
-                existing.is_available = is_available
-                config = existing
-            else:
-                config = LevelProblemConfig(
-                    level=level,
-                    operation=operation,
-                    min_operand1=min_operand1,
-                    max_operand1=max_operand1,
-                    min_operand2=min_operand2,
-                    max_operand2=max_operand2,
-                    layout_types=layout_types_json,
-                    answer_formats=answer_formats_json,
-                    is_available=is_available,
-                )
-                db.session.add(config)
-
-            db.session.flush()
-
-        return config
+    # Legacy level problem config methods removed - level system no longer uses database configs
 
     @staticmethod
     @log_query

@@ -1,8 +1,8 @@
 """Human Calculator achievement checker.
 
-Checks if user has achieved Lightning Fast (Bronze or Silver) for ALL legacy level concepts.
+Checks if user has achieved Lightning Fast (Bronze or Silver) for ALL descriptive concepts.
 Similar to Level Grandmaster, but for speed achievements.
-Checks achievements with concept_id c_concept_001 through c_concept_045.
+Checks achievements with concept_id for descriptive concepts (c_add_*, c_sub_*, c_mul_*, etc.).
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from typing import Any
 
 from ....models import Achievement, Question, User, db
 from ....services.achievement_service import AchievementService
-from ....config.levels_config import LEVELS_CONFIG
+from ....config.concepts_config import CONCEPTS_CONFIG
 from .base_checker import AchievementChecker
 
 
@@ -30,8 +30,8 @@ class HumanCalculatorChecker(AchievementChecker):
     def check(self, user: User, tier: str = "bronze") -> list[Achievement]:
         """Check and award Human Calculator milestone achievement.
         
-        Requires having Lightning Fast (Bronze or Silver) achievement for ALL legacy level concepts.
-        Checks achievements with concept_id metadata (c_concept_001 through c_concept_045).
+        Requires having Lightning Fast (Bronze or Silver) achievement for ALL descriptive concepts.
+        Checks achievements with concept_id metadata for descriptive concepts (c_add_*, c_sub_*, c_mul_*, etc.).
         
         Args:
             user: The user to check
@@ -44,10 +44,13 @@ class HumanCalculatorChecker(AchievementChecker):
         user_achievement_codes = AchievementService.get_achievement_codes(user.id)
         achievement_configs = self.achievement_configs
         
-        # Get all levels from config (1-45)
-        all_levels = sorted(LEVELS_CONFIG.keys())
+        # Get all descriptive concepts (not c_concept_###)
+        descriptive_concepts = [
+            concept_id for concept_id in CONCEPTS_CONFIG.keys()
+            if not concept_id.startswith("c_concept_")
+        ]
         
-        if not all_levels:
+        if not descriptive_concepts:
             return new_achievements
         
         milestone_code = f"human-calculator-{tier}" if tier != "bronze" else "human-calculator"
@@ -56,32 +59,29 @@ class HumanCalculatorChecker(AchievementChecker):
         if milestone_code in user_achievement_codes:
             return new_achievements
         
-        # Check if user has Lightning Fast (Bronze or Silver) at ALL levels
-        all_levels_qualified = True
+        # Check if user has Lightning Fast (Bronze or Silver) at ALL descriptive concepts
+        all_concepts_qualified = True
         required_achievement_code = f"lightning-fast-{tier}"
         
-        for target_level in all_levels:
-            # Check if user has lightning-fast achievement for this level
-            # Lightning-fast achievements are stored with metadata {"concept_id": "c_concept_XXX"}
-            target_concept_id = f"c_concept_{target_level:03d}"
-            level_achievements = Achievement.query.filter_by(
+        for target_concept_id in descriptive_concepts:
+            concept_achievements = Achievement.query.filter_by(
                 user_id=user.id,
                 code=required_achievement_code
             ).all()
             
-            level_qualified = False
-            for achievement in level_achievements:
+            concept_qualified = False
+            for achievement in concept_achievements:
                 if achievement.achievement_metadata:
                     try:
                         metadata = json.loads(achievement.achievement_metadata)
                         if metadata.get("concept_id") == target_concept_id:
-                            level_qualified = True
+                            concept_qualified = True
                             break
                     except (json.JSONDecodeError, KeyError):
                         pass
             
             # If bronze tier, also check if user has silver (higher tier qualifies)
-            if not level_qualified and tier == "bronze":
+            if not concept_qualified and tier == "bronze":
                 silver_achievements = Achievement.query.filter_by(
                     user_id=user.id,
                     code="lightning-fast-silver"
@@ -91,16 +91,16 @@ class HumanCalculatorChecker(AchievementChecker):
                         try:
                             metadata = json.loads(achievement.achievement_metadata)
                             if metadata.get("concept_id") == target_concept_id:
-                                level_qualified = True
+                                concept_qualified = True
                                 break
                         except (json.JSONDecodeError, KeyError):
                             pass
             
-            if not level_qualified:
-                all_levels_qualified = False
+            if not concept_qualified:
+                all_concepts_qualified = False
                 break
         
-        if all_levels_qualified:
+        if all_concepts_qualified:
             config = achievement_configs.get(milestone_code) or achievement_configs.get("human-calculator")
             if config:
                 achievement = AchievementService.create_achievement(

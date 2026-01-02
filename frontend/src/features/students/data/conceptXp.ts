@@ -8,14 +8,14 @@
 
 export const CONCEPT_XP_PER_CORRECT: Record<string, number> = {
   c_concept_001: 97,
-  c_concept_002: 42,
+  // c_concept_002 removed (merged into c_concept_001)
   c_concept_003: 177,
-  c_concept_004: 117,
+  // c_concept_004 removed (covered by c_sub_0s)
   c_concept_005: 102,
   c_concept_006: 182,
   c_concept_007: 107,
   c_concept_008: 187,
-  c_concept_009: 197,
+  // c_concept_009 removed
   c_concept_010: 202,
   c_concept_011: 212,
   c_concept_012: 227,

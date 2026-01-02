@@ -1,37 +1,30 @@
 /**
- * Concept ID utilities for parsing and converting between concept ID formats.
+ * Concept ID utilities for parsing concept ID formats.
  * 
- * Supports both old format (c_level_1) and new format (c_concept_001, c_add_1s, etc.)
- * during the migration period.
+ * Note: Legacy level system has been removed. These utilities are kept for
+ * minimal backward compatibility with c_concept_### format.
  */
 
 /**
- * Extract the legacy level number from a concept ID.
+ * Extract level number from c_concept_### format concept ID.
  * 
  * Supports:
- * - Old format: c_level_1 -> 1
- * - New format: c_concept_001 -> 1
- * - Descriptive format: c_add_1s -> null (no legacy level mapping)
+ * - Format: c_concept_001 -> 1
+ * - Descriptive format: c_add_1s -> null (no level mapping)
  * 
  * @param conceptId The concept ID to parse
- * @returns The legacy level number if found, null otherwise
+ * @returns The level number if found, null otherwise
  */
 export function legacyLevelFromConceptId(conceptId: string): number | null {
   if (!conceptId) return null
 
-  // Old format: c_level_1, c_level_2, etc.
-  const oldFormatMatch = conceptId.match(/^c_level_(\d+)$/)
-  if (oldFormatMatch) {
-    return parseInt(oldFormatMatch[1], 10)
+  // Format: c_concept_001, c_concept_002, etc.
+  const match = conceptId.match(/^c_concept_(\d+)$/)
+  if (match) {
+    return parseInt(match[1], 10)
   }
 
-  // New format: c_concept_001, c_concept_002, etc.
-  const newFormatMatch = conceptId.match(/^c_concept_(\d+)$/)
-  if (newFormatMatch) {
-    return parseInt(newFormatMatch[1], 10)
-  }
-
-  // Descriptive format (c_add_1s, c_sub_2s, etc.) - no legacy level mapping
+  // Descriptive format (c_add_1s, c_sub_2s, etc.) - no level mapping
   return null
 }
 
@@ -42,23 +35,15 @@ export function legacyLevelFromConceptId(conceptId: string): number | null {
  * @returns Parsed concept ID information
  */
 export function parseConceptId(conceptId: string): {
-  format: 'old' | 'new' | 'descriptive'
+  format: 'legacy' | 'descriptive'
   legacyLevel: number | null
   raw: string
 } {
   const legacyLevel = legacyLevelFromConceptId(conceptId)
   
-  if (conceptId.startsWith('c_level_')) {
-    return {
-      format: 'old',
-      legacyLevel,
-      raw: conceptId,
-    }
-  }
-  
   if (conceptId.startsWith('c_concept_')) {
     return {
-      format: 'new',
+      format: 'legacy',
       legacyLevel,
       raw: conceptId,
     }

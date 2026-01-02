@@ -1,88 +1,397 @@
 """Concept configuration keyed by concept_id.
 
 This is the backend source of truth for question generation per concept.
-
-For now, legacy concepts `c_concept_###` map 1:1 to the existing `LEVELS_CONFIG`
-entries (levels 1-45). This keeps behavior stable while enabling the system to
-support descriptive concept IDs (e.g. `c_add_1s`) without depending on levels.
 """
 
 from __future__ import annotations
 
 from typing import Any
 
-from .levels_config import LEVELS_CONFIG
 
-
-# Speed multipliers mapped by level
-SPEED_MULTIPLIERS_BY_LEVEL: dict[int, float] = {
-    1: 1.1,   # Basic Single Digit Addition
-    2: 1.1,   # Addition with Zero (Adding 0)
-    3: 1.2,   # Basic Single Digit Subtraction
-    4: 1.2,   # Subtraction with Zero (Subtracting 0)
-    5: 1.0,   # Single and Two Digit Addition
-    6: 1.2,   # Single and Two Digit Subtraction
-    7: 3.0,   # Two Digit Addition
-    8: 4.0,   # Two Digit Subtraction
-    9: 1.2,   # Subtraction with Borrowing (Small Numbers)
-    10: 1.0,  # Negative Number Subtraction
-    11: 1.0,  # Multiplication by 1
-    12: 1.2,  # Multiplication by 4
-    13: 1.1,  # Multiplication by 5
-    14: 1.4,  # Multiplication by 6
-    15: 1.4,  # Multiplication by 7
-    16: 1.4,  # Multiplication by 8
-    17: 1.3,  # Multiplication by 9
-    18: 1.0,  # Multiplication by 0
-    19: 1.1,  # Multiplication by 10
-    20: 1.4,  # Multiplication by 11
-    21: 1.4,  # Multiplication by 12
-    22: 6.0,  # Three Digit Addition
-    23: 6.5,  # Three Digit Subtraction
-    24: 6.0,  # Two Digit by Single Digit Multiplication (Partial Products)
-    25: 10.0, # Two Digit by Two Digit Multiplication (Partial Products)
-    26: 1.0,  # Division by 1
-    27: 1.2,  # Division by 2
-    28: 1.3,  # Division by 3
-    29: 1.3,  # Division by 4
-    30: 1.2,  # Division by 5
-    31: 1.4,  # Division by 6
-    32: 1.4,  # Division by 7
-    33: 1.4,  # Division by 8
-    34: 1.3,  # Division by 9
-    35: 1.1,  # Division by 10
-    36: 1.5,  # Division by 11
-    37: 1.5,  # Division by 0 (Special Case)
-    38: 1.1,  # Division by 10 (Repeated)
-    39: 3.0,  # Division with Remainders (Single Digit Divisors)
-    40: 6.0,  # Division with Remainders (Two Digit Dividends)
-    41: 3.5,  # Division with Fractional Answers (Single Digit Divisors)
-    42: 7.0,  # Division with Fractional Answers (Two Digit Dividends)
-    43: 7.0,  # Three Digit by Two Digit Multiplication (Partial Products)
-    44: 12.0, # Division with Fractional Answers (Three Digit Dividends)
-    45: 11.0, # Division with Decimal Answers (Single Digit Divisors)
-}
-
+# Legacy concept definitions (c_concept_001 through c_concept_045)
+# These are explicitly defined without dependency on LEVELS_CONFIG
 CONCEPTS_CONFIG: dict[str, dict[str, Any]] = {
-    f"c_concept_{level:03d}": {
-        **config,
-        "legacy_level": level,
-        "speed_multiplier": SPEED_MULTIPLIERS_BY_LEVEL.get(level, 1.0)
-    }
-    for level, config in LEVELS_CONFIG.items()
-}
-
-# Special cases / overrides not representable with the legacy level system.
-# Division by 0 (Special Case): allow generating 0 ÷ 0 with answer "undefined".
-CONCEPTS_CONFIG["c_concept_037"] = {
-    "operation": "division",
-    "operand1_range": {"min": 0, "max": 0},
-    "operand2_range": {"min": 0, "max": 0},
-    "constraints": {"fixed_operand2": 0, "no_remainder": True, "allow_division_by_zero": True},
-    "layout_type": "longDivision",
-    "answer_format": "integer",
-    "legacy_level": 37,
-    "speed_multiplier": 1.5,  # Division by 0 (Special Case)
+    "c_concept_001": {
+        "operation": "addition",
+        "operand1_range": {"min": 0, "max": 9},
+        "operand2_range": {"min": 0, "max": 9},
+        "constraints": {"answer_min": 0},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.1,
+    },
+    "c_concept_003": {
+        "operation": "subtraction",
+        "operand1_range": {"min": 1, "max": 10},
+        "operand2_range": {"min": 1, "max": 10},
+        "constraints": {"exclude_zeros": True, "answer_min": 1},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.2,
+    },
+    "c_concept_005": {
+        "operation": "addition",
+        "operand1_range": {"min": 0, "max": 9},
+        "operand2_range": {"min": 10, "max": 99},
+        "constraints": {},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.0,
+    },
+    "c_concept_006": {
+        "operation": "subtraction",
+        "operand1_range": {"min": 0, "max": 9},
+        "operand2_range": {"min": 10, "max": 99},
+        "constraints": {"answer_min": 0},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.2,
+    },
+    "c_concept_007": {
+        "operation": "addition",
+        "operand1_range": {"min": 10, "max": 99},
+        "operand2_range": {"min": 10, "max": 99},
+        "constraints": {},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 3.0,
+    },
+    "c_concept_008": {
+        "operation": "subtraction",
+        "operand1_range": {"min": 10, "max": 99},
+        "operand2_range": {"min": 10, "max": 99},
+        "constraints": {"answer_min": 0},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 4.0,
+    },
+    "c_concept_010": {
+        "operation": "subtraction",
+        "operand1_range": {"min": -99, "max": 0},
+        "operand2_range": {"min": 0, "max": 99},
+        "constraints": {"answer_min": -100},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.0,
+    },
+    "c_concept_011": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": 1, "max": 1},
+        "constraints": {"fixed_operand2": 1},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.0,
+    },
+    "c_concept_012": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": 4, "max": 4},
+        "constraints": {"fixed_operand2": 4},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.2,
+    },
+    "c_concept_013": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": 5, "max": 5},
+        "constraints": {"fixed_operand2": 5},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.1,
+    },
+    "c_concept_014": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": 6, "max": 6},
+        "constraints": {"fixed_operand2": 6},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.4,
+    },
+    "c_concept_015": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": 7, "max": 7},
+        "constraints": {"fixed_operand2": 7},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.4,
+    },
+    "c_concept_016": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": 8, "max": 8},
+        "constraints": {"fixed_operand2": 8},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.4,
+    },
+    "c_concept_017": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": 9, "max": 9},
+        "constraints": {"fixed_operand2": 9},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.3,
+    },
+    "c_concept_018": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": 0, "max": 0},
+        "constraints": {"fixed_operand2": 0},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.0,
+    },
+    "c_concept_019": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": 10, "max": 10},
+        "constraints": {"fixed_operand2": 10},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.1,
+    },
+    "c_concept_020": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": 11, "max": 11},
+        "constraints": {"fixed_operand2": 11},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.4,
+    },
+    "c_concept_021": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": 12, "max": 12},
+        "constraints": {"fixed_operand2": 12},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 1.4,
+    },
+    "c_concept_022": {
+        "operation": "addition",
+        "operand1_range": {"min": 100, "max": 999},
+        "operand2_range": {"min": 100, "max": 999},
+        "constraints": {},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 6.0,
+    },
+    "c_concept_023": {
+        "operation": "subtraction",
+        "operand1_range": {"min": 100, "max": 999},
+        "operand2_range": {"min": 100, "max": 999},
+        "constraints": {"answer_min": 0},
+        "layout_type": "vertical",
+        "answer_format": "integer",
+        "speed_multiplier": 6.5,
+    },
+    "c_concept_024": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 10, "max": 99},
+        "operand2_range": {"min": 2, "max": 9},
+        "constraints": {},
+        "layout_type": "partialProducts",
+        "partial_products_mode": "easy",
+        "answer_format": "integer",
+        "speed_multiplier": 6.0,
+    },
+    "c_concept_025": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 10, "max": 99},
+        "operand2_range": {"min": 10, "max": 99},
+        "constraints": {},
+        "layout_type": "partialProducts",
+        "partial_products_mode": "normal",
+        "answer_format": "integer",
+        "speed_multiplier": 10.0,
+    },
+    "c_concept_026": {
+        "operation": "division",
+        "operand1_range": {"min": 1, "max": 12},
+        "operand2_range": {"min": 1, "max": 1},
+        "constraints": {"fixed_operand2": 1, "no_remainder": True},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.0,
+    },
+    "c_concept_027": {
+        "operation": "division",
+        "operand1_range": {"min": 2, "max": 24},
+        "operand2_range": {"min": 2, "max": 2},
+        "constraints": {"fixed_operand2": 2, "no_remainder": True, "multiple_of": 2},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.2,
+    },
+    "c_concept_028": {
+        "operation": "division",
+        "operand1_range": {"min": 3, "max": 36},
+        "operand2_range": {"min": 3, "max": 3},
+        "constraints": {"fixed_operand2": 3, "no_remainder": True, "multiple_of": 3},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.3,
+    },
+    "c_concept_029": {
+        "operation": "division",
+        "operand1_range": {"min": 4, "max": 48},
+        "operand2_range": {"min": 4, "max": 4},
+        "constraints": {"fixed_operand2": 4, "no_remainder": True, "multiple_of": 4},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.3,
+    },
+    "c_concept_030": {
+        "operation": "division",
+        "operand1_range": {"min": 5, "max": 60},
+        "operand2_range": {"min": 5, "max": 5},
+        "constraints": {"fixed_operand2": 5, "no_remainder": True, "multiple_of": 5},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.2,
+    },
+    "c_concept_031": {
+        "operation": "division",
+        "operand1_range": {"min": 6, "max": 72},
+        "operand2_range": {"min": 6, "max": 6},
+        "constraints": {"fixed_operand2": 6, "no_remainder": True, "multiple_of": 6},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.4,
+    },
+    "c_concept_032": {
+        "operation": "division",
+        "operand1_range": {"min": 7, "max": 84},
+        "operand2_range": {"min": 7, "max": 7},
+        "constraints": {"fixed_operand2": 7, "no_remainder": True, "multiple_of": 7},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.4,
+    },
+    "c_concept_033": {
+        "operation": "division",
+        "operand1_range": {"min": 8, "max": 96},
+        "operand2_range": {"min": 8, "max": 8},
+        "constraints": {"fixed_operand2": 8, "no_remainder": True, "multiple_of": 8},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.4,
+    },
+    "c_concept_034": {
+        "operation": "division",
+        "operand1_range": {"min": 9, "max": 108},
+        "operand2_range": {"min": 9, "max": 9},
+        "constraints": {"fixed_operand2": 9, "no_remainder": True, "multiple_of": 9},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.3,
+    },
+    "c_concept_035": {
+        "operation": "division",
+        "operand1_range": {"min": 10, "max": 120},
+        "operand2_range": {"min": 10, "max": 10},
+        "constraints": {"fixed_operand2": 10, "no_remainder": True, "multiple_of": 10},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.1,
+    },
+    "c_concept_036": {
+        "operation": "division",
+        "operand1_range": {"min": 11, "max": 132},
+        "operand2_range": {"min": 11, "max": 11},
+        "constraints": {"fixed_operand2": 11, "no_remainder": True, "multiple_of": 11},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.5,
+    },
+    "c_concept_037": {
+        "operation": "division",
+        "operand1_range": {"min": 0, "max": 0},
+        "operand2_range": {"min": 0, "max": 0},
+        "constraints": {"fixed_operand2": 0, "no_remainder": True, "allow_division_by_zero": True},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.5,
+    },
+    "c_concept_038": {
+        "operation": "division",
+        "operand1_range": {"min": 10, "max": 120},
+        "operand2_range": {"min": 10, "max": 10},
+        "constraints": {"fixed_operand2": 10, "no_remainder": True, "multiple_of": 10},
+        "layout_type": "longDivision",
+        "answer_format": "integer",
+        "speed_multiplier": 1.1,
+    },
+    "c_concept_039": {
+        "operation": "division",
+        "operand1_range": {"min": 1, "max": 99},
+        "operand2_range": {"min": 2, "max": 9},
+        "constraints": {},
+        "layout_type": "longDivision",
+        "answer_format": "remainder",
+        "speed_multiplier": 3.0,
+    },
+    "c_concept_040": {
+        "operation": "division",
+        "operand1_range": {"min": 10, "max": 99},
+        "operand2_range": {"min": 2, "max": 9},
+        "constraints": {},
+        "layout_type": "longDivision",
+        "answer_format": "remainder",
+        "speed_multiplier": 6.0,
+    },
+    "c_concept_041": {
+        "operation": "division",
+        "operand1_range": {"min": 1, "max": 99},
+        "operand2_range": {"min": 2, "max": 9},
+        "constraints": {},
+        "layout_type": "longDivision",
+        "answer_format": "fraction",
+        "speed_multiplier": 3.5,
+    },
+    "c_concept_042": {
+        "operation": "division",
+        "operand1_range": {"min": 10, "max": 99},
+        "operand2_range": {"min": 2, "max": 9},
+        "constraints": {},
+        "layout_type": "longDivision",
+        "answer_format": "fraction",
+        "speed_multiplier": 7.0,
+    },
+    "c_concept_043": {
+        "operation": "multiplication",
+        "operand1_range": {"min": 10, "max": 99},
+        "operand2_range": {"min": 100, "max": 999},
+        "constraints": {},
+        "layout_type": "partialProducts",
+        "partial_products_mode": "normal",
+        "answer_format": "integer",
+        "speed_multiplier": 7.0,
+    },
+    "c_concept_044": {
+        "operation": "division",
+        "operand1_range": {"min": 100, "max": 999},
+        "operand2_range": {"min": 2, "max": 9},
+        "constraints": {},
+        "layout_type": "longDivision",
+        "answer_format": "fraction",
+        "speed_multiplier": 12.0,
+    },
+    "c_concept_045": {
+        "operation": "division",
+        "operand1_range": {"min": 1, "max": 99},
+        "operand2_range": {"min": 2, "max": 9},
+        "constraints": {},
+        "layout_type": "longDivision",
+        "answer_format": "decimal",
+        "speed_multiplier": 11.0,
+    },
 }
 
 # Descriptive concept IDs (subset from MATH_CONCEPTS.md)

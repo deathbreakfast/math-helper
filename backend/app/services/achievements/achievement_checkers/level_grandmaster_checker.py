@@ -1,8 +1,8 @@
 """Level Grandmaster achievement checker.
 
-Checks if user has Level Master (Bronze or higher) achievement for ALL legacy level concepts.
+Checks if user has Level Master (Bronze or higher) achievement for ALL descriptive concepts.
 Similar to Human Calculator, but for accuracy achievements.
-Checks achievements with concept_id c_concept_001 through c_concept_045.
+Checks achievements with concept_id for descriptive concepts (c_add_*, c_sub_*, c_mul_*, etc.).
 """
 
 from __future__ import annotations
@@ -12,7 +12,7 @@ from typing import Any
 
 from ....models import Achievement, User, db
 from ....services.achievement_service import AchievementService
-from ....config.levels_config import LEVELS_CONFIG
+from ....config.concepts_config import CONCEPTS_CONFIG
 from .base_checker import AchievementChecker
 
 
@@ -30,8 +30,8 @@ class LevelGrandmasterChecker(AchievementChecker):
     def check(self, user: User) -> list[Achievement]:
         """Check and award Level Grandmaster milestone achievement.
         
-        Requires having Level Master (Bronze or higher) achievement for ALL legacy level concepts.
-        Checks for existing Level Master achievements with concept_id metadata (c_concept_001 through c_concept_045).
+        Requires having Level Master (Bronze or higher) achievement for ALL descriptive concepts.
+        Checks for existing Level Master achievements with concept_id metadata for descriptive concepts (c_add_*, c_sub_*, c_mul_*, etc.).
         
         Args:
             user: The user to check
@@ -49,38 +49,38 @@ class LevelGrandmasterChecker(AchievementChecker):
         if milestone_code in user_achievement_codes:
             return new_achievements
         
-        # Get all levels from config (1-45)
-        all_levels = sorted(LEVELS_CONFIG.keys())
+        # Get all descriptive concepts (not c_concept_###)
+        descriptive_concepts = [
+            concept_id for concept_id in CONCEPTS_CONFIG.keys()
+            if not concept_id.startswith("c_concept_")
+        ]
         
-        if not all_levels:
+        if not descriptive_concepts:
             return new_achievements
         
-        # Check if user has Level Master (Bronze or higher) at ALL levels
-        all_levels_qualified = True
+        # Check if user has Level Master (Bronze or higher) at ALL descriptive concepts
+        all_concepts_qualified = True
         required_achievement_code = "level-master-bronze"
         
-        for target_level in all_levels:
-            # Check if user has level-master-bronze achievement for this level
-            # Level-master achievements are stored with metadata {"concept_id": "c_concept_XXX"}
-            target_concept_id = f"c_concept_{target_level:03d}"
-            level_achievements = Achievement.query.filter_by(
+        for target_concept_id in descriptive_concepts:
+            concept_achievements = Achievement.query.filter_by(
                 user_id=user.id,
                 code=required_achievement_code
             ).all()
             
-            level_qualified = False
-            for achievement in level_achievements:
+            concept_qualified = False
+            for achievement in concept_achievements:
                 if achievement.achievement_metadata:
                     try:
                         metadata = json.loads(achievement.achievement_metadata)
                         if metadata.get("concept_id") == target_concept_id:
-                            level_qualified = True
+                            concept_qualified = True
                             break
                     except (json.JSONDecodeError, KeyError):
                         pass
             
             # If bronze not found, check for silver (higher tier qualifies)
-            if not level_qualified:
+            if not concept_qualified:
                 silver_achievements = Achievement.query.filter_by(
                     user_id=user.id,
                     code="level-master-silver"
@@ -90,13 +90,13 @@ class LevelGrandmasterChecker(AchievementChecker):
                         try:
                             metadata = json.loads(achievement.achievement_metadata)
                             if metadata.get("concept_id") == target_concept_id:
-                                level_qualified = True
+                                concept_qualified = True
                                 break
                         except (json.JSONDecodeError, KeyError):
                             pass
             
             # If still not found, check for gold (higher tier qualifies)
-            if not level_qualified:
+            if not concept_qualified:
                 gold_achievements = Achievement.query.filter_by(
                     user_id=user.id,
                     code="level-master-gold"
@@ -106,16 +106,16 @@ class LevelGrandmasterChecker(AchievementChecker):
                         try:
                             metadata = json.loads(achievement.achievement_metadata)
                             if metadata.get("concept_id") == target_concept_id:
-                                level_qualified = True
+                                concept_qualified = True
                                 break
                         except (json.JSONDecodeError, KeyError):
                             pass
             
-            if not level_qualified:
-                all_levels_qualified = False
+            if not concept_qualified:
+                all_concepts_qualified = False
                 break
         
-        if all_levels_qualified:
+        if all_concepts_qualified:
             config = achievement_configs.get(milestone_code)
             if config:
                 achievement = AchievementService.create_achievement(

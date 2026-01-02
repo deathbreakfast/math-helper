@@ -7,7 +7,7 @@ from flask import Blueprint, jsonify, request
 from ..services.achievement_service import AchievementService
 from ..services.achievement_xp_service import AchievementXPService
 from ..services.analytics_service import AnalyticsService
-from ..services.level_config_service import LevelConfigService
+from ..config.achievements import ACHIEVEMENTS_CONFIG
 from ..services.user_service import UserService
 
 achievements_bp = Blueprint("achievements", __name__)
@@ -73,7 +73,7 @@ def list_achievements():
 @achievements_bp.get("/achievements/definitions")
 def list_achievement_definitions():
     """Get all achievement definitions from config with full display information."""
-    achievements = LevelConfigService.get_all_achievement_configs()
+    achievements = ACHIEVEMENTS_CONFIG.copy()
     
     # Format for frontend consumption
     formatted_achievements = {}
@@ -98,7 +98,7 @@ def list_achievement_definitions():
 @achievements_bp.get("/achievements/<code>/requirements")
 def get_achievement_requirements(code: str):
     """Get requirements for a specific achievement."""
-    config = LevelConfigService.get_achievement_config(code)
+    config = ACHIEVEMENTS_CONFIG.get(code)
     if not config:
         return jsonify({"error": f"Achievement {code} not found"}), 404
     return jsonify({"achievement_code": code, "requirements": config.get("requirements", {})})

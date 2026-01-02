@@ -4,7 +4,7 @@ import ModalShell from '../../../components/ModalShell'
 import { LevelProgressionSystem } from '../components/LevelProgressionSystem'
 import { mapUserToProgressData } from '../utils/progressMapping'
 import type { User } from '../hooks/useLearners'
-import { useLevelRequirements, useAchievementDefinitions } from '../../../lib/levels/hooks'
+import { useAchievementDefinitions } from '../../../lib/levels/hooks'
 
 type JourneyModalProps = {
   isOpen: boolean
@@ -17,10 +17,8 @@ const JourneyModal = ({ isOpen, onClose, user, isLoadingFullData = false }: Jour
   // Get current search params to preserve dev mode and other context params
   const [searchParams] = useSearchParams()
   
-  // Don't fetch level requirements on mount - will be lazy loaded when Levels tab is opened
-  const { requirements: levelRequirementsCache } = useLevelRequirements(user?.level ? user.level + 2 : 45, false)
   const { definitions: achievementDefinitions } = useAchievementDefinitions()
-  const userProgressData = user ? mapUserToProgressData(user, levelRequirementsCache, achievementDefinitions) : undefined
+  const userProgressData = user ? mapUserToProgressData(user, undefined, achievementDefinitions) : undefined
 
   // Determine if we're waiting for achievements to load
   // We show loading if:

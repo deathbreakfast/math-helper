@@ -8,7 +8,7 @@ import pytest
 from datetime import datetime
 
 from app import create_app, db
-from app.models import FlaggedQuestion, LevelProblemConfig, PracticeSession, Question, Response, User
+from app.models import FlaggedQuestion, PracticeSession, Question, Response, User
 from app.services.practice_service import PracticeService
 
 
@@ -478,102 +478,7 @@ class TestPracticeService:
             assert len(flagged) == 1
             assert flagged[0].session_id == session1.id
 
-    def test_get_level_problem_config(self, app):
-        """Test get_level_problem_config retrieves config for a level."""
-        with app.app_context():
-            config = PracticeService.create_level_problem_config(
-                level=1,
-                operation="addition",
-                min_operand1=1,
-                max_operand1=10,
-                min_operand2=1,
-                max_operand2=10
-            )
-            
-            configs = PracticeService.get_level_problem_config(level=1)
-            
-            assert len(configs) == 1
-            assert configs[0].id == config.id
-
-    def test_get_level_problem_config_with_operation(self, app):
-        """Test get_level_problem_config filters by operation."""
-        with app.app_context():
-            PracticeService.create_level_problem_config(
-                level=1,
-                operation="addition"
-            )
-            PracticeService.create_level_problem_config(
-                level=1,
-                operation="subtraction"
-            )
-            
-            configs = PracticeService.get_level_problem_config(level=1, operation="addition")
-            
-            assert len(configs) == 1
-            assert configs[0].operation == "addition"
-
-    def test_get_level_problem_config_only_available(self, app):
-        """Test get_level_problem_config only returns available configs."""
-        with app.app_context():
-            PracticeService.create_level_problem_config(
-                level=1,
-                operation="addition",
-                is_available=True
-            )
-            PracticeService.create_level_problem_config(
-                level=1,
-                operation="subtraction",
-                is_available=False
-            )
-            
-            configs = PracticeService.get_level_problem_config(level=1)
-            
-            assert len(configs) == 1
-            assert configs[0].operation == "addition"
-
-    def test_create_level_problem_config_new(self, app):
-        """Test create_level_problem_config creates a new config."""
-        with app.app_context():
-            config = PracticeService.create_level_problem_config(
-                level=1,
-                operation="addition",
-                min_operand1=1,
-                max_operand1=10,
-                min_operand2=1,
-                max_operand2=10,
-                layout_types=["vertical", "horizontal"],
-                answer_formats=["integer", "remainder"]
-            )
-            
-            assert config.id is not None
-            assert config.level == 1
-            assert config.operation == "addition"
-            assert config.min_operand1 == 1
-            assert config.max_operand1 == 10
-            assert json.loads(config.layout_types) == ["vertical", "horizontal"]
-            assert json.loads(config.answer_formats) == ["integer", "remainder"]
-
-    def test_create_level_problem_config_update_existing(self, app):
-        """Test create_level_problem_config updates existing config."""
-        with app.app_context():
-            # Create initial config
-            config1 = PracticeService.create_level_problem_config(
-                level=1,
-                operation="addition",
-                min_operand1=1,
-                max_operand1=5
-            )
-            
-            # Update it
-            config2 = PracticeService.create_level_problem_config(
-                level=1,
-                operation="addition",
-                min_operand1=1,
-                max_operand1=10
-            )
-            
-            assert config1.id == config2.id  # Same config
-            assert config2.max_operand1 == 10  # Updated value
+    # Legacy level problem config tests removed - level system no longer uses database configs
 
     def test_get_incomplete_session_no_session(self, app, test_user):
         """Test get_incomplete_session returns None when no incomplete session exists."""

@@ -1,55 +1,7 @@
 import { useEffect, useState } from 'react'
-import { fetchLevelRequirements, fetchMultipleLevelRequirements, fetchAchievementDefinitions, type BackendLevelRequirement, type BackendAchievementDefinition } from './api'
-
-export type LevelRequirementsCache = {
-  [level: number]: BackendLevelRequirement[]
-}
+import { fetchAchievementDefinitions, type BackendAchievementDefinition } from './api'
 
 export type AchievementDefinitionsCache = Record<string, BackendAchievementDefinition>
-
-/**
- * Hook to fetch and cache level requirements
- * 
- * @param maxLevel - Maximum level to fetch requirements for
- * @param enabled - If false, hook will not fetch (for lazy loading). Default: true
- * @param userId - Optional user ID to include completion status in requirements
- */
-export const useLevelRequirements = (maxLevel: number = 45, enabled: boolean = true, userId?: string) => {
-  const [requirements, setRequirements] = useState<LevelRequirementsCache>({})
-  const [isLoading, setIsLoading] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    // Only fetch if enabled
-    if (!enabled) {
-      setIsLoading(false)
-      return
-    }
-
-    const fetchRequirements = async () => {
-      setIsLoading(true)
-      setError(null)
-      
-      try {
-        const levels = Array.from({ length: maxLevel }, (_, i) => i + 1)
-        
-        // Use batch endpoint for better performance
-        // Pass userId to get completion status from server
-        const fetchedRequirements = await fetchMultipleLevelRequirements(levels, userId)
-        
-        setRequirements(fetchedRequirements)
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch level requirements')
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
-    fetchRequirements()
-  }, [maxLevel, enabled, userId])
-
-  return { requirements, isLoading, error }
-}
 
 /**
  * Hook to fetch and cache achievement definitions

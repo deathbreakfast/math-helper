@@ -36,10 +36,8 @@ class QuestionGenerationService:
         if not config:
             raise ValueError(f"Unsupported concept_id for practice session: {concept_id}")
         
-        # Determine concept level
+        # Determine concept level (for backward compatibility with QuestionService)
         concept_level = extract_legacy_level_from_concept_id(concept_id)
-        if concept_level is None:
-            concept_level = int(config.get("legacy_level") or 0) or None
         
         operation = config["operation"]
         questions: list[dict[str, Any]] = []

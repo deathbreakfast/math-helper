@@ -135,63 +135,8 @@ def verify_user_pin(user_id: int):
         return jsonify({"error": "Incorrect PIN", "verified": False}), 403
 
 
-@users_bp.post("/users/<int:user_id>/level-up")
-def manual_level_up(user_id: int):
-    """Manually trigger level up for a user if requirements are met."""
-    user = UserService.get_user(user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    next_level = user.level + 1
-    can_level_up, missing_achievements = UserService.can_level_up(user, next_level)
-    
-    if not can_level_up:
-        return jsonify({
-            "success": False,
-            "eligible": False,
-            "missing_achievements": missing_achievements,
-            "message": f"Cannot level up to level {next_level}. Missing achievements: {', '.join(missing_achievements)}"
-        }), 400
-
-    success, errors = UserService.level_up(user, next_level)
-    
-    if success:
-        # Refresh user to get updated level
-        user = UserService.get_user(user_id)
-        # Prevent stale cached user responses after mutating level
-        invalidate_user_cache(user_id)
-        cache_user(user_id, serialize_user(user))
-        return jsonify({
-            "success": True,
-            "eligible": True,
-            "new_level": user.level,
-            "message": f"Successfully leveled up to level {user.level}!"
-        })
-    else:
-        return jsonify({
-            "success": False,
-            "eligible": False,
-            "errors": errors,
-            "message": "Failed to level up"
-        }), 400
-
-
-@users_bp.get("/users/<int:user_id>/level-up/eligibility")
-def check_level_up_eligibility(user_id: int):
-    """Check if a user is eligible to level up."""
-    user = UserService.get_user(user_id)
-    if not user:
-        return jsonify({"error": "User not found"}), 404
-
-    next_level = user.level + 1
-    can_level_up, missing_achievements = UserService.can_level_up(user, next_level)
-    
-    return jsonify({
-        "eligible": can_level_up,
-        "current_level": user.level,
-        "next_level": next_level,
-        "missing_achievements": missing_achievements,
-    })
+# Legacy achievement-based level up endpoints removed
+# User level is now automatically calculated from XP (XPService)
 
 
 @users_bp.delete("/users/<int:user_id>/reset")

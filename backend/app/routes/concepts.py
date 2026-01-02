@@ -6,7 +6,6 @@ from flask import Blueprint, jsonify, request
 
 from ..config.concept_unlock_requirements import CONCEPT_UNLOCK_REQUIREMENTS
 from ..services.achievement_service import AchievementService
-from ..services.level_config_service import LevelConfigService
 
 
 concepts_bp = Blueprint("concepts", __name__)
@@ -38,19 +37,11 @@ def get_concept_requirements():
     for concept_id in concept_ids:
         reqs: list[dict] = []
 
-        # Prefer explicit concept unlock requirements (supports both descriptive and legacy ids).
+        # Get explicit concept unlock requirements
         if concept_id in CONCEPT_UNLOCK_REQUIREMENTS:
             reqs = list(CONCEPT_UNLOCK_REQUIREMENTS.get(concept_id, []))
-        # Fallback: legacy concepts use level progression configs as their unlock source (1:1)
-        elif concept_id.startswith("c_concept_"):
-            try:
-                level_num = int(concept_id.split("_")[-1])
-            except ValueError:
-                level_num = None
-
-            if level_num is not None:
-                reqs = list(LevelConfigService.get_level_progression_config(level_num) or [])
         else:
+            # No requirements found - concept is unlocked by default
             reqs = []
 
         # Enrich with counts if user_id provided
@@ -77,6 +68,7 @@ def get_concept_requirements():
         requirements_by_concept[concept_id] = reqs
 
     return jsonify({"requirements": requirements_by_concept})
+
 
 
 

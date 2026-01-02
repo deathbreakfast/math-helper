@@ -9,7 +9,7 @@ from fractions import Fraction
 from typing import Any
 
 from ..database import log_query
-from ..services.level_config_service import LevelConfigService
+from ..config.concepts_config import CONCEPTS_CONFIG
 from ..services.practice_service import PracticeService
 
 
@@ -366,9 +366,11 @@ class QuestionService:
         Returns:
             Tuple of (operand1, operand2) that satisfy the constraints
         """
-        config = LevelConfigService.get_level_config(level)
+        # Convert level to concept_id for lookup
+        concept_id = f"c_concept_{level:03d}"
+        config = CONCEPTS_CONFIG.get(concept_id)
         if not config:
-            raise ValueError(f"Level {level} configuration not found")
+            raise ValueError(f"Level {level} (concept {concept_id}) configuration not found")
         
         constraints = config.get("constraints", {})
         op1_range = config["operand1_range"]
@@ -519,8 +521,12 @@ class QuestionService:
         config_override: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Create layout configuration matching frontend ProblemLayoutConfig type."""
-        # Get level config to determine layout type
-        config = config_override or LevelConfigService.get_level_config(level)
+        # Get level config to determine layout type (convert level to concept_id for lookup)
+        if config_override:
+            config = config_override
+        else:
+            concept_id = f"c_concept_{level:03d}"
+            config = CONCEPTS_CONFIG.get(concept_id)
         layout_type = config.get("layout_type", "vertical") if config else "vertical"
         partial_mode = config.get("partial_products_mode", "easy") if config else "easy"
         
@@ -594,10 +600,14 @@ class QuestionService:
         Returns:
             Dictionary with question data including id, prompt, operands, correct_answer, layout, etc.
         """
-        # Get level configuration
-        config = config_override or LevelConfigService.get_level_config(level)
+        # Get level configuration (convert level to concept_id for lookup)
+        if config_override:
+            config = config_override
+        else:
+            concept_id = f"c_concept_{level:03d}"
+            config = CONCEPTS_CONFIG.get(concept_id)
         if not config:
-            raise ValueError(f"Level {level} configuration not found")
+            raise ValueError(f"Level {level} (concept {concept_id}) configuration not found")
         
         # Override operation from config if test_constraints don't specify
         if not test_constraints or "operation" not in test_constraints:
@@ -666,9 +676,8 @@ class QuestionService:
         
         # Create question in database
         required_level = level
-        legacy_level = config.get("legacy_level")
-        if isinstance(legacy_level, int) and legacy_level > 0:
-            required_level = legacy_level
+        # Legacy level field removed - concepts no longer have legacy_level
+        # Use concept_id directly for any level-based logic if needed
 
         difficulty = f"Level {required_level}"
         target_ms = 4000 + required_level * 500

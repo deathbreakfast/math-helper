@@ -8,7 +8,6 @@ from pathlib import Path
 from app import create_app
 from app.database import init_db
 from app.models import db
-from app.services.level_config_service import LevelConfigService
 
 
 def migrate_database(app=None):
@@ -71,16 +70,6 @@ def migrate_database(app=None):
 
             cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='daily_stats'")
             daily_stats_exists = cursor.fetchone() is not None
-
-            cursor.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='level_progression'"
-            )
-            level_progression_exists = cursor.fetchone() is not None
-
-            cursor.execute(
-                "SELECT name FROM sqlite_master WHERE type='table' AND name='level_problem_config'"
-            )
-            level_problem_config_exists = cursor.fetchone() is not None
 
             cursor.execute(
                 "SELECT name FROM sqlite_master WHERE type='table' AND name='server_records'"
@@ -213,51 +202,6 @@ def migrate_database(app=None):
                 cursor.execute("CREATE INDEX ix_daily_stats_user_id ON daily_stats(user_id)")
                 cursor.execute("CREATE INDEX ix_daily_stats_date ON daily_stats(date)")
                 cursor.execute("CREATE INDEX ix_daily_stats_operation ON daily_stats(operation)")
-
-            if not level_progression_exists:
-                print("Creating level_progression table...")
-                cursor.execute(
-                    """
-                    CREATE TABLE level_progression (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        target_level INTEGER NOT NULL,
-                        required_achievement_code VARCHAR(64) NOT NULL,
-                        "order" INTEGER,
-                        created_at DATETIME NOT NULL,
-                        UNIQUE(target_level, required_achievement_code)
-                    )
-                """
-                )
-                cursor.execute(
-                    "CREATE INDEX ix_level_progression_target_level ON level_progression(target_level)"
-                )
-
-            if not level_problem_config_exists:
-                print("Creating level_problem_config table...")
-                cursor.execute(
-                    """
-                    CREATE TABLE level_problem_config (
-                        id INTEGER PRIMARY KEY AUTOINCREMENT,
-                        level INTEGER NOT NULL,
-                        operation VARCHAR(32) NOT NULL,
-                        min_operand1 INTEGER,
-                        max_operand1 INTEGER,
-                        min_operand2 INTEGER,
-                        max_operand2 INTEGER,
-                        layout_types TEXT,
-                        answer_formats TEXT,
-                        is_available BOOLEAN NOT NULL DEFAULT 1,
-                        created_at DATETIME NOT NULL,
-                        UNIQUE(level, operation)
-                    )
-                """
-                )
-                cursor.execute(
-                    "CREATE INDEX ix_level_problem_config_level ON level_problem_config(level)"
-                )
-                cursor.execute(
-                    "CREATE INDEX ix_level_problem_config_operation ON level_problem_config(operation)"
-                )
 
             if not server_records_exists:
                 print("Creating server_records table...")
@@ -594,20 +538,8 @@ def migrate_database(app=None):
         # Reinitialize with SQLAlchemy to ensure everything is in sync
         db.create_all()
         
-        # Populate level configs and progression requirements
-        print("Populating level configurations...")
-        try:
-            LevelConfigService.sync_level_configs_to_database()
-            print("Level configurations populated successfully!")
-        except Exception as e:
-            print(f"Warning: Failed to populate level configurations: {e}")
-        
-        print("Populating level progression requirements...")
-        try:
-            LevelConfigService.sync_progression_configs_to_database()
-            print("Level progression requirements populated successfully!")
-        except Exception as e:
-            print(f"Warning: Failed to populate level progression requirements: {e}")
+        # Level configs and progression requirements are no longer stored in database
+        # They are now managed entirely through CONCEPTS_CONFIG and CONCEPT_UNLOCK_REQUIREMENTS
 
 
 if __name__ == "__main__":

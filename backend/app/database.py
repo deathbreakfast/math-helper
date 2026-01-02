@@ -189,8 +189,6 @@ def init_db(app):
                 Achievement,
                 DailyStat,
                 FlaggedQuestion,
-                LevelProblemConfig,
-                LevelProgression,
                 PracticeSession,
                 Question,
                 Response,
@@ -214,13 +212,11 @@ def init_db(app):
                 db.session.execute(delete(User))
                 db.session.execute(delete(Question))
                 
-                # Delete config tables (optional - these can be re-seeded)
-                db.session.execute(delete(LevelProblemConfig))
-                db.session.execute(delete(LevelProgression))
+                # Legacy level config tables removed - no longer needed
                 
                 # Reset SQLite sequence counters so IDs start from 1 after wipe
                 try:
-                    db.session.execute(text("DELETE FROM sqlite_sequence WHERE name IN ('practice_sessions', 'users', 'questions', 'responses', 'achievements', 'daily_stats', 'flagged_questions', 'server_records', 'level_problem_configs', 'level_progressions')"))
+                    db.session.execute(text("DELETE FROM sqlite_sequence WHERE name IN ('practice_sessions', 'users', 'questions', 'responses', 'achievements', 'daily_stats', 'flagged_questions', 'server_records')"))
                     # Don't commit here - let the transaction context manager handle it
                     logger.info("SQLite sequence counters reset")
                 except Exception as e:

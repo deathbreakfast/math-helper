@@ -1,7 +1,7 @@
-"""Unlock requirements for descriptive concept IDs.
+"""Unlock requirements for concept IDs.
 
-Legacy concepts `c_concept_###` currently use level progression configs as their unlock source.
-Descriptive concepts (e.g. `c_add_1s`) are unlocked via this mapping.
+All concepts (both legacy c_concept_### and descriptive c_add_*, c_sub_*, etc.) 
+use this mapping for unlock requirements. Concepts without entries are unlocked by default.
 """
 
 from __future__ import annotations
@@ -13,12 +13,52 @@ ConceptRequirement = dict[str, Any]
 
 
 CONCEPT_UNLOCK_REQUIREMENTS: dict[str, list[ConceptRequirement]] = {
-    # Legacy concept overrides (from MATH_CONCEPTS.md)
+    # Legacy concepts (c_concept_001 through c_concept_045)
+    # Only concepts with explicit requirements are listed here.
+    # Concepts without entries are unlocked by default (no requirements).
     # Basic Single Digit Addition (c_concept_001) should not be the starter concept in the new system.
     "c_concept_001": [
-        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_add_9s"}, "order": 1},
-        {"achievement_code": "master-of-basic-addition-bronze", "quantity": 1, "order": 2},
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_add_10s"}, "order": 1},
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_add_0s"}, "order": 2},
+        {"achievement_code": "master-of-basic-addition-bronze", "quantity": 1, "order": 3},
     ],
+    # Note: c_concept_002 has been removed (merged into c_concept_001)
+    # Basic Single Digit Subtraction (c_concept_003)
+    "c_concept_003": [
+        {"achievement_code": "master-of-basic-subtraction-bronze", "quantity": 1, "order": 1},
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_sub_10s"}, "order": 2},
+    ],
+    # Single and Two Digit Subtraction (c_concept_006)
+    "c_concept_006": [
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_003"}, "order": 1},
+    ],
+    # Single and Two Digit Addition (c_concept_005)
+    "c_concept_005": [
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_001"}, "order": 1},
+    ],
+    # Two Digit Addition (c_concept_007)
+    "c_concept_007": [
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_005"}, "order": 1},
+    ],
+    # Three Digit Addition (c_concept_022)
+    "c_concept_022": [
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_007"}, "order": 1},
+    ],
+    # Two Digit Subtraction (c_concept_008)
+    "c_concept_008": [
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_006"}, "order": 1},
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_010"}, "order": 2},
+    ],
+    # Negative Number Subtraction (c_concept_010)
+    "c_concept_010": [
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_003"}, "order": 1},
+    ],
+    # Three Digit Subtraction (c_concept_023)
+    "c_concept_023": [
+        {"achievement_code": "level-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_008"}, "order": 1},
+    ],
+    # Note: c_concept_011 through c_concept_021, c_concept_024 through c_concept_045 are unlocked by default (no requirements listed)
+    # Note: c_concept_004 removed (covered by c_sub_0s), c_concept_009 removed
 
     # Single Digit Addition (1s): starter concept
     "c_add_1s": [],

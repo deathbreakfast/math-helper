@@ -1,9 +1,8 @@
 import type { User } from '../../hooks/useLearners'
 import type { Achievement } from '../../data/achievements'
 import type { LevelRequirement } from '../../data/levelRequirements'
-import type { LevelRequirementsCache, AchievementDefinitionsCache } from '../../../../lib/levels/hooks'
+import type { AchievementDefinitionsCache } from '../../../../lib/levels/hooks'
 import { convertBackendDefinitionToFrontend, convertBackendAchievementToFrontend } from './achievementConverters'
-import { convertBackendRequirementsToFrontend } from './levelRequirementConverters'
 
 export type UserProgressData = {
   id: string
@@ -30,9 +29,9 @@ export type UserProgressData = {
 
 export const mapUserToProgressData = (
   user: User,
-  levelRequirementsCache?: LevelRequirementsCache,
+  _levelRequirementsCache?: unknown, // Deprecated: level requirements removed
   achievementDefinitions?: AchievementDefinitionsCache,
-  devMode: boolean = false
+  _devMode: boolean = false // Deprecated: dev mode for levels removed
 ): UserProgressData => {
   // Get user's earned achievements from backend
   const userBackendAchievements = user.achievements || []
@@ -73,48 +72,9 @@ export const mapUserToProgressData = (
     allAchievements = Array.from(uniqueAchievements.values())
   }
 
-  // Build level requirements from backend data
-  let levelRequirements: LevelRequirement[] = []
-
-  if (levelRequirementsCache) {
-    // In dev mode, show all 45 levels. Otherwise, show levels up to user's level + 2
-    const maxLevelToShow = devMode ? 45 : Math.min(user.level + 2, 45)
-    
-    for (let level = 1; level <= maxLevelToShow; level++) {
-      const nextLevel = level + 1
-      const backendReqs = levelRequirementsCache[nextLevel] || []
-      
-      if (backendReqs.length > 0) {
-        const frontendReq = convertBackendRequirementsToFrontend(
-          backendReqs,
-          userBackendAchievements,
-          level,
-          nextLevel
-        )
-        // In dev mode, don't lock requirements. Otherwise, lock if level > user.level
-        frontendReq.isLocked = devMode ? false : level > user.level
-        levelRequirements.push(frontendReq)
-      }
-    }
-  } else {
-    // Fallback: use hardcoded requirements if cache not available
-    levelRequirements = [
-      {
-        id: 'l1-2',
-        level: 1,
-        nextLevel: 2,
-        title: 'Reach Level 2',
-        requirements: [
-          {
-            description: 'Complete achievement: addition-basics-bronze',
-            achievementIds: ['addition-1digit-b'],
-            completed: userBackendAchievements.some((a) => a.code === 'addition-basics-bronze'),
-          },
-        ],
-        isLocked: user.level < 1,
-      },
-    ]
-  }
+  // Level requirements removed - legacy level progression system no longer exists
+  // User level is now automatically calculated from XP
+  const levelRequirements: LevelRequirement[] = []
 
   return {
     id: user.id,

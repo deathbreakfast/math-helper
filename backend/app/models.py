@@ -155,36 +155,6 @@ class DailyStat(db.Model):
     user = db.relationship("User", back_populates="daily_stats")
 
 
-class LevelProgression(db.Model):
-    __tablename__ = "level_progression"
-
-    id = db.Column(db.Integer, primary_key=True)
-    target_level = db.Column(db.Integer, nullable=False, index=True)
-    required_achievement_code = db.Column(db.String(64), nullable=False)
-    order = db.Column(db.Integer, nullable=True)  # for ordering multiple requirements
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
-    __table_args__ = (db.UniqueConstraint("target_level", "required_achievement_code", name="uq_level_progression"),)
-
-
-class LevelProblemConfig(db.Model):
-    __tablename__ = "level_problem_config"
-
-    id = db.Column(db.Integer, primary_key=True)
-    level = db.Column(db.Integer, nullable=False, index=True)
-    operation = db.Column(db.String(32), nullable=False, index=True)
-    min_operand1 = db.Column(db.Integer, nullable=True)
-    max_operand1 = db.Column(db.Integer, nullable=True)
-    min_operand2 = db.Column(db.Integer, nullable=True)
-    max_operand2 = db.Column(db.Integer, nullable=True)
-    layout_types = db.Column(db.Text, nullable=True)  # JSON array of allowed layout types
-    answer_formats = db.Column(db.Text, nullable=True)  # JSON array of allowed answer formats
-    is_available = db.Column(db.Boolean, default=True, nullable=False)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
-
-    __table_args__ = (db.UniqueConstraint("level", "operation", name="uq_level_problem_config"),)
-
-
 class ServerRecord(db.Model):
     __tablename__ = "server_records"
 

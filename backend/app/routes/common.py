@@ -143,8 +143,6 @@ def reset_all_data():
         Achievement,
         DailyStat,
         FlaggedQuestion,
-        LevelProblemConfig,
-        LevelProgression,
         PracticeSession,
         Question,
         Response,
@@ -170,9 +168,7 @@ def reset_all_data():
         db.session.execute(delete(User))
         db.session.execute(delete(Question))
         
-        # Delete config tables (optional - these can be re-seeded)
-        db.session.execute(delete(LevelProblemConfig))
-        db.session.execute(delete(LevelProgression))
+        # Legacy level config tables removed - no longer needed
     
     return jsonify({
         "success": True,

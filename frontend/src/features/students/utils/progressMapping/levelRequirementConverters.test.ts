@@ -197,9 +197,9 @@ describe('levelRequirementConverters', () => {
       const result2 = convertBackendRequirementsToFrontend(backendRequirements, [], 2, 3)
       expect(result2.isLocked).toBe(false)
 
-      // Level 3 -> Level 2: should be locked (level > nextLevel - 1)
+      // Level 3 -> Level 2: should not be locked (concept unlocks are not locked by level)
       const result3 = convertBackendRequirementsToFrontend(backendRequirements, [], 3, 2)
-      expect(result3.isLocked).toBe(true)
+      expect(result3.isLocked).toBe(false)
     })
 
     it('should handle multiple requirements', () => {

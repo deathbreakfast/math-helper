@@ -243,24 +243,12 @@ def create_test_questions(
             correct_answer = str(operand1 + operand2)
             prompt = f"{operand1} + {operand2}"
         
-        # Extract level from concept_id for required_level (placeholder until Phase 5 removes it)
-        # Format: c_concept_XXX -> XXX
-        legacy_level = 1  # Default placeholder
-        if concept_id.startswith("c_concept_"):
-            try:
-                level_str = concept_id.replace("c_concept_", "")
-                legacy_level = int(level_str)
-            except ValueError:
-                pass
-        
         question = Question(
             operation=operation,
             operand1=operand1,
             operand2=operand2,
             correct_answer=correct_answer,
             prompt=prompt,
-            required_level=legacy_level,  # Placeholder until Phase 5 removes this field
-            level_tag=None,  # No longer setting level_tag
         )
         db.session.add(question)
         questions.append(question)

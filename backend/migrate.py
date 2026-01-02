@@ -120,7 +120,7 @@ def migrate_database(app=None):
                         id INTEGER PRIMARY KEY AUTOINCREMENT,
                         user_id INTEGER NOT NULL,
                         mode VARCHAR(32) NOT NULL,
-                        level INTEGER,
+                        concept_id VARCHAR(64),
                         is_test BOOLEAN NOT NULL DEFAULT 0,
                         test_type VARCHAR(64),
                         started_at DATETIME NOT NULL,
@@ -142,6 +142,10 @@ def migrate_database(app=None):
                 # Check if new columns exist and add them if missing
                 cursor.execute("PRAGMA table_info(practice_sessions)")
                 columns = [row[1] for row in cursor.fetchall()]
+                
+                if "concept_id" not in columns:
+                    print("Adding concept_id column to practice_sessions table...")
+                    cursor.execute("ALTER TABLE practice_sessions ADD COLUMN concept_id VARCHAR(64)")
                 
                 if "is_test" not in columns:
                     print("Adding is_test column to practice_sessions table...")
@@ -252,8 +256,6 @@ def migrate_database(app=None):
                         correct_answer TEXT NOT NULL,
                         prompt TEXT NOT NULL,
                         difficulty VARCHAR(32),
-                        required_level INTEGER NOT NULL DEFAULT 1,
-                        level_tag VARCHAR(32),
                         target_ms INTEGER,
                         hint TEXT,
                         answer_format VARCHAR(32),
@@ -268,10 +270,26 @@ def migrate_database(app=None):
 
                 # Copy existing data (try to extract operands from prompt if possible)
                 if questions_exists:
-                    cursor.execute("SELECT id, prompt, operation, level_tag, difficulty, created_at FROM questions")
+                    # Try to select columns that may or may not exist (for legacy migration)
+                    # Check which columns exist first
+                    cursor.execute("PRAGMA table_info(questions)")
+                    old_columns = {row[1] for row in cursor.fetchall()}
+                    
+                    # Build SELECT based on available columns
+                    select_columns = ["id", "prompt", "operation", "difficulty", "created_at"]
+                    if "level_tag" in old_columns:
+                        select_columns.insert(3, "level_tag")  # Insert after operation
+                    
+                    cursor.execute(f"SELECT {', '.join(select_columns)} FROM questions")
                     old_questions = cursor.fetchall()
 
-                    for qid, prompt, operation, level_tag, difficulty, created_at in old_questions:
+                    # Parse results based on whether level_tag was selected
+                    for row in old_questions:
+                        if "level_tag" in old_columns:
+                            qid, prompt, operation, level_tag, difficulty, created_at = row
+                        else:
+                            qid, prompt, operation, difficulty, created_at = row
+                            level_tag = None
                         # Try to parse operands from prompt (e.g., "5 + 3" -> operand1=5, operand2=3)
                         operand1 = 0
                         operand2 = 0
@@ -300,11 +318,10 @@ def migrate_database(app=None):
                         cursor.execute(
                             """
                             INSERT INTO questions_new 
-                            (id, operation, operand1, operand2, correct_answer, prompt, difficulty, 
-                             required_level, level_tag, created_at)
-                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                            (id, operation, operand1, operand2, correct_answer, prompt, difficulty, created_at)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                         """,
-                            (qid, operation or "addition", operand1, operand2, correct_answer, prompt, difficulty, 1, level_tag, created_at),
+                            (qid, operation or "addition", operand1, operand2, correct_answer, prompt, difficulty, created_at),
                         )
 
                 # Drop old table if it exists and rename new one
@@ -317,10 +334,8 @@ def migrate_database(app=None):
                         cursor.execute("PRAGMA foreign_keys=ON")
                 cursor.execute("ALTER TABLE questions_new RENAME TO questions")
 
-                # Create indexes
+                # Create indexes (legacy level indexes removed in Phase 5)
                 cursor.execute("CREATE INDEX ix_questions_operation ON questions(operation)")
-                cursor.execute("CREATE INDEX ix_questions_required_level ON questions(required_level)")
-                cursor.execute("CREATE INDEX ix_questions_level_tag ON questions(level_tag)")
 
             if needs_response_update:
                 print("Migrating responses table...")
@@ -477,15 +492,7 @@ def migrate_database(app=None):
                         "CREATE INDEX ix_sessions_user_test_completed ON practice_sessions(user_id, test_type, completed_at)"
                     )
             
-            # Composite index on questions for operation+level queries: (operation, required_level)
-            cursor.execute(
-                "SELECT name FROM sqlite_master WHERE type='index' AND name='ix_questions_operation_level'"
-            )
-            if cursor.fetchone() is None:
-                print("Adding composite index on questions(operation, required_level)...")
-                cursor.execute(
-                    "CREATE INDEX ix_questions_operation_level ON questions(operation, required_level)"
-                )
+            # Legacy composite index on questions(operation, required_level) removed in Phase 5
             
             # Composite index on responses for user+question joins: (user_id, question_id, is_correct)
             cursor.execute(
@@ -525,8 +532,173 @@ def migrate_database(app=None):
                     "CREATE INDEX ix_server_records_user_id ON server_records(user_id)"
                 )
 
+            # Phase 5: Remove legacy level system columns and indexes
+            print("Phase 5: Removing legacy level system columns and indexes...")
+            
+            # Check if questions table exists and has legacy columns
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='questions'")
+            questions_table_exists = cursor.fetchone() is not None
+            
+            if questions_table_exists:
+                cursor.execute("PRAGMA table_info(questions)")
+                question_columns = {row[1]: row[2] for row in cursor.fetchall()}
+                has_required_level = "required_level" in question_columns
+                has_level_tag = "level_tag" in question_columns
+                
+                if has_required_level or has_level_tag:
+                    print("Removing legacy level columns from questions table...")
+                    
+                    # Get all existing columns except the ones to remove
+                    columns_to_keep = [
+                        "id", "operation", "operand1", "operand2", "correct_answer", "prompt",
+                        "difficulty", "target_ms", "hint", "answer_format", "accepted_answers",
+                        "layout_type", "layout_config", "math_type_label", "created_at"
+                    ]
+                    
+                    # Create new table without legacy columns
+                    cursor.execute(
+                        """
+                        CREATE TABLE questions_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            operation VARCHAR(32) NOT NULL,
+                            operand1 INTEGER NOT NULL,
+                            operand2 INTEGER NOT NULL,
+                            correct_answer TEXT NOT NULL,
+                            prompt TEXT NOT NULL,
+                            difficulty VARCHAR(32),
+                            target_ms INTEGER,
+                            hint TEXT,
+                            answer_format VARCHAR(32),
+                            accepted_answers TEXT,
+                            layout_type VARCHAR(32),
+                            layout_config TEXT,
+                            math_type_label VARCHAR(128),
+                            created_at DATETIME NOT NULL
+                        )
+                        """
+                    )
+                    
+                    # Copy data from old table, excluding legacy columns
+                    column_list = ", ".join(columns_to_keep)
+                    cursor.execute(f"INSERT INTO questions_new ({column_list}) SELECT {column_list} FROM questions")
+                    
+                    # Drop old table and rename new one
+                    cursor.execute("PRAGMA foreign_keys=OFF")
+                    try:
+                        cursor.execute("DROP TABLE questions")
+                    finally:
+                        cursor.execute("PRAGMA foreign_keys=ON")
+                    cursor.execute("ALTER TABLE questions_new RENAME TO questions")
+                    
+                    # Recreate indexes that should still exist
+                    cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type='index' AND name='ix_questions_operation'"
+                    )
+                    if cursor.fetchone() is None:
+                        cursor.execute("CREATE INDEX ix_questions_operation ON questions(operation)")
+                    
+                    print("Legacy level columns removed from questions table.")
+            
+            # Drop legacy indexes if they exist
+            indexes_to_drop = [
+                "ix_questions_required_level",
+                "ix_questions_level_tag",
+                "ix_questions_operation_level"
+            ]
+            
+            for index_name in indexes_to_drop:
+                cursor.execute(
+                    "SELECT name FROM sqlite_master WHERE type='index' AND name=:name",
+                    {"name": index_name}
+                )
+                if cursor.fetchone() is not None:
+                    print(f"Dropping legacy index: {index_name}...")
+                    cursor.execute(f"DROP INDEX {index_name}")
+            
+            # Check if practice_sessions table exists and has level column
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='practice_sessions'")
+            sessions_table_exists = cursor.fetchone() is not None
+            
+            if sessions_table_exists:
+                cursor.execute("PRAGMA table_info(practice_sessions)")
+                session_columns = {row[1]: row[2] for row in cursor.fetchall()}
+                has_level = "level" in session_columns
+                
+                if has_level:
+                    print("Removing legacy level column from practice_sessions table...")
+                    
+                    # Get all existing columns except level
+                    columns_to_keep = [
+                        "id", "user_id", "mode", "concept_id", "started_at", "completed_at",
+                        "total_questions", "correct_count", "accuracy", "total_duration_ms", "question_ids"
+                    ]
+                    # Also include is_test and test_type if they exist (for backward compatibility with older migrations)
+                    if "is_test" in session_columns:
+                        columns_to_keep.append("is_test")
+                    if "test_type" in session_columns:
+                        columns_to_keep.append("test_type")
+                    
+                    # Create new table without level column
+                    cursor.execute(
+                        """
+                        CREATE TABLE practice_sessions_new (
+                            id INTEGER PRIMARY KEY AUTOINCREMENT,
+                            user_id INTEGER NOT NULL,
+                            mode VARCHAR(32) NOT NULL,
+                            concept_id VARCHAR(64),
+                            started_at DATETIME NOT NULL,
+                            completed_at DATETIME,
+                            total_questions INTEGER NOT NULL DEFAULT 0,
+                            correct_count INTEGER NOT NULL DEFAULT 0,
+                            accuracy REAL NOT NULL DEFAULT 0.0,
+                            total_duration_ms INTEGER,
+                            question_ids TEXT,
+                            FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+                        )
+                        """
+                    )
+                    
+                    # Add optional columns if they exist in old table
+                    if "is_test" in session_columns:
+                        cursor.execute("ALTER TABLE practice_sessions_new ADD COLUMN is_test BOOLEAN NOT NULL DEFAULT 0")
+                    if "test_type" in session_columns:
+                        cursor.execute("ALTER TABLE practice_sessions_new ADD COLUMN test_type VARCHAR(64)")
+                    
+                    # Copy data from old table, excluding level column
+                    column_list = ", ".join(columns_to_keep)
+                    cursor.execute(f"INSERT INTO practice_sessions_new ({column_list}) SELECT {column_list} FROM practice_sessions")
+                    
+                    # Drop old table and rename new one
+                    cursor.execute("PRAGMA foreign_keys=OFF")
+                    try:
+                        cursor.execute("DROP TABLE practice_sessions")
+                    finally:
+                        cursor.execute("PRAGMA foreign_keys=ON")
+                    cursor.execute("ALTER TABLE practice_sessions_new RENAME TO practice_sessions")
+                    
+                    # Recreate indexes that should still exist
+                    cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type='index' AND name='ix_practice_sessions_user_id'"
+                    )
+                    if cursor.fetchone() is None:
+                        cursor.execute("CREATE INDEX ix_practice_sessions_user_id ON practice_sessions(user_id)")
+                    
+                    cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type='index' AND name='ix_practice_sessions_started_at'"
+                    )
+                    if cursor.fetchone() is None:
+                        cursor.execute("CREATE INDEX ix_practice_sessions_started_at ON practice_sessions(started_at)")
+                    
+                    cursor.execute(
+                        "SELECT name FROM sqlite_master WHERE type='index' AND name='ix_practice_sessions_concept_id'"
+                    )
+                    if cursor.fetchone() is None:
+                        cursor.execute("CREATE INDEX ix_practice_sessions_concept_id ON practice_sessions(concept_id)")
+                    
+                    print("Legacy level column removed from practice_sessions table.")
+            
             conn.commit()
-            print("Migration completed successfully!")
+            print("Phase 5 migration completed successfully!")
 
         except Exception as e:
             conn.rollback()

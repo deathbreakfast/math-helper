@@ -70,9 +70,7 @@ class PracticeService:
         operand2: int,
         correct_answer: str,
         prompt: str,
-        required_level: int = 1,
         difficulty: str | None = None,
-        level_tag: str | None = None,
         target_ms: int | None = None,
         hint: str | None = None,
         answer_format: str | None = None,
@@ -81,7 +79,11 @@ class PracticeService:
         layout_config: dict[str, Any] | None = None,
         math_type_label: str | None = None,
     ) -> Question:
-        """Create and store a question."""
+        """Create and store a question.
+        
+        Note: required_level and level_tag parameters removed in Phase 5.
+        Questions are now identified by concept_id in sessions, not by level fields.
+        """
         accepted_answers_json = json.dumps(accepted_answers) if accepted_answers else None
         layout_config_json = json.dumps(layout_config) if layout_config else None
 
@@ -92,9 +94,7 @@ class PracticeService:
                 operand2=operand2,
                 correct_answer=correct_answer,
                 prompt=prompt,
-                required_level=required_level,
                 difficulty=difficulty,
-                level_tag=level_tag,
                 target_ms=target_ms,
                 hint=hint,
                 answer_format=answer_format,

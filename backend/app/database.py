@@ -301,7 +301,7 @@ def init_db(app):
                             "ix_responses_user_correct_answered",
                             "ix_achievements_user_category_earned",
                             "ix_sessions_user_test_completed",
-                            "ix_questions_operation_level",
+                            # ix_questions_operation_level removed in Phase 5 (legacy level system)
                             "ix_responses_user_question_correct",
                         ]
                         for index_name in expected_indexes:

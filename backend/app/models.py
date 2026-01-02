@@ -39,7 +39,6 @@ class PracticeSession(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
     mode = db.Column(db.String(32), nullable=False)  # standard/multiplication/division
-    level = db.Column(db.Integer, nullable=True)
     concept_id = db.Column(db.String(64), nullable=True, index=True)  # e.g., "c_concept_001", "c_add_1s"
     started_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False, index=True)
     completed_at = db.Column(db.DateTime, nullable=True)
@@ -64,8 +63,6 @@ class Question(db.Model):
     correct_answer = db.Column(db.Text, nullable=False)
     prompt = db.Column(db.Text, nullable=False)
     difficulty = db.Column(db.String(32), nullable=True)  # Level 1, Level 2, etc.
-    required_level = db.Column(db.Integer, default=1, nullable=False, index=True)  # minimum level to attempt
-    level_tag = db.Column(db.String(32), nullable=True, index=True)
     target_ms = db.Column(db.Integer, nullable=True)
     hint = db.Column(db.Text, nullable=True)
     answer_format = db.Column(db.String(32), nullable=True)  # integer/remainder/fraction/decimal/mixed

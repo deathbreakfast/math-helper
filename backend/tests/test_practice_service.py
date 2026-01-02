@@ -157,9 +157,7 @@ class TestPracticeService:
                 operand2=3,
                 correct_answer="8",
                 prompt="5 + 3",
-                required_level=1,
                 difficulty="Level 1",
-                level_tag="1",
                 target_ms=4000,
                 hint="Add the numbers",
                 answer_format="integer",
@@ -337,8 +335,7 @@ class TestPracticeService:
                 operand1=1,
                 operand2=1,
                 correct_answer="2",
-                prompt="1 + 1",
-                required_level=1
+                prompt="1 + 1"
             )
             q2 = PracticeService.create_question(
                 operation="addition",
@@ -379,8 +376,7 @@ class TestPracticeService:
                 operand1=1,
                 operand2=1,
                 correct_answer="2",
-                prompt="1 + 1",
-                required_level=1  # Placeholder until Phase 5 removes this field
+                prompt="1 + 1"
             )
             
             # Flag in session1
@@ -580,8 +576,7 @@ class TestPracticeService:
                 operand1=1,
                 operand2=1,
                 correct_answer="2",
-                prompt="1 + 1",
-                required_level=1
+                prompt="1 + 1"
             )
             q2 = PracticeService.create_question(
                 operation="addition",
@@ -688,7 +683,6 @@ class TestPracticeService:
                 operand2=3,
                 correct_answer="3 R 1",
                 prompt="10 ÷ 3",
-                required_level=1,
                 answer_format="remainder"
             )
             
@@ -708,7 +702,6 @@ class TestPracticeService:
                 operand2=2,
                 correct_answer="1/2",
                 prompt="1 ÷ 2",
-                required_level=1,
                 answer_format="fraction"
             )
             
@@ -726,7 +719,6 @@ class TestPracticeService:
                 operand2=2,
                 correct_answer="0.5",
                 prompt="1 ÷ 2",
-                required_level=1,
                 answer_format="decimal"
             )
             
@@ -749,7 +741,6 @@ class TestPracticeService:
                 operand2=3,
                 correct_answer="8",
                 prompt="5 + 3",
-                required_level=1,
                 accepted_answers=["8", "eight", "VIII"]
             )
             

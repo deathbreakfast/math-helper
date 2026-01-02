@@ -522,11 +522,11 @@ level_tag = db.Column(db.String(32), nullable=True, index=True)
 - [x] Remove `get_questions_for_level()` tests
 
 ### Phase 5: Database Cleanup
-- [ ] Drop `ix_questions_required_level` index
-- [ ] Drop `ix_questions_operation_level` composite index
-- [ ] Remove `Question.required_level` column entirely
-- [ ] Remove `Question.level_tag` column entirely
-- [ ] Remove `PracticeSession.level` column entirely
+- [x] Drop `ix_questions_required_level` index
+- [x] Drop `ix_questions_operation_level` composite index
+- [x] Remove `Question.required_level` column entirely
+- [x] Remove `Question.level_tag` column entirely
+- [x] Remove `PracticeSession.level` column entirely
 
 ### Phase 6: Remove Legacy Code
 - [ ] Remove `legacy_mappings.py` file

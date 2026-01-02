@@ -152,30 +152,27 @@ class DistributionTestScenario:
         }
     
     def _extract_level(self, question: dict[str, Any]) -> int:
-        """Extract level from question dictionary.
+        """Extract level from question dictionary (DEPRECATED - for backward compatibility only).
+        
+        Note: This method is deprecated as level fields have been removed.
+        It attempts to extract level from difficulty field parsing as a fallback.
         
         Args:
             question: Question dictionary
             
         Returns:
-            Level number
+            Level number (defaults to 1)
         """
-        # Try to get level from question_id
-        question_id = question.get("question_id")
-        if question_id:
-            question_obj = db.session.get(Question, question_id)
-            if question_obj:
-                return question_obj.required_level
-        
-        # Fall back to difficulty field parsing
+        # Try to parse from difficulty field (e.g., "Level 1" -> 1)
         difficulty = question.get("difficulty", "")
-        if difficulty.startswith("Level "):
+        if difficulty and difficulty.startswith("Level "):
             try:
                 return int(difficulty.split(" ")[1])
             except (ValueError, IndexError):
-                return 1
+                pass
         
-        return question.get("required_level") or question.get("level") or 1
+        # Default to 1 if we can't parse it
+        return 1
 
 
 def verify_level_distribution(

@@ -274,7 +274,6 @@ class TestAnalyticsService:
                 operand2=1,
                 correct_answer="2",
                 prompt="1 + 1",
-                required_level=1
             )
             q2 = PracticeService.create_question(
                 operation="subtraction",
@@ -282,7 +281,6 @@ class TestAnalyticsService:
                 operand2=3,
                 correct_answer="2",
                 prompt="5 - 3",
-                required_level=1
             )
             
             # Add responses

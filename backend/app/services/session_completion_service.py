@@ -156,16 +156,15 @@ class SessionCompletionService:
             total_awarded_xp_raw = multiplied_xp + float(bonus_xp)
             earned_xp = int(round(total_awarded_xp_raw))
             prev_total_xp = int(getattr(user, "experience", 0) or 0)
-            prev_level = int(user.level or 1)
+            prev_level = XPService.level_for_total_xp(prev_total_xp)  # Calculate from XP, don't read from user.level
 
             new_total_xp = prev_total_xp + earned_xp
             new_level = XPService.level_for_total_xp(new_total_xp)
 
             # Update user XP (level is calculated from XP, not stored)
             user.experience = new_total_xp
-            # Note: user.level is still stored in the model but should be calculated from XP
-            # For now, we still update it for backward compatibility, but this will be removed in Phase 5
-            user.level = new_level
+            # Note: user.level field is deprecated but kept in model for backward compatibility
+            # Level is always calculated from XP using XPService.level_for_total_xp()
             db.session.add(user)
             
             # Build response DTO

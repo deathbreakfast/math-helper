@@ -512,9 +512,9 @@ class QuestionService:
     @staticmethod
     def create_layout_config(
         operation: str,
-        concept_id: str | None = None,
         operand1: int,
         operand2: int,
+        concept_id: str | None = None,
         answer_format: str = "integer",
         test_constraints: dict[str, Any] | None = None,
         config_override: dict[str, Any] | None = None,
@@ -635,7 +635,7 @@ class QuestionService:
         
         # Create layout config
         layout_config = QuestionService.create_layout_config(
-            operation, concept_id, operand1, operand2, answer_format, test_constraints, config_override=config
+            operation, operand1, operand2, concept_id=concept_id, answer_format=answer_format, test_constraints=test_constraints, config_override=config
         )
         
         # Override layout type if specified in config
@@ -672,7 +672,6 @@ class QuestionService:
             hint = "Use the long division algorithm: divide, multiply, subtract, bring down."
         
         # Create question in database
-        # Legacy level fields removed - no longer setting required_level or level_tag
         difficulty = "Standard"
         target_ms = 4000  # Default target time
         
@@ -682,9 +681,7 @@ class QuestionService:
             operand2=operand2,
             correct_answer=correct_answer,
             prompt=prompt,
-            required_level=1,  # Legacy field, will be removed in Phase 5
             difficulty=difficulty,
-            level_tag=None,  # Legacy field, will be removed in Phase 5
             target_ms=target_ms,
             hint=hint,
             answer_format=answer_format,

@@ -35,7 +35,8 @@ def test_user(app):
 def test_user2(app):
     """Create a second test user."""
     with app.app_context():
-        user = User(display_name="TestUser2", pin="5678", avatar="🐰", experience=)
+        from app.services.xp_service import XPService
+        user = User(display_name="TestUser2", pin="5678", avatar="🐰", experience=XPService.total_xp_for_level(2))
         db.session.add(user)
         db.session.commit()
         db.session.refresh(user)
@@ -51,7 +52,7 @@ def test_session(app, test_user):
         session = PracticeSession(
             user_id=user.id,
             mode="standard",
-            level=1,
+            concept_id="c_concept_001",
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=10,

@@ -214,14 +214,14 @@ def test_level_master_multiple_awards_30_wrong_30(app, test_user):
         assert bronze1 is not None, "First Level Master (Bronze) should be awarded"
         
         # One wrong answer to break streak
-        questions2 = create_test_questions(1, 1)
+        questions2 = create_test_questions(1)
         session2 = create_test_session_with_responses(test_user.id, [{
             'question_id': questions2[0].id,
             'answer': '999',
             'is_correct': False,
             'duration_ms': 3000,
             'answered_at': base_time + timedelta(seconds=30)
-        }], experience=0)
+        }])
         
         # Second set of 30 correct answers
         questions3 = create_test_questions(30, 1)

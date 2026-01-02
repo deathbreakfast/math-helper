@@ -355,13 +355,13 @@ def test_level_master_multiple_per_tier_multiple_per_session(app, test_user):
         session1 = PracticeSession(
             user_id=user.id,
             mode="standard",
-            level=1,
+            concept_id="c_concept_001",
             started_at=datetime.utcnow()
         )
         session2 = PracticeSession(
             user_id=user.id,
             mode="standard",
-            level=2,
+            concept_id="c_concept_002",
             started_at=datetime.utcnow()
         )
         db.session.add(session1)
@@ -424,7 +424,6 @@ def test_lightning_fast_practice_metadata(app, test_user):
         session = create_test_session_with_responses(
             user.id,
             responses_data,
-            level=1
         )
         
         # Check lightning fast achievements
@@ -473,7 +472,6 @@ def test_so_wow_one_per_tier_multiple_per_session(app, test_user):
         session = PracticeSession(
             user_id=user.id,
             mode="standard",
-            level=1,
             started_at=datetime.utcnow()
         )
         db.session.add(session)

@@ -41,8 +41,8 @@ def test_user(app):
         return user
 
 
-def _create_lightning_fast_achievement(user_id: int, level: int, tier: str):
-    """Create a lightning-fast achievement for a specific level.
+def _create_lightning_fast_achievement(user_id: int, concept_id: str, tier: str):
+    """Create a lightning-fast achievement for a specific concept.
     
     Note: Due to unique constraint on (user_id, code), we delete any existing
     achievement with the same code first. This is a test-only workaround.

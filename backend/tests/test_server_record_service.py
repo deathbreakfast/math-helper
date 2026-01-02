@@ -41,7 +41,7 @@ def test_session(app, test_user):
         session = PracticeSession(
             user_id=test_user.id,
             mode="standard",
-            level=1,
+            concept_id="c_concept_001",
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=100,

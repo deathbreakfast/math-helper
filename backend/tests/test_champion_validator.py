@@ -40,7 +40,7 @@ def test_session(app, test_user):
         session = PracticeSession(
             user_id=user.id,
             mode="standard",
-            level=1,
+            concept_id="c_concept_001",
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=50,
@@ -177,7 +177,7 @@ def test_check_eligibility_handles_accuracy_based_achievement(app, test_user):
         session = PracticeSession(
             user_id=user.id,
             mode="standard",
-            level=1,
+            concept_id="c_concept_001",
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=50,
@@ -220,7 +220,7 @@ def test_check_eligibility_handles_volume_based_achievement(app, test_user):
         session = PracticeSession(
             user_id=user.id,
             mode="standard",
-            level=1,
+            concept_id="c_concept_001",
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=100,
@@ -263,7 +263,7 @@ def test_check_eligibility_returns_false_when_record_value_cannot_be_determined(
         session = PracticeSession(
             user_id=user.id,
             mode="standard",
-            level=1,
+            concept_id="c_concept_001",
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=50,

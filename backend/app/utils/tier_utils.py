@@ -17,15 +17,6 @@ TIER_HIERARCHY = {
     "champion": 11,
 }
 
-# Mapping from old letter tier system to new metal/prestige system
-OLD_TIER_TO_NEW = {
-    "b": "bronze",
-    "a": "silver",
-    "s": "gold",
-    "ss": "platinum",
-    "sss": "diamond",
-}
-
 # All tiers in order
 ALL_TIERS = [
     "bronze",
@@ -58,18 +49,6 @@ def get_all_tiers() -> list[str]:
         List of tier names in ascending order
     """
     return ALL_TIERS.copy()
-
-
-def map_old_tier_to_new(old_tier: str) -> str:
-    """Map old letter tier system (B/A/S/SS/SSS) to new metal/prestige system.
-    
-    Args:
-        old_tier: Old tier code (b, a, s, ss, sss)
-        
-    Returns:
-        New tier name (bronze, silver, gold, platinum, diamond)
-    """
-    return OLD_TIER_TO_NEW.get(old_tier.lower(), old_tier.lower())
 
 
 def is_tier_higher_than(tier1: str, tier2: str) -> bool:

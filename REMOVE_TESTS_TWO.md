@@ -416,10 +416,10 @@ The codebase contains a legacy test/quiz system that allows users to take struct
 - [x] Clean up achievement configs with test_type metadata
 
 ### Phase 7: Remove Tier System (if test-only)
-- [ ] Verify tier utils usage
-- [ ] Remove tier utils if only used for tests
-- [ ] Update achievement types if tier utils removed
-- [ ] Remove old tier mapping (B/A/S/SS/SSS)
+- [x] Verify tier utils usage
+- [x] Remove tier utils if only used for tests
+- [x] Update achievement types if tier utils removed
+- [x] Remove old tier mapping (B/A/S/SS/SSS)
 
 ### Phase 8: Remove E2E Tests
 - [ ] Delete `frontend/e2e/test-flow.spec.ts`

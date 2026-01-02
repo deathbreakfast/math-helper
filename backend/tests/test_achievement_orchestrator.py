@@ -586,7 +586,7 @@ class TestAchievementOrchestrator:
                         
                         level_master_achievement = Achievement(
                             user_id=test_user.id,
-                            code="level-master-bronze",
+                            code="math-master-bronze",
                             title="Level Master (Bronze)",
                             description="30 consecutive correct",
                             icon="⭐",
@@ -623,7 +623,7 @@ class TestAchievementOrchestrator:
                             
                             level_grandmaster_achievement = Achievement(
                                 user_id=test_user.id,
-                                code="level-grandmaster-bronze",
+                                code="math-grandmaster-bronze",
                                 title="Level Grandmaster (Bronze)",
                                 description="Level Master on all levels",
                                 icon="👑",

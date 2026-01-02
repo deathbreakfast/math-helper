@@ -271,9 +271,9 @@ def test_generic_achievement_021_accuracy_achievements_in_config(app):
         from app.config.achievements import ACHIEVEMENTS_CONFIG
         
         # Test achievements have been removed - check that existing achievements are in config
-        assert "level-master-bronze" in ACHIEVEMENTS_CONFIG
-        assert "level-master-silver" in ACHIEVEMENTS_CONFIG
-        assert "level-master-gold" in ACHIEVEMENTS_CONFIG
+        assert "math-master-bronze" in ACHIEVEMENTS_CONFIG
+        assert "math-master-silver" in ACHIEVEMENTS_CONFIG
+        assert "math-master-gold" in ACHIEVEMENTS_CONFIG
         # Check for lightning-fast achievements (they have level-specific codes like lightning-fast-bronze-level-1)
         lightning_fast_keys = [k for k in ACHIEVEMENTS_CONFIG.keys() if k.startswith("lightning-fast-")]
         assert len(lightning_fast_keys) > 0, "Should have lightning-fast achievements"
@@ -287,11 +287,11 @@ def test_generic_achievement_022_test_achievements_in_config(app):
         
         # Check that generic achievements exist (test-specific achievements removed)
         # Check for level-master achievements (used with metadata for level-specific requirements)
-        assert "level-master-bronze" in ACHIEVEMENTS_CONFIG
-        assert "level-master-champion" in ACHIEVEMENTS_CONFIG
+        assert "math-master-bronze" in ACHIEVEMENTS_CONFIG
+        assert "math-master-champion" in ACHIEVEMENTS_CONFIG
         
         # Check that tiers are included
-        assert "level-master-divine" in ACHIEVEMENTS_CONFIG
+        assert "math-master-divine" in ACHIEVEMENTS_CONFIG
         
         # Check for new achievements
         assert "accuracy-ace-bronze" in ACHIEVEMENTS_CONFIG

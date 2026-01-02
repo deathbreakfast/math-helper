@@ -498,16 +498,16 @@ level_tag = db.Column(db.String(32), nullable=True, index=True)
 - [x] Remove level setting from `SessionCompletionService` (use XP instead)
 
 ### Phase 2: Remove Level from Achievement System
-- [ ] Rename achievement codes: "level-master" → "math-master" and "level-grandmaster" → "math-grandmaster"
-- [ ] Remove `level_filter` from `LevelMasterChecker`
-- [ ] Remove level filtering from `SessionAchievementsChecker`
-- [ ] Remove level filtering from `LevelAccuracyChecker`
-- [ ] Remove level filtering from `LevelCorrectCountChecker`
-- [ ] Remove level filtering from `OperationCountChecker`
-- [ ] Remove `session.level` fallback from `AccuracyAceChecker`
-- [ ] Remove `session.level` fallback from `LightningFastChecker`
-- [ ] Remove `session.level` requirement from `GenericAccuracyChecker`
-- [ ] Remove `level` parameters from `AchievementQueryService` methods
+- [x] Rename achievement codes: "level-master" → "math-master" and "level-grandmaster" → "math-grandmaster"
+- [x] Remove `level_filter` from `LevelMasterChecker`
+- [x] Remove level filtering from `SessionAchievementsChecker`
+- [x] Remove level filtering from `LevelAccuracyChecker`
+- [x] Remove level filtering from `LevelCorrectCountChecker`
+- [x] Remove level filtering from `OperationCountChecker`
+- [x] Remove `session.level` fallback from `AccuracyAceChecker`
+- [x] Remove `session.level` fallback from `LightningFastChecker`
+- [x] Remove `session.level` requirement from `GenericAccuracyChecker`
+- [x] Remove `level` parameters from `AchievementQueryService` methods
 
 ### Phase 3: Remove Level from API
 - [ ] Remove level from practice session responses

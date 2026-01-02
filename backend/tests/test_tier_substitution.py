@@ -47,8 +47,8 @@ def test_extract_base_code_and_tier():
     assert base == "speed-demon"
     assert tier == "bronze"
     
-    base, tier = extract_base_code_and_tier("level-master-gold")
-    assert base == "level-master"
+    base, tier = extract_base_code_and_tier("math-master-gold")
+    assert base == "math-master"
     assert tier == "gold"
     
     base, tier = extract_base_code_and_tier("first-steps")

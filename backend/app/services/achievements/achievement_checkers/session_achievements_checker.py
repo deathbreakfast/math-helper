@@ -77,10 +77,12 @@ class SessionAchievementsChecker(AchievementChecker):
         self, user: User, achievement_code: str, config: dict[str, Any],
         requirements: dict[str, Any], session_id: int | None
     ) -> list[Achievement]:
-        """Check session_accuracy_and_consecutive achievements."""
+        """Check session_accuracy_and_consecutive achievements.
+        
+        Note: Level filtering removed - this checker now operates across all concepts.
+        """
         min_sessions = requirements.get("min_sessions", 0)
         min_session_accuracy = requirements.get("min_session_accuracy", 0.0)
-        level = requirements.get("level")
         consecutive_correct = requirements.get("consecutive_correct", 0)
         
         # Count sessions with required accuracy
@@ -95,11 +97,9 @@ class SessionAchievementsChecker(AchievementChecker):
         
         session_count = len(sessions)
         
-        # Check for consecutive correct answers at the specified level
+        # Check for consecutive correct answers (level filtering removed)
         recent_responses = (
             Response.query.filter_by(user_id=user.id, is_correct=True)
-            .join(Question)
-            .filter(Question.required_level == level)
             .order_by(Response.answered_at.desc())
             .limit(consecutive_correct)
             .all()
@@ -111,8 +111,6 @@ class SessionAchievementsChecker(AchievementChecker):
             # Get all recent responses (including incorrect) to verify they're truly consecutive
             all_recent = (
                 Response.query.filter_by(user_id=user.id)
-                .join(Question)
-                .filter(Question.required_level == level)
                 .order_by(Response.answered_at.desc())
                 .limit(consecutive_correct)
                 .all()
@@ -122,7 +120,7 @@ class SessionAchievementsChecker(AchievementChecker):
             if len(all_recent) == consecutive_correct:
                 has_consecutive = all(r.is_correct for r in all_recent)
         
-        debug_print(f"[ACHIEVEMENT DEBUG]   session_accuracy_and_consecutive: sessions={session_count} (need {min_sessions}), accuracy>={min_session_accuracy:.0%}, consecutive={has_consecutive} (need {consecutive_correct} at level {level})")
+        debug_print(f"[ACHIEVEMENT DEBUG]   session_accuracy_and_consecutive: sessions={session_count} (need {min_sessions}), accuracy>={min_session_accuracy:.0%}, consecutive={has_consecutive} (need {consecutive_correct})")
         
         if session_count >= min_sessions and has_consecutive:
             debug_print(f"[ACHIEVEMENT DEBUG]   ✓ AWARDING {achievement_code}")
@@ -143,16 +141,15 @@ class SessionAchievementsChecker(AchievementChecker):
         self, user: User, achievement_code: str, config: dict[str, Any],
         requirements: dict[str, Any], session_id: int | None
     ) -> list[Achievement]:
-        """Check perfect_sessions achievements."""
-        min_sessions = requirements.get("min_sessions", 0)
-        level = requirements.get("level")
+        """Check perfect_sessions achievements.
         
-        # Count perfect sessions (100% accuracy) at this level
+        Note: Level filtering removed - this checker now operates across all concepts.
+        """
+        min_sessions = requirements.get("min_sessions", 0)
+        
+        # Count perfect sessions (100% accuracy) - level filtering removed
         perfect_sessions = (
-            PracticeSession.query.filter_by(
-                user_id=user.id,
-                level=level,
-            )
+            PracticeSession.query.filter_by(user_id=user.id)
             .filter(
                 PracticeSession.completed_at.isnot(None),
                 PracticeSession.accuracy == 100.0,
@@ -160,7 +157,7 @@ class SessionAchievementsChecker(AchievementChecker):
             .count()
         )
         
-        debug_print(f"[ACHIEVEMENT DEBUG]   perfect_sessions: level={level}, required={min_sessions}, actual={perfect_sessions}")
+        debug_print(f"[ACHIEVEMENT DEBUG]   perfect_sessions: required={min_sessions}, actual={perfect_sessions}")
         
         if perfect_sessions >= min_sessions:
             debug_print(f"[ACHIEVEMENT DEBUG]   ✓ AWARDING {achievement_code} (perfect_sessions: {perfect_sessions} >= {min_sessions})")
@@ -181,20 +178,17 @@ class SessionAchievementsChecker(AchievementChecker):
         self, user: User, achievement_code: str, config: dict[str, Any],
         requirements: dict[str, Any], session_id: int | None
     ) -> list[Achievement]:
-        """Check level_mastery achievements."""
-        level = requirements.get("level")
+        """Check level_mastery achievements.
+        
+        Note: Level filtering removed - this checker now operates across all concepts.
+        """
         min_accuracy = requirements.get("min_accuracy", 0.0)
         min_questions = requirements.get("min_questions", 0)
         consecutive_correct = requirements.get("consecutive_correct", 0)
         
-        # Get all responses for this level
+        # Get all responses (level filtering removed)
         responses = (
-            db.session.query(Response)
-            .join(Question)
-            .filter(
-                Response.user_id == user.id,
-                Question.required_level == level,
-            )
+            Response.query.filter_by(user_id=user.id)
             .all()
         )
         
@@ -202,11 +196,9 @@ class SessionAchievementsChecker(AchievementChecker):
         correct_count = sum(1 for r in responses if r.is_correct) if responses else 0
         accuracy = correct_count / total_responses if total_responses > 0 else 0.0
         
-        # Check for consecutive correct answers
+        # Check for consecutive correct answers (level filtering removed)
         recent_responses = (
             Response.query.filter_by(user_id=user.id)
-            .join(Question)
-            .filter(Question.required_level == level)
             .order_by(Response.answered_at.desc())
             .limit(consecutive_correct)
             .all()
@@ -216,7 +208,7 @@ class SessionAchievementsChecker(AchievementChecker):
         if len(recent_responses) >= consecutive_correct:
             has_consecutive = all(r.is_correct for r in recent_responses)
         
-        debug_print(f"[ACHIEVEMENT DEBUG]   level_mastery: level={level}, accuracy={accuracy:.2%} (need {min_accuracy:.2%}), questions={total_responses} (need {min_questions}), consecutive={has_consecutive} (need {consecutive_correct})")
+        debug_print(f"[ACHIEVEMENT DEBUG]   level_mastery: accuracy={accuracy:.2%} (need {min_accuracy:.2%}), questions={total_responses} (need {min_questions}), consecutive={has_consecutive} (need {consecutive_correct})")
         
         if total_responses >= min_questions and accuracy >= min_accuracy and has_consecutive:
             debug_print(f"[ACHIEVEMENT DEBUG]   ✓ AWARDING {achievement_code}")

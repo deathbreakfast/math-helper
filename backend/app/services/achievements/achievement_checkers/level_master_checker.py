@@ -31,16 +31,14 @@ class LevelMasterChecker(AchievementChecker):
     def _get_all_levels() -> list[int]:
         """Get all distinct legacy levels from questions.
         
+        Note: This method is deprecated - level-based filtering has been removed.
+        Level master achievements now operate on concept_id only.
+        
         Returns:
-            List of distinct level numbers, ordered ascending
+            Empty list (method kept for backward compatibility but returns empty)
         """
-        return [
-            row[0]
-            for row in db.session.query(Question.required_level)
-            .distinct()
-            .order_by(Question.required_level.asc())
-            .all()
-        ]
+        # Level-based filtering removed - return empty list
+        return []
     
     @staticmethod
     def _get_user_concept_ids(user_id: int) -> list[str]:
@@ -79,59 +77,39 @@ class LevelMasterChecker(AchievementChecker):
         ]
     
     def _get_level_master_configs(self) -> dict[str, Any]:
-        """Get Level Master achievement configs (excluding milestones).
+        """Get Math Master achievement configs (excluding milestones).
         
         Returns:
-            Dictionary of level master achievement configs
+            Dictionary of math master achievement configs
         """
         return {
             code: config for code, config in self.achievement_configs.items()
-            if code.startswith("level-master-") and not code.startswith("level-master-milestone-")
+            if code.startswith("math-master-") and not code.startswith("math-master-milestone-")
         }
     
     @staticmethod
     def _get_responses_for_bucket(
         user_id: int,
-        level_filter: int | None = None,
-        concept_filter: str | None = None,
+        concept_filter: str,
     ) -> tuple[list[Response], dict[str, Any]]:
-        """Get responses for a specific bucket (level or concept) with metadata.
+        """Get responses for a specific concept with metadata.
         
         Args:
             user_id: The user ID
-            level_filter: Optional level filter
-            concept_filter: Optional concept ID filter
+            concept_filter: Concept ID filter (required)
         
         Returns:
             Tuple of (list of responses ordered chronologically, metadata dict)
         """
-        if level_filter is not None:
-            # Get all responses for this level, ordered chronologically
-            # For legacy levels, derive concept_id from level
-            # IMPORTANT: Also filter by session concept_id to ensure we only count responses
-            # from sessions with the legacy concept_id format (c_concept_XXX), not descriptive
-            # concept IDs (like c_add_1s, c_add_2s) that might share the same required_level
-            legacy_concept_id = f"c_concept_{level_filter:03d}"
-            responses = (
-                Response.query.filter_by(user_id=user_id)
-                .join(Question)
-                .join(PracticeSession, Response.session_id == PracticeSession.id)
-                .filter(Question.required_level == level_filter)
-                .filter(PracticeSession.concept_id == legacy_concept_id)
-                .order_by(Response.answered_at.asc())
-                .all()
-            )
-            metadata = {"concept_id": legacy_concept_id}
-        else:
-            # Get all responses for this concept_id, ordered chronologically
-            responses = (
-                Response.query.filter_by(user_id=user_id)
-                .join(PracticeSession, Response.session_id == PracticeSession.id)
-                .filter(PracticeSession.concept_id == concept_filter)
-                .order_by(Response.answered_at.asc())
-                .all()
-            )
-            metadata = {"concept_id": concept_filter}
+        # Get all responses for this concept_id, ordered chronologically
+        responses = (
+            Response.query.filter_by(user_id=user_id)
+            .join(PracticeSession, Response.session_id == PracticeSession.id)
+            .filter(PracticeSession.concept_id == concept_filter)
+            .order_by(Response.answered_at.asc())
+            .all()
+        )
+        metadata = {"concept_id": concept_filter}
         
         return responses, metadata
     
@@ -170,14 +148,14 @@ class LevelMasterChecker(AchievementChecker):
         """
         existing_achievements = (
             Achievement.query.filter_by(user_id=user_id, achievement_metadata=metadata_json)
-            .filter(Achievement.code.like("level-master-%"))
+            .filter(Achievement.code.like("math-master-%"))
             .all()
         )
         
         highest_tier_value = -1
         for existing in existing_achievements:
             code_parts = existing.code.split("-")
-            if len(code_parts) >= 3 and code_parts[0] == "level" and code_parts[1] == "master":
+            if len(code_parts) >= 3 and code_parts[0] == "math" and code_parts[1] == "master":
                 tier = code_parts[2]
                 tier_value = get_tier_value(tier)
                 highest_tier_value = max(highest_tier_value, tier_value)
@@ -229,27 +207,24 @@ class LevelMasterChecker(AchievementChecker):
         user: User,
         level_master_configs: dict[str, Any],
         session_id: int | None,
-        level_filter: int | None = None,
-        concept_filter: str | None = None,
+        concept_filter: str,
     ) -> Achievement | None:
-        """Award achievement for a specific bucket (level or concept).
+        """Award achievement for a specific concept.
         
         Args:
             user: The user to award achievements for
             level_master_configs: Dictionary of level master achievement configs
             session_id: Optional session ID to link achievements
-            level_filter: Optional level filter
-            concept_filter: Optional concept ID filter
+            concept_filter: Concept ID filter (required)
         
         Returns:
             Newly created Achievement object, or None if no award
         """
         from ....services.achievements.achievement_utils import create_achievement
         
-        # Get responses and metadata for this bucket
+        # Get responses and metadata for this concept
         responses, metadata = self._get_responses_for_bucket(
             user_id=user.id,
-            level_filter=level_filter,
             concept_filter=concept_filter,
         )
         
@@ -309,9 +284,6 @@ class LevelMasterChecker(AchievementChecker):
         """
         new_achievements = []
         
-        # Get all distinct legacy levels from questions
-        all_levels = self._get_all_levels()
-        
         # Get all distinct concept_ids from the user's sessions
         concept_ids = self._get_user_concept_ids(user.id)
         
@@ -321,18 +293,7 @@ class LevelMasterChecker(AchievementChecker):
         if not level_master_configs:
             return new_achievements
         
-        # Award per legacy level (existing behavior)
-        for target_level in all_levels:
-            achievement = self._award_for_bucket(
-                user=user,
-                level_master_configs=level_master_configs,
-                session_id=session_id,
-                level_filter=target_level,
-            )
-            if achievement:
-                new_achievements.append(achievement)
-        
-        # Award per concept_id (enables descriptive concepts)
+        # Award per concept_id (level-based filtering removed)
         for cid in concept_ids:
             achievement = self._award_for_bucket(
                 user=user,

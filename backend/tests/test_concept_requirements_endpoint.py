@@ -32,11 +32,11 @@ def user(app):
 
 def test_concepts_requirements_enriches_counts_for_descriptive_concepts(app, user):
     with app.app_context():
-        # Satisfy the first requirement for c_add_2s: level-master-bronze with concept_id c_add_1s
+        # Satisfy the first requirement for c_add_2s: math-master-bronze with concept_id c_add_1s
         db.session.add(
             Achievement(
                 user_id=user.id,
-                code="level-master-bronze",
+                code="math-master-bronze",
                 title="Level Master (Bronze)",
                 description="Test",
                 icon="🎯",
@@ -59,7 +59,7 @@ def test_concepts_requirements_enriches_counts_for_descriptive_concepts(app, use
         assert len(reqs) >= 1
 
         # Should include enriched fields
-        assert any(r.get("achievement_code") == "level-master-bronze" and r.get("user_count") == 1 for r in reqs)
+        assert any(r.get("achievement_code") == "math-master-bronze" and r.get("user_count") == 1 for r in reqs)
 
 
 def test_concepts_requirements_uses_explicit_overrides_for_legacy_concepts(app, user):
@@ -69,9 +69,9 @@ def test_concepts_requirements_uses_explicit_overrides_for_legacy_concepts(app, 
         assert resp.status_code == 200
         data = resp.get_json()
         reqs = data["requirements"]["c_concept_001"]
-        # From MATH_CONCEPTS.md: requires level-master-bronze with concept_id c_add_9s, plus master-of-basic-addition-bronze
+        # From MATH_CONCEPTS.md: requires math-master-bronze with concept_id c_add_9s, plus master-of-basic-addition-bronze
         assert any(
-            r.get("achievement_code") == "level-master-bronze"
+            r.get("achievement_code") == "math-master-bronze"
             and (r.get("metadata_filter") or {}).get("concept_id") == "c_add_9s"
             for r in reqs
         )

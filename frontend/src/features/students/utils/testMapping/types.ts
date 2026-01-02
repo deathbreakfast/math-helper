@@ -80,7 +80,7 @@ export interface FrontendTest extends TestDefinition {
     level?: number
     minAccuracy?: number
     operation?: string
-    metadataFilters?: Record<string, Record<string, any>>  // Maps achievement code to metadata filter (e.g., {"level-master-bronze": {"level": 1}})
+    metadataFilters?: Record<string, Record<string, any>>  // Maps achievement code to metadata filter (e.g., {"math-master-bronze": {"concept_id": "c_concept_001"}})
   }
   unlockProgress?: {
     met: number

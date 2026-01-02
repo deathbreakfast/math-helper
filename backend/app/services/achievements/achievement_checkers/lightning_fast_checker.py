@@ -54,12 +54,8 @@ class LightningFastChecker(AchievementChecker):
         if not session or not session.completed_at:
             return new_achievements
         
-        # Determine concept_id: use session.concept_id if available, otherwise derive from level
+        # Get concept_id from session (required - all sessions must have concept_id set)
         concept_id = session.concept_id
-        if not concept_id and session.level:
-            # For legacy level-based sessions, derive concept_id from level
-            concept_id = f"c_concept_{session.level:03d}"
-        
         if not concept_id:
             return new_achievements
         

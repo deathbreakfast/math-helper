@@ -63,7 +63,7 @@ def test_level_master_bronze_exactly_30(app, test_user):
         # Verify achievement was awarded with metadata
         achievement = Achievement.query.filter_by(
             user_id=test_user.id,
-            code="level-master-bronze"
+            code="math-master-bronze"
         ).first()
         
         assert achievement is not None, "Level Master (Bronze) should be awarded for exactly 30 consecutive correct"
@@ -97,7 +97,7 @@ def test_level_master_silver_exactly_60(app, test_user):
         # Query all level-master achievements and filter by metadata
         all_achievements = Achievement.query.filter(
             Achievement.user_id == test_user.id,
-            Achievement.code.like("level-master-%")
+            Achievement.code.like("math-master-%")
         ).all()
         
         bronze = None
@@ -107,9 +107,9 @@ def test_level_master_silver_exactly_60(app, test_user):
                 try:
                     metadata = json.loads(ach.achievement_metadata)
                     if metadata.get("concept_id") == "c_concept_001":
-                        if ach.code == "level-master-bronze":
+                        if ach.code == "math-master-bronze":
                             bronze = ach
-                        elif ach.code == "level-master-silver":
+                        elif ach.code == "math-master-silver":
                             silver = ach
                 except (json.JSONDecodeError, KeyError):
                     pass
@@ -146,7 +146,7 @@ def test_level_master_negative_29_correct_1_incorrect(app, test_user):
         # Verify NO achievement was awarded
         achievement = Achievement.query.filter(
             Achievement.user_id == test_user.id,
-            Achievement.code.like("level-master-%")
+            Achievement.code.like("math-master-%")
         ).first()
         
         assert achievement is None, "Level Master should NOT be awarded with only 29 consecutive correct"
@@ -177,11 +177,11 @@ def test_level_master_negative_30_correct_1_incorrect(app, test_user):
         # Verify achievement WAS awarded (max consecutive of 30 qualifies for bronze) with metadata
         achievement = Achievement.query.filter(
             Achievement.user_id == test_user.id,
-            Achievement.code.like("level-master-%")
+            Achievement.code.like("math-master-%")
         ).first()
         
         assert achievement is not None, "Level Master (Bronze) should be awarded when max consecutive is 30, even if followed by incorrect"
-        assert achievement.code == "level-master-bronze", "Should award bronze for 30 consecutive correct"
+        assert achievement.code == "math-master-bronze", "Should award bronze for 30 consecutive correct"
         assert achievement.achievement_metadata is not None, "Achievement should have metadata"
         metadata = json.loads(achievement.achievement_metadata)
         assert metadata.get("concept_id") == "c_concept_001", "Achievement metadata should indicate concept_id c_concept_001"
@@ -209,7 +209,7 @@ def test_level_master_multiple_awards_30_wrong_30(app, test_user):
         # Verify first bronze was awarded
         bronze1 = Achievement.query.filter_by(
             user_id=test_user.id,
-            code="level-master-bronze"
+            code="math-master-bronze"
         ).first()
         assert bronze1 is not None, "First Level Master (Bronze) should be awarded"
         
@@ -243,7 +243,7 @@ def test_level_master_multiple_awards_30_wrong_30(app, test_user):
         # says we should be able to get multiple. Let's check the count.
         bronze_count = Achievement.query.filter_by(
             user_id=test_user.id,
-            code="level-master-bronze"
+            code="math-master-bronze"
         ).count()
         
         # The implementation may prevent duplicates, but the test documents the expected behavior
@@ -276,7 +276,7 @@ def test_level_master_only_bronze_silver_tested(app, test_user):
         # Query all level-master achievements and filter by metadata
         all_achievements = Achievement.query.filter(
             Achievement.user_id == test_user.id,
-            Achievement.code.like("level-master-%")
+            Achievement.code.like("math-master-%")
         ).all()
         
         bronze = None
@@ -287,11 +287,11 @@ def test_level_master_only_bronze_silver_tested(app, test_user):
                 try:
                     metadata = json.loads(ach.achievement_metadata)
                     if metadata.get("concept_id") == "c_concept_001":
-                        if ach.code == "level-master-bronze":
+                        if ach.code == "math-master-bronze":
                             bronze = ach
-                        elif ach.code == "level-master-silver":
+                        elif ach.code == "math-master-silver":
                             silver = ach
-                        elif ach.code == "level-master-gold":
+                        elif ach.code == "math-master-gold":
                             gold = ach
                 except (json.JSONDecodeError, KeyError):
                     pass
@@ -342,7 +342,7 @@ def test_level_master_multiple_levels(app, test_user):
         # Query all level-master achievements and filter by metadata
         all_achievements = Achievement.query.filter(
             Achievement.user_id == test_user.id,
-            Achievement.code == "level-master-bronze"
+            Achievement.code == "math-master-bronze"
         ).all()
         
         level1_achievement = None
@@ -422,7 +422,7 @@ def test_level_master_silver_not_awarded_mixed_concepts(app, test_user):
         # Query all level-master achievements and filter by metadata
         all_achievements = Achievement.query.filter(
             Achievement.user_id == test_user.id,
-            Achievement.code.like("level-master-%")
+            Achievement.code.like("math-master-%")
         ).all()
         
         silver = None
@@ -430,7 +430,7 @@ def test_level_master_silver_not_awarded_mixed_concepts(app, test_user):
             if ach.achievement_metadata:
                 try:
                     metadata = json.loads(ach.achievement_metadata)
-                    if ach.code == "level-master-silver":
+                    if ach.code == "math-master-silver":
                         silver = ach
                         break
                 except (json.JSONDecodeError, KeyError):
@@ -473,7 +473,7 @@ def test_level_master_silver_awarded_same_concept(app, test_user):
         # Verify Level Master Silver IS awarded with correct metadata
         all_achievements = Achievement.query.filter(
             Achievement.user_id == test_user.id,
-            Achievement.code.like("level-master-%")
+            Achievement.code.like("math-master-%")
         ).all()
         
         silver = None
@@ -481,7 +481,7 @@ def test_level_master_silver_awarded_same_concept(app, test_user):
             if ach.achievement_metadata:
                 try:
                     metadata = json.loads(ach.achievement_metadata)
-                    if metadata.get("concept_id") == "c_add_1s" and ach.code == "level-master-silver":
+                    if metadata.get("concept_id") == "c_add_1s" and ach.code == "math-master-silver":
                         silver = ach
                         break
                 except (json.JSONDecodeError, KeyError):
@@ -541,7 +541,7 @@ def test_level_master_concept_isolation(app, test_user):
         # Verify both concepts have separate achievements
         all_achievements = Achievement.query.filter(
             Achievement.user_id == test_user.id,
-            Achievement.code == "level-master-bronze"
+            Achievement.code == "math-master-bronze"
         ).all()
         
         c_add_1s_achievement = None

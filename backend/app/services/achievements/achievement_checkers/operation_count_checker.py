@@ -51,12 +51,15 @@ class OperationCountChecker(AchievementChecker):
         self, user: User, achievement_code: str, config: dict[str, Any], 
         requirements: dict[str, Any], session_id: int | None
     ) -> list[Achievement]:
-        """Check operation_count achievements."""
+        """Check operation_count achievements.
+        
+        Note: Level filtering removed - this checker now operates across all concepts for the operation.
+        This checker may be legacy as level-based achievements are being phased out.
+        """
         operation = requirements.get("operation")
         count = requirements.get("count", 0)
-        level = requirements.get("level")
         
-        # Count correct answers for this operation at this level
+        # Count correct answers for this operation (level filtering removed - no longer filtering by Question.required_level)
         correct_count = (
             db.session.query(func.count())
             .select_from(Response)
@@ -65,13 +68,12 @@ class OperationCountChecker(AchievementChecker):
                 Response.user_id == user.id,
                 Response.is_correct == True,
                 Question.operation == operation,
-                Question.required_level == level,
             )
             .scalar()
             or 0
         )
         
-        debug_print(f"[ACHIEVEMENT DEBUG]   operation_count: operation={operation}, level={level}, required={count}, actual={correct_count}")
+        debug_print(f"[ACHIEVEMENT DEBUG]   operation_count: operation={operation}, required={count}, actual={correct_count}")
         
         if correct_count >= count:
             debug_print(f"[ACHIEVEMENT DEBUG]   ✓ AWARDING {achievement_code} (operation_count: {correct_count} >= {count})")

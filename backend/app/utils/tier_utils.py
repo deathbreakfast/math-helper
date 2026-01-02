@@ -161,7 +161,7 @@ def extract_base_code_and_tier(achievement_code: str) -> tuple[str, str | None]:
     """Extract base achievement code and tier from a full achievement code.
     
     Args:
-        achievement_code: Full achievement code (e.g., "speed-demon-bronze", "level-master-gold")
+        achievement_code: Full achievement code (e.g., "speed-demon-bronze", "math-master-gold")
     
     Returns:
         Tuple of (base_code, tier) where tier is None if no tier found

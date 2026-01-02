@@ -28,10 +28,10 @@ class LevelGrandmasterChecker(AchievementChecker):
         self.achievement_configs = achievement_configs
     
     def check(self, user: User) -> list[Achievement]:
-        """Check and award Level Grandmaster milestone achievement.
+        """Check and award Math Grandmaster milestone achievement.
         
-        Requires having Level Master (Bronze or higher) achievement for ALL descriptive concepts.
-        Checks for existing Level Master achievements with concept_id metadata for descriptive concepts (c_add_*, c_sub_*, c_mul_*, etc.).
+        Requires having Math Master (Bronze or higher) achievement for ALL descriptive concepts.
+        Checks for existing Math Master achievements with concept_id metadata for descriptive concepts (c_add_*, c_sub_*, c_mul_*, etc.).
         
         Args:
             user: The user to check
@@ -43,7 +43,7 @@ class LevelGrandmasterChecker(AchievementChecker):
         user_achievement_codes = AchievementService.get_achievement_codes(user.id)
         achievement_configs = self.achievement_configs
         
-        milestone_code = "level-grandmaster"
+        milestone_code = "math-grandmaster"
         
         # Skip if already earned
         if milestone_code in user_achievement_codes:
@@ -58,9 +58,9 @@ class LevelGrandmasterChecker(AchievementChecker):
         if not descriptive_concepts:
             return new_achievements
         
-        # Check if user has Level Master (Bronze or higher) at ALL descriptive concepts
+        # Check if user has Math Master (Bronze or higher) at ALL descriptive concepts
         all_concepts_qualified = True
-        required_achievement_code = "level-master-bronze"
+        required_achievement_code = "math-master-bronze"
         
         for target_concept_id in descriptive_concepts:
             concept_achievements = Achievement.query.filter_by(
@@ -83,7 +83,7 @@ class LevelGrandmasterChecker(AchievementChecker):
             if not concept_qualified:
                 silver_achievements = Achievement.query.filter_by(
                     user_id=user.id,
-                    code="level-master-silver"
+                    code="math-master-silver"
                 ).all()
                 for achievement in silver_achievements:
                     if achievement.achievement_metadata:
@@ -99,7 +99,7 @@ class LevelGrandmasterChecker(AchievementChecker):
             if not concept_qualified:
                 gold_achievements = Achievement.query.filter_by(
                     user_id=user.id,
-                    code="level-master-gold"
+                    code="math-master-gold"
                 ).all()
                 for achievement in gold_achievements:
                     if achievement.achievement_metadata:

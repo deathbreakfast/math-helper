@@ -202,11 +202,11 @@ class TestTierUtils:
         """Test extract_base_code_and_tier checks longest tiers first."""
         # "grandmaster" should match before "master" when code ends with "-grandmaster"
         # The function checks in reverse order (longest first)
-        base, tier = extract_base_code_and_tier("level-master-grandmaster")
+        base, tier = extract_base_code_and_tier("math-master-grandmaster")
         # Should extract "grandmaster" as the tier (not "master")
         assert tier == "grandmaster"
-        # Base should be "level-master" (everything before "-grandmaster")
-        assert base == "level-master"
+        # Base should be "math-master" (everything before "-grandmaster")
+        assert base == "math-master"
 
     def test_count_achievements_with_tier_substitution_no_tier(self):
         """Test count_achievements_with_tier_substitution for code without tier."""
@@ -275,15 +275,15 @@ class TestTierUtils:
     def test_count_achievements_with_tier_substitution_with_metadata(self):
         """Test count_achievements_with_tier_substitution with metadata filter."""
         achievements = [
-            {"code": "level-master-bronze", "achievement_metadata": {"concept_id": "c_concept_001"}},
-            {"code": "level-master-bronze", "achievement_metadata": {"concept_id": "c_concept_002"}},
+            {"code": "math-master-bronze", "achievement_metadata": {"concept_id": "c_concept_001"}},
+            {"code": "math-master-bronze", "achievement_metadata": {"concept_id": "c_concept_002"}},
         ]
         
         metadata_filter = {"concept_id": "c_concept_001"}
         
         equivalent, actual = count_achievements_with_tier_substitution(
             achievements,
-            "level-master-bronze",
+            "math-master-bronze",
             1,
             metadata_filter=metadata_filter
         )
@@ -295,14 +295,14 @@ class TestTierUtils:
     def test_count_achievements_with_tier_substitution_metadata_string(self):
         """Test count_achievements_with_tier_substitution handles string metadata."""
         achievements = [
-            {"code": "level-master-bronze", "achievement_metadata": json.dumps({"concept_id": "c_concept_001"})},
+            {"code": "math-master-bronze", "achievement_metadata": json.dumps({"concept_id": "c_concept_001"})},
         ]
         
         metadata_filter = {"concept_id": "c_concept_001"}
         
         equivalent, actual = count_achievements_with_tier_substitution(
             achievements,
-            "level-master-bronze",
+            "math-master-bronze",
             1,
             metadata_filter=metadata_filter
         )
@@ -314,14 +314,14 @@ class TestTierUtils:
     def test_count_achievements_with_tier_substitution_invalid_json(self):
         """Test count_achievements_with_tier_substitution handles invalid JSON."""
         achievements = [
-            {"code": "level-master-bronze", "achievement_metadata": "invalid json"},
+            {"code": "math-master-bronze", "achievement_metadata": "invalid json"},
         ]
         
         metadata_filter = {"concept_id": "c_concept_001"}
         
         equivalent, actual = count_achievements_with_tier_substitution(
             achievements,
-            "level-master-bronze",
+            "math-master-bronze",
             1,
             metadata_filter=metadata_filter
         )

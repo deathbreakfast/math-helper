@@ -372,7 +372,7 @@ def test_level_master_multiple_per_tier_multiple_per_session(app, test_user):
         from app.services.achievements.achievement_utils import create_achievement
         ach1 = create_achievement(
             user_id=user.id,
-            code="level-master-bronze",
+            code="math-master-bronze",
             title="Level Master (Bronze)",
             description="30 consecutive correct",
             icon="🎯",
@@ -384,7 +384,7 @@ def test_level_master_multiple_per_tier_multiple_per_session(app, test_user):
         # Award bronze for level 2 (same tier, different metadata)
         ach2 = create_achievement(
             user_id=user.id,
-            code="level-master-bronze",
+            code="math-master-bronze",
             title="Level Master (Bronze)",
             description="30 consecutive correct",
             icon="🎯",
@@ -398,9 +398,9 @@ def test_level_master_multiple_per_tier_multiple_per_session(app, test_user):
         # Count bronze achievements
         count = Achievement.query.filter_by(
             user_id=user.id,
-            code="level-master-bronze"
+            code="math-master-bronze"
         ).count()
-        assert count == 2, "Should have two level-master-bronze achievements"
+        assert count == 2, "Should have two math-master-bronze achievements"
 
 
 # ============================================================================

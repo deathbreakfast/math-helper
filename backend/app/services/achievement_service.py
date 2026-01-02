@@ -333,12 +333,11 @@ class AchievementService:
     def count_achievements_by_code_with_filters(
         user_id: int,
         achievement_code: str,
-        level: int | None = None,
         min_accuracy: float | None = None,
         operation: str | None = None,
         metadata_filter: dict[str, Any] | None = None,
     ) -> int:
-        """Count achievements with filters for level, accuracy, operation, and metadata.
+        """Count achievements with filters for accuracy, operation, and metadata.
         
         Supports tier substitution: higher tier achievements can substitute for lower tier requirements.
         Conversion: 4 bronze = 2 silver = 1 gold, etc.
@@ -346,10 +345,9 @@ class AchievementService:
         Args:
             user_id: User ID
             achievement_code: Achievement code to count (must be tiered code like "addition-basics-bronze")
-            level: Optional level filter (session level must match) - DEPRECATED, use metadata_filter instead
             min_accuracy: Optional minimum accuracy filter (session accuracy must be >= this, as 0.0-1.0)
             operation: Optional operation filter (session must have questions with this operation)
-            metadata_filter: Optional metadata filter dict (e.g., {"level": 1}) - filters achievements by metadata
+            metadata_filter: Optional metadata filter dict (e.g., {"concept_id": "c_concept_001"}) - filters achievements by metadata
             
         Returns:
             Number of achievements matching all filters (with tier substitution applied)
@@ -359,7 +357,6 @@ class AchievementService:
         return AchievementQueryService.count_achievements_by_code_with_filters(
             user_id=user_id,
             achievement_code=achievement_code,
-            level=level,
             min_accuracy=min_accuracy,
             operation=operation,
             metadata_filter=metadata_filter,
@@ -368,14 +365,10 @@ class AchievementService:
     @staticmethod
     @log_query
     def check_level_master_achievements(user: User) -> list[Achievement]:
-        """Check and award Level Master achievements (consecutive correct at any level).
+        """Check and award Math Master achievements (consecutive correct per concept).
         
-        This checks consecutive correct answers at each level separately, ignoring incorrect
-        answers at other levels. For example, if a user gets level 1 questions correct
-        but misses a level 2 question in between, the level 1 consecutive count continues.
-        
-        The achievement is awarded based on the maximum consecutive correct achieved at any level.
-        We also track per-level to determine if user has achieved bronze at all levels (for Level Grandmaster).
+        This checks consecutive correct answers at each concept separately.
+        Awards separate achievements per concept with metadata {"concept_id": "..."}.
         
         Args:
             user: The user to check
@@ -459,11 +452,10 @@ class AchievementService:
     @staticmethod
     @log_query
     def check_level_grandmaster_achievement(user: User) -> list[Achievement]:
-        """Check and award Level Grandmaster milestone achievement.
+        """Check and award Math Grandmaster milestone achievement.
         
-        Requires having Level Master (Bronze) achievement and having achieved
-        30 consecutive correct at ALL levels in the system.
-        Previously named "Master Of All", renamed to "Level Grandmaster".
+        Requires having Math Master (Bronze) achievement for ALL descriptive concepts.
+        Previously named "Level Grandmaster", renamed to "Math Grandmaster".
         
         Args:
             user: The user to check

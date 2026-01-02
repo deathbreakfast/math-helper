@@ -279,21 +279,21 @@ def _generate_perfect_streak_achievements() -> dict[str, dict[str, Any]]:
     return achievements
 
 
-def _generate_level_grandmaster_achievements() -> dict[str, dict[str, Any]]:
-    """Generate Level Grandmaster milestone achievement definitions.
+def _generate_math_grandmaster_achievements() -> dict[str, dict[str, Any]]:
+    """Generate Math Grandmaster milestone achievement definitions.
     
-    Requires having Level Master (Bronze) achievement for all levels.
-    Previously named "Master Of All", renamed to "Level Grandmaster".
+    Requires having Math Master (Bronze) achievement for all descriptive concepts.
+    Previously named "Level Grandmaster", renamed to "Math Grandmaster".
     """
     achievements = {}
     
-    code = "level-grandmaster"
-    title = "Level Grandmaster"
-    description = "Level Master (Bronze) on all levels"
+    code = "math-grandmaster"
+    title = "Math Grandmaster"
+    description = "Math Master (Bronze) on all descriptive concepts"
     
     requirements = {
         "type": "level_grandmaster",
-        "required_achievement": "level-master-bronze",
+        "required_achievement": "math-master-bronze",
     }
     
     achievements[code] = {
@@ -652,7 +652,7 @@ MILESTONE_ACHIEVEMENTS.update(_generate_week_warrior_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_question_master_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_speed_demon_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_perfect_streak_achievements())
-MILESTONE_ACHIEVEMENTS.update(_generate_level_grandmaster_achievements())
+MILESTONE_ACHIEVEMENTS.update(_generate_math_grandmaster_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_so_wow_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_human_calculator_achievements())
 MILESTONE_ACHIEVEMENTS.update(_generate_master_of_times_tables_achievements())

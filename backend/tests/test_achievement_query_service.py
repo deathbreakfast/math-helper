@@ -374,7 +374,7 @@ def test_count_achievements_by_code_with_filters_concept_id_matches_metadata(app
 
         achievement = Achievement(
             user_id=user.id,
-            code="level-master-bronze",
+            code="math-master-bronze",
             title="Level Master (Bronze)",
             description="Test",
             icon="🎯",
@@ -387,7 +387,7 @@ def test_count_achievements_by_code_with_filters_concept_id_matches_metadata(app
 
         count = AchievementQueryService.count_achievements_by_code_with_filters(
             user.id,
-            "level-master-bronze",
+            "math-master-bronze",
             metadata_filter={"concept_id": "c_concept_007"},
         )
 

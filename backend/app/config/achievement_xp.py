@@ -22,7 +22,7 @@ TIERS_3 = ["bronze", "silver", "gold"]
 
 ACHIEVEMENT_XP_TABLE: dict[str, dict[str, object]] = {
     # 11-tier achievements
-    "level-master": {
+    "math-master": {
         "tiers": TIERS_11,
         "bonus_xp": [200, 320, 512, 819, 1311, 2098, 3357, 5371, 8594, 13750, 22000],
         "multiplier": [1.05, 1.1, 1.19, 1.32, 1.49, 1.7, 1.95, 2.24, 2.57, 2.94, 3.35],
@@ -75,7 +75,7 @@ ACHIEVEMENT_XP_TABLE: dict[str, dict[str, object]] = {
         "multiplier": [1.02],
     },
     # Present in doc but currently used as legacy/rare; no multipliers.
-    "level-grandmaster": {
+    "math-grandmaster": {
         "tiers": TIERS_11,
         "bonus_xp": [2200, 3520, 5632, 9009, 14421, 23078, 36927, 59081, 94534, 151250, 242000],
         "multiplier": None,

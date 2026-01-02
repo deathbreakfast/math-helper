@@ -229,7 +229,6 @@ class AchievementQueryService:
     @staticmethod
     def _apply_session_filters(
         achievement: Achievement,
-        level: int | None = None,
         min_accuracy: float | None = None,
         operation: str | None = None,
     ) -> bool:
@@ -237,14 +236,13 @@ class AchievementQueryService:
         
         Args:
             achievement: Achievement to check
-            level: Optional level filter (session level must match)
             min_accuracy: Optional minimum accuracy filter (session accuracy must be >= this, as 0.0-1.0)
             operation: Optional operation filter (session must have questions with this operation)
             
         Returns:
             True if session matches all provided filters (or no filters provided), False otherwise
         """
-        if level is None and min_accuracy is None and operation is None:
+        if min_accuracy is None and operation is None:
             return True
         
         if not achievement.session_id:
@@ -252,9 +250,6 @@ class AchievementQueryService:
         
         session = db.session.get(PracticeSession, achievement.session_id)
         if not session:
-            return False
-        
-        if level is not None and session.level != level:
             return False
         
         if min_accuracy is not None:
@@ -281,7 +276,6 @@ class AchievementQueryService:
     def _count_non_tiered_achievements(
         user_id: int,
         achievement_code: str,
-        level: int | None = None,
         min_accuracy: float | None = None,
         operation: str | None = None,
         metadata_filter: dict[str, Any] | None = None,
@@ -291,7 +285,6 @@ class AchievementQueryService:
         Args:
             user_id: User ID
             achievement_code: Achievement code to count (non-tiered)
-            level: Optional level filter
             min_accuracy: Optional minimum accuracy filter
             operation: Optional operation filter
             metadata_filter: Optional metadata filter
@@ -304,7 +297,7 @@ class AchievementQueryService:
         # If we have metadata filter or session filters, we need to do in-Python filtering
         # because metadata is stored as JSON string and can't be efficiently queried in SQL
         has_metadata_filter = metadata_filter is not None
-        has_session_filters = level is not None or min_accuracy is not None or operation is not None
+        has_session_filters = min_accuracy is not None or operation is not None
         
         if has_metadata_filter or has_session_filters:
             all_achievements = query.all()
@@ -315,8 +308,8 @@ class AchievementQueryService:
                 if not AchievementQueryService._apply_metadata_filter(ach, metadata_filter):
                     continue
                 
-                # Apply session-level filters
-                if not AchievementQueryService._apply_session_filters(ach, level, min_accuracy, operation):
+                # Apply session-level filters (level filtering removed)
+                if not AchievementQueryService._apply_session_filters(ach, min_accuracy, operation):
                     continue
                 
                 matching += 1
@@ -331,7 +324,6 @@ class AchievementQueryService:
         user_id: int,
         base_code: str,
         target_tier: str,
-        level: int | None = None,
         min_accuracy: float | None = None,
         operation: str | None = None,
         metadata_filter: dict[str, Any] | None = None,
@@ -342,7 +334,6 @@ class AchievementQueryService:
             user_id: User ID
             base_code: Base achievement code (without tier)
             target_tier: Target tier to count (e.g., "bronze")
-            level: Optional level filter
             min_accuracy: Optional minimum accuracy filter
             operation: Optional operation filter
             metadata_filter: Optional metadata filter
@@ -372,8 +363,8 @@ class AchievementQueryService:
             if not AchievementQueryService._apply_metadata_filter(ach, metadata_filter):
                 continue
             
-            # Apply session-level filters
-            if not AchievementQueryService._apply_session_filters(ach, level, min_accuracy, operation):
+            # Apply session-level filters (level filtering removed)
+            if not AchievementQueryService._apply_session_filters(ach, min_accuracy, operation):
                 continue
             
             matching_tiers.append(ach_tier)
@@ -395,12 +386,11 @@ class AchievementQueryService:
     def count_achievements_by_code_with_filters(
         user_id: int,
         achievement_code: str,
-        level: int | None = None,
         min_accuracy: float | None = None,
         operation: str | None = None,
         metadata_filter: dict[str, Any] | None = None,
     ) -> int:
-        """Count achievements with filters for level, accuracy, and operation.
+        """Count achievements with filters for accuracy and operation.
         
         Supports tier substitution: higher tier achievements can substitute for lower tier requirements.
         Conversion: 4 bronze = 2 silver = 1 gold, etc.
@@ -408,7 +398,6 @@ class AchievementQueryService:
         Args:
             user_id: User ID
             achievement_code: Achievement code to count (must be tiered code like "addition-basics-bronze")
-            level: Optional level filter (session level must match)
             min_accuracy: Optional minimum accuracy filter (session accuracy must be >= this, as 0.0-1.0)
             operation: Optional operation filter (session must have questions with this operation)
             metadata_filter: Optional metadata filter (achievement metadata must match)
@@ -426,7 +415,6 @@ class AchievementQueryService:
             return AchievementQueryService._count_non_tiered_achievements(
                 user_id=user_id,
                 achievement_code=achievement_code,
-                level=level,
                 min_accuracy=min_accuracy,
                 operation=operation,
                 metadata_filter=metadata_filter,
@@ -436,7 +424,6 @@ class AchievementQueryService:
                 user_id=user_id,
                 base_code=base_code,
                 target_tier=target_tier,
-                level=level,
                 min_accuracy=min_accuracy,
                 operation=operation,
                 metadata_filter=metadata_filter,

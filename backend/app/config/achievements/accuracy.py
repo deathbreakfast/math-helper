@@ -8,8 +8,8 @@ from app.utils.tier_utils import ALL_TIERS
 # These are redundant and covered by test achievements and regular speed/accuracy achievements
 # All references have been replaced with test achievements in level progression
 
-def _generate_level_master_achievements() -> dict[str, dict[str, Any]]:
-    """Generate Level Master (consecutive correct at specific level) achievement definitions."""
+def _generate_math_master_achievements() -> dict[str, dict[str, Any]]:
+    """Generate Math Master (consecutive correct per concept) achievement definitions."""
     achievements = {}
     
     tier_requirements = {
@@ -27,17 +27,17 @@ def _generate_level_master_achievements() -> dict[str, dict[str, Any]]:
     }
     
     for tier in ALL_TIERS:
-        code = f"level-master-{tier}"
+        code = f"math-master-{tier}"
         req = tier_requirements.get(tier, {})
         min_consecutive = req.get("min_consecutive", 30)
         
         tier_title = tier.capitalize()
-        title = f"Level Master ({tier_title})"
+        title = f"Math Master ({tier_title})"
         
         if tier == "champion":
-            description = f"Longest consecutive correct at any level on server ({min_consecutive}+ correct)"
+            description = f"Longest consecutive correct on server ({min_consecutive}+ correct)"
         else:
-            description = f"{min_consecutive} consecutive correct at any level"
+            description = f"{min_consecutive} consecutive correct"
         
         requirements = {
             "type": "level_master",
@@ -115,5 +115,5 @@ def _generate_accuracy_ace_achievements() -> dict[str, dict[str, Any]]:
 
 
 ACCURACY_ACHIEVEMENTS: dict[str, dict[str, Any]] = {}
-ACCURACY_ACHIEVEMENTS.update(_generate_level_master_achievements())
+ACCURACY_ACHIEVEMENTS.update(_generate_math_master_achievements())
 ACCURACY_ACHIEVEMENTS.update(_generate_accuracy_ace_achievements())

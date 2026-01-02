@@ -11,7 +11,7 @@ export type AchievementCodeMapping = {
 /**
  * Maps backend achievement codes to frontend achievement IDs
  * 
- * Backend codes are like: "first-steps", "speed-demon-bronze", "level-master-bronze", etc.
+ * Backend codes are like: "first-steps", "speed-demon-bronze", "math-master-bronze", etc.
  * Frontend IDs are like: "s1", "m1", "s8", etc.
  */
 export const ACHIEVEMENT_CODE_TO_FRONTEND_ID: AchievementCodeMapping = {
@@ -32,8 +32,9 @@ export const ACHIEVEMENT_CODE_TO_FRONTEND_ID: AchievementCodeMapping = {
   'speed-demon-gold': ['s10'], // Average <3s per question
 
   // Legacy mappings (kept for backward compatibility with older achievement codes that may exist in the database).
-  'master-of-all': ['level-grandmaster'], // Renamed to level-grandmaster
-  'level-grandmaster': ['level-grandmaster'], // Level Master (Bronze) on all levels
+  'master-of-all': ['math-grandmaster'], // Renamed to math-grandmaster
+  'level-grandmaster': ['math-grandmaster'], // Legacy code, maps to math-grandmaster
+  'math-grandmaster': ['math-grandmaster'], // Math Master (Bronze) on all descriptive concepts
 }
 
 /**

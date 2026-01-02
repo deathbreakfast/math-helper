@@ -142,14 +142,14 @@ class AchievementOrchestrator:
         else:
             debug_print(f"[ACHIEVEMENT DEBUG] No new level-specific achievements awarded")
         
-        # Check Level Master achievements (consecutive correct at any level)
-        debug_print(f"[ACHIEVEMENT DEBUG] Checking Level Master achievements...")
+        # Check Math Master achievements (consecutive correct per concept)
+        debug_print(f"[ACHIEVEMENT DEBUG] Checking Math Master achievements...")
         level_master_achievements = self.level_master_checker.check(user)
         if level_master_achievements:
             level_master_codes = [a.code for a in level_master_achievements]
             level_master_titles = [a.title for a in level_master_achievements]
-            debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(level_master_achievements)} Level Master achievement(s): {level_master_codes}")
-            print(f"[ACHIEVEMENT INFO] Awarded {len(level_master_achievements)} Level Master achievement(s): {level_master_titles}")
+            debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(level_master_achievements)} Math Master achievement(s): {level_master_codes}")
+            print(f"[ACHIEVEMENT INFO] Awarded {len(level_master_achievements)} Math Master achievement(s): {level_master_titles}")
             flush_or_commit()
 
         # Check Master of Basic Addition/Subtraction achievements (concept coverage based on Level Master buckets)
@@ -166,14 +166,14 @@ class AchievementOrchestrator:
             )
             flush_or_commit()
         
-        # Check Level Grandmaster milestone achievement (Level Master Bronze on all levels)
-        debug_print(f"[ACHIEVEMENT DEBUG] Checking Level Grandmaster achievement...")
+        # Check Math Grandmaster milestone achievement (Math Master Bronze on all descriptive concepts)
+        debug_print(f"[ACHIEVEMENT DEBUG] Checking Math Grandmaster achievement...")
         level_grandmaster_achievements = self.level_grandmaster_checker.check(user)
         if level_grandmaster_achievements:
             level_grandmaster_codes = [a.code for a in level_grandmaster_achievements]
             level_grandmaster_titles = [a.title for a in level_grandmaster_achievements]
-            debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(level_grandmaster_achievements)} Level Grandmaster achievement(s): {level_grandmaster_codes}")
-            print(f"[ACHIEVEMENT INFO] Awarded {len(level_grandmaster_achievements)} Level Grandmaster achievement(s): {level_grandmaster_titles}")
+            debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(level_grandmaster_achievements)} Math Grandmaster achievement(s): {level_grandmaster_codes}")
+            print(f"[ACHIEVEMENT INFO] Awarded {len(level_grandmaster_achievements)} Math Grandmaster achievement(s): {level_grandmaster_titles}")
             flush_or_commit()
         
         # Check Human Calculator milestone achievement (Lightning Fast Bronze/Silver on all levels)

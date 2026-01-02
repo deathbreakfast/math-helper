@@ -49,22 +49,23 @@ class LevelAccuracyChecker(AchievementChecker):
         self, user: User, achievement_code: str, config: dict[str, Any],
         requirements: dict[str, Any], session_id: int | None
     ) -> list[Achievement]:
-        """Check level_accuracy achievements."""
-        level = requirements.get("level")
+        """Check level_accuracy achievements.
+        
+        Note: Level filtering removed - this checker now operates across all concepts.
+        This checker may be legacy as level-based achievements are being phased out.
+        """
         min_accuracy = requirements.get("min_accuracy", 0.0)
         question_count = requirements.get("question_count", 0)
         min_speed = requirements.get("min_speed")
         
-        # Get all responses for this level
+        # Get all responses (level filtering removed - no longer filtering by Question.required_level)
         responses = (
             Response.query.filter_by(user_id=user.id)
-            .join(Question)
-            .filter(Question.required_level == level)
             .all()
         )
         
         if not responses:
-            debug_print(f"[ACHIEVEMENT DEBUG]   ✗ Not awarding (no responses at level {level})")
+            debug_print(f"[ACHIEVEMENT DEBUG]   ✗ Not awarding (no responses)")
             return []
         
         # Check question count requirements

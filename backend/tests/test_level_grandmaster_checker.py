@@ -25,7 +25,7 @@ def test_check_requires_level_master_bronze_first(app, test_user, level_grandmas
         from app import db
         from app.config.levels_config import LEVELS_CONFIG
         
-        # User does not have level-master-bronze achievements with metadata
+        # User does not have math-master-bronze achievements with metadata
         # (may have old global achievement, but that doesn't count)
         result = level_grandmaster_checker.check(test_user)
         
@@ -50,9 +50,9 @@ def test_check_awards_when_all_levels_qualified(app, test_user, level_grandmaste
             metadata = {"concept_id": f"c_concept_{level:03d}"}
             create_achievement(
                 user_id=test_user.id,
-                code="level-master-bronze",
-                title="Level Master (Bronze)",
-                description="30 consecutive correct at level",
+                code="math-master-bronze",
+                title="Math Master (Bronze)",
+                description="30 consecutive correct",
                 icon="🏆",
                 category="accuracy",
                 metadata=metadata,
@@ -63,9 +63,9 @@ def test_check_awards_when_all_levels_qualified(app, test_user, level_grandmaste
         # Check Level Grandmaster
         result = level_grandmaster_checker.check(test_user)
         
-        # Should award level-grandmaster (all levels have Level Master Bronze)
-        assert len(result) == 1, "Should award level-grandmaster when all levels have Level Master (Bronze)"
-        assert result[0].code == "level-grandmaster", "Should award level-grandmaster achievement"
+        # Should award math-grandmaster (all levels have Level Master Bronze)
+        assert len(result) == 1, "Should award math-grandmaster when all levels have Level Master (Bronze)"
+        assert result[0].code == "math-grandmaster", "Should award math-grandmaster achievement"
 
 
 def test_check_does_not_award_if_level_missing_consecutive(app, test_user, level_grandmaster_checker):
@@ -90,7 +90,7 @@ def test_check_does_not_award_if_level_missing_consecutive(app, test_user, level
                 metadata = {"concept_id": f"c_concept_{level:03d}"}
                 create_achievement(
                     user_id=test_user.id,
-                    code="level-master-bronze",
+                    code="math-master-bronze",
                     title="Level Master (Bronze)",
                     description="30 consecutive correct at level",
                     icon="🏆",
@@ -103,8 +103,8 @@ def test_check_does_not_award_if_level_missing_consecutive(app, test_user, level
         # Check Level Grandmaster
         result = level_grandmaster_checker.check(test_user)
         
-        # Should not award level-grandmaster (one level is missing Level Master achievement)
-        assert len(result) == 0, "Should not award level-grandmaster when one level lacks Level Master (Bronze) achievement"
+        # Should not award math-grandmaster (one level is missing Level Master achievement)
+        assert len(result) == 0, "Should not award math-grandmaster when one level lacks Level Master (Bronze) achievement"
 
 
 def test_check_does_not_duplicate_achievement(app, test_user, level_grandmaster_checker):
@@ -112,12 +112,12 @@ def test_check_does_not_duplicate_achievement(app, test_user, level_grandmaster_
     with app.app_context():
         from app import db
         
-        # User already has level-grandmaster
+        # User already has math-grandmaster
         existing = Achievement(
             user_id=test_user.id,
-            code="level-grandmaster",
-            title="Level Grandmaster",
-            description="Level Master Bronze on all levels",
+            code="math-grandmaster",
+            title="Math Grandmaster",
+            description="Math Master Bronze on all descriptive concepts",
             icon="👑",
             category="milestone",
         )
@@ -128,7 +128,7 @@ def test_check_does_not_duplicate_achievement(app, test_user, level_grandmaster_
         
         # Should not award duplicate
         assert len(result) == 0
-        assert Achievement.query.filter_by(user_id=test_user.id, code="level-grandmaster").count() == 1
+        assert Achievement.query.filter_by(user_id=test_user.id, code="math-grandmaster").count() == 1
 
 
 def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
@@ -148,9 +148,9 @@ def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
                 metadata = {"concept_id": f"c_concept_{level:03d}"}
                 create_achievement(
                     user_id=test_user.id,
-                    code="level-master-silver",
-                    title="Level Master (Silver)",
-                    description="60 consecutive correct at level",
+                    code="math-master-silver",
+                    title="Math Master (Silver)",
+                    description="60 consecutive correct",
                     icon="🏆",
                     category="accuracy",
                     metadata=metadata,
@@ -160,9 +160,9 @@ def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
                 metadata = {"concept_id": f"c_concept_{level:03d}"}
                 create_achievement(
                     user_id=test_user.id,
-                    code="level-master-gold",
-                    title="Level Master (Gold)",
-                    description="120 consecutive correct at level",
+                    code="math-master-gold",
+                    title="Math Master (Gold)",
+                    description="120 consecutive correct",
                     icon="🏆",
                     category="accuracy",
                     metadata=metadata,
@@ -172,7 +172,7 @@ def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
                 metadata = {"concept_id": f"c_concept_{level:03d}"}
                 create_achievement(
                     user_id=test_user.id,
-                    code="level-master-bronze",
+                    code="math-master-bronze",
                     title="Level Master (Bronze)",
                     description="30 consecutive correct at level",
                     icon="🏆",
@@ -185,7 +185,7 @@ def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
         # Check Level Grandmaster
         result = level_grandmaster_checker.check(test_user)
         
-        # Should award level-grandmaster (all levels have Level Master Bronze or higher)
-        assert len(result) == 1, "Should award level-grandmaster when all levels have Level Master (Bronze or higher)"
-        assert result[0].code == "level-grandmaster", "Should award level-grandmaster achievement"
+        # Should award math-grandmaster (all levels have Level Master Bronze or higher)
+        assert len(result) == 1, "Should award math-grandmaster when all levels have Level Master (Bronze or higher)"
+        assert result[0].code == "math-grandmaster", "Should award math-grandmaster achievement"
 

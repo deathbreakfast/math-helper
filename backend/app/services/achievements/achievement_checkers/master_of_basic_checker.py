@@ -1,12 +1,12 @@
 """Master of Basic Addition/Subtraction achievement checker.
 
-Awards milestone achievements when a user has Level Master at all basic concept buckets.
+Awards milestone achievements when a user has Math Master at all basic concept buckets.
 
 - Basic addition concepts: c_add_0s..c_add_10s
 - Basic subtraction concepts: c_sub_0s..c_sub_10s
 
 This is concept-based (metadata {"concept_id": ...}) and relies on LevelMasterChecker having
-already awarded the underlying level-master-* achievements for each concept bucket.
+already awarded the underlying math-master-* achievements for each concept bucket.
 """
 
 from __future__ import annotations
@@ -36,10 +36,10 @@ class MasterOfBasicChecker(AchievementChecker):
         """
         new_achievements: list[Achievement] = []
 
-        # Preload user's level-master achievements once.
+        # Preload user's math-master achievements once.
         level_master_achievements = (
             Achievement.query.filter_by(user_id=user.id)
-            .filter(Achievement.code.like("level-master-%"))
+            .filter(Achievement.code.like("math-master-%"))
             .all()
         )
 
@@ -56,7 +56,7 @@ class MasterOfBasicChecker(AchievementChecker):
             if not cid:
                 continue
 
-            # code looks like "level-master-{tier}"
+            # code looks like "math-master-{tier}"
             parts = ach.code.split("-")
             if len(parts) < 3:
                 continue
@@ -104,7 +104,7 @@ class MasterOfBasicChecker(AchievementChecker):
             required_tier = str(requirements.get("required_tier", "bronze"))
             required_tier_value = get_tier_value(required_tier)
 
-            # Qualify if every required concept has a level-master tier value >= required tier.
+            # Qualify if every required concept has a math-master tier value >= required tier.
             if all(concept_best_tier_value.get(cid, -1) >= required_tier_value for cid in required_concepts):
                 best_award = (get_tier_value(tier), tier, code, config)
 

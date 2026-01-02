@@ -89,8 +89,8 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
     if (!achievement || !instances.length) return null
     
     // Check if this is a level master achievement
-    const isLevelMaster = achievement.id?.startsWith('level-master-') || 
-                         (achievement as any).code?.startsWith('level-master-')
+    const isLevelMaster = achievement.id?.startsWith('math-master-') || 
+                         (achievement as any).code?.startsWith('math-master-')
     
     if (!isLevelMaster) return null
     

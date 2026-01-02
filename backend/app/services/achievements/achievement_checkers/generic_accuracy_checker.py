@@ -27,11 +27,12 @@ class GenericAccuracyChecker(AchievementChecker):
         self.achievement_configs = achievement_configs
     
     def _extract_session_context(self, session: PracticeSession) -> dict[str, Any] | None:
-        """Extract operation, level, and metrics from session.
+        """Extract operation, concept_id, and metrics from session.
         
-        Returns a dict with operation, level, and metrics, or None if session is invalid.
+        Returns a dict with operation, concept_id, and metrics, or None if session is invalid.
+        Note: This checker may be legacy - level-based achievements are being phased out.
         """
-        if not session.completed_at or not session.level:
+        if not session.completed_at or not session.concept_id:
             return None
         
         # Get operation from session's questions
@@ -56,7 +57,7 @@ class GenericAccuracyChecker(AchievementChecker):
         
         return {
             "operation": first_question.operation,
-            "level": session.level,
+            "concept_id": session.concept_id,
             "total_questions": total_questions,
             "accuracy": accuracy,
             "avg_time_per_question": avg_time_per_question,
@@ -71,14 +72,12 @@ class GenericAccuracyChecker(AchievementChecker):
         
         Args:
             requirements: Achievement requirements dict
-            context: Session context (operation, level, metrics)
+            context: Session context (operation, concept_id, metrics)
             
         Returns:
             True if all requirements are met, False otherwise
         """
-        # Check level and operation match
-        if requirements.get("level") != context["level"]:
-            return False
+        # Check operation match (level requirement removed - using concept_id instead)
         if requirements.get("operation") != context["operation"]:
             return False
         

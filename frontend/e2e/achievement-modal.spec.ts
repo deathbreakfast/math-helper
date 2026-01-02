@@ -143,15 +143,15 @@ test.describe('Achievement Detail Modal', () => {
   })
 
   test('ACH-MODAL-004: Modal displays metadata for achievements with metadata', async ({ page, request }) => {
-    // Create user with achievement that has metadata (e.g., level-master with level metadata)
+    // Create user with achievement that has metadata (e.g., math-master with concept_id metadata)
     const testUser = await createTestUserWithState(request, {})
     
     // Award achievement with metadata via API
     try {
       const response = await request.post(`/api/users/${testUser.id}/achievements`, {
         data: {
-          code: 'level-master-bronze',
-          title: 'Level Master (Bronze)',
+          code: 'math-master-bronze',
+          title: 'Math Master (Bronze)',
           description: '30 consecutive correct',
           icon: '🎯',
           category: 'accuracy',
@@ -171,7 +171,7 @@ test.describe('Achievement Detail Modal', () => {
       await waitForFramerMotion(page)
 
       // Find the achievement card
-      const achievementCard = page.getByTestId('testid-achievement-card-level-master-bronze')
+      const achievementCard = page.getByTestId('testid-achievement-card-math-master-bronze')
       const cardVisible = await achievementCard.isVisible({ timeout: 3000 }).catch(() => false)
       
       if (cardVisible) {

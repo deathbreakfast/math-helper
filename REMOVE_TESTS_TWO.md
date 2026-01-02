@@ -386,10 +386,10 @@ The codebase contains a legacy test/quiz system that allows users to take struct
 - [x] Remove test cards from journey tabs/components
 
 ### Phase 2: Remove Test Definitions and Mapping
-- [ ] Delete `frontend/src/lib/tests/testDefinitions.ts`
-- [ ] Delete entire directory `frontend/src/features/students/utils/testMapping/`
-- [ ] Remove all imports of test definitions and mapping utilities
-- [ ] Update components that reference test types
+- [x] Delete `frontend/src/lib/tests/testDefinitions.ts`
+- [x] Delete entire directory `frontend/src/features/students/utils/testMapping/`
+- [x] Remove all imports of test definitions and mapping utilities
+- [x] Update components that reference test types
 
 ### Phase 3: Remove Backend Test Services
 - [ ] Remove test session creation logic

@@ -161,8 +161,10 @@ class SessionCompletionService:
             new_total_xp = prev_total_xp + earned_xp
             new_level = XPService.level_for_total_xp(new_total_xp)
 
-            # Update user XP and level
+            # Update user XP (level is calculated from XP, not stored)
             user.experience = new_total_xp
+            # Note: user.level is still stored in the model but should be calculated from XP
+            # For now, we still update it for backward compatibility, but this will be removed in Phase 5
             user.level = new_level
             db.session.add(user)
             
@@ -198,6 +200,7 @@ class SessionCompletionService:
             }
             
             # Return DTO (transaction will commit when exiting context manager)
+            # Note: level is not returned in session response - it should be calculated from XP (Phase 3 will remove it entirely)
             return {
                 "session": {
                     "id": session.id,
@@ -206,7 +209,6 @@ class SessionCompletionService:
                     "accuracy": session.accuracy,
                     "completed_at": session.completed_at.isoformat() if session.completed_at else None,
                     "mode": session.mode,
-                    "level": session.level,
                     "concept_id": session.concept_id,
                 },
                 "achievements": [AchievementService.serialize_achievement(a) for a in new_achievements],

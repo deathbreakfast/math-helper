@@ -42,7 +42,6 @@ class SessionResumeService:
         user_id: int,
         mode: str,
         concept_id: str | None = None,
-        session_level: int | None = None,
         resume_oldest: bool = False,
     ) -> tuple[Any | None, dict[str, Any] | None]:
         """Find a resumable session for the user.
@@ -51,7 +50,6 @@ class SessionResumeService:
             user_id: The user ID
             mode: Session mode (standard/multiplication/division)
             concept_id: Optional concept identifier filter
-            session_level: Optional level filter
             resume_oldest: If True, resume the oldest incomplete session (for dashboard)
         
         Returns:
@@ -70,19 +68,14 @@ class SessionResumeService:
         if not incomplete_session:
             return None, None
         
-        # Validate that the session matches the requested concept_id and level
+        # Validate that the session matches the requested concept_id (no level filtering)
         concept_matches = (
             incomplete_session.concept_id == concept_id
             if concept_id is not None
             else True  # If no concept_id specified, allow resume
         )
-        level_matches = (
-            incomplete_session.level == session_level 
-            if session_level is not None and incomplete_session.level is not None
-            else True  # If either is None, allow resume (backward compatibility)
-        )
         
-        if not (level_matches and concept_matches):
+        if not concept_matches:
             return None, None
         
         # Get full session details with all questions
@@ -109,20 +102,17 @@ class SessionResumeService:
         # Transform questions to match generate_session format
         transformed_questions = SessionResumeService._transform_session_questions_to_generate_format(questions)
         
-        # Get user for level fallback
+        # Calculate level from XP for display (backward compatibility during transition)
         from ..models import db
+        from ..services.xp_service import XPService
         user = db.session.get(User, user_id)
-        
-        response_level = (
-            incomplete_session.level
-            if incomplete_session.level is not None
-            else (user.level if user and user.level is not None else 1)
-        )
+        total_xp = int(getattr(user, "experience", 0) or 0) if user else 0
+        display_level = XPService.level_for_total_xp(total_xp)
         
         return incomplete_session, {
             "session_id": incomplete_session.id,
             "mode": incomplete_session.mode,
-            "level": response_level,
+            "level": display_level,
             "concept_id": incomplete_session.concept_id,
             "questions": transformed_questions,
         }

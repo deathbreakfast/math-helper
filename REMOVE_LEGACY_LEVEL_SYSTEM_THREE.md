@@ -490,14 +490,15 @@ level_tag = db.Column(db.String(32), nullable=True, index=True)
 ## Summary Checklist
 
 ### Phase 1: Remove Level Requirements
-- [ ] Remove `level` parameter from `SessionEngineService.generate_session()`
-- [ ] Remove `get_questions_for_level()` method from `PracticeService`
-- [ ] Remove all `level` parameters from `QuestionService` methods
-- [ ] Replace level parameters with `concept_id` in all question generation
-- [ ] Remove level filtering from `SessionResumeService`
-- [ ] Remove level setting from `SessionCompletionService` (use XP instead)
+- [x] Remove `level` parameter from `SessionEngineService.generate_session()`
+- [x] Remove `get_questions_for_level()` method from `PracticeService`
+- [x] Remove all `level` parameters from `QuestionService` methods
+- [x] Replace level parameters with `concept_id` in all question generation
+- [x] Remove level filtering from `SessionResumeService`
+- [x] Remove level setting from `SessionCompletionService` (use XP instead)
 
 ### Phase 2: Remove Level from Achievement System
+- [ ] Rename achievement codes: "level-master" → "math-master" and "level-grandmaster" → "math-grandmaster"
 - [ ] Remove `level_filter` from `LevelMasterChecker`
 - [ ] Remove level filtering from `SessionAchievementsChecker`
 - [ ] Remove level filtering from `LevelAccuracyChecker`
@@ -549,7 +550,7 @@ level_tag = db.Column(db.String(32), nullable=True, index=True)
 
 4. **Question Required Level**: `Question.required_level` should not be used for filtering. Questions are selected by `concept_id`, not level.
 
-5. **Achievement Metadata**: Achievements should use `concept_id` in metadata, not level. The "level-master" achievement name is misleading - it should be concept-based.
+5. **Achievement Metadata**: Achievements should use `concept_id` in metadata, not level. The achievement names "level-master" and "level-grandmaster" are misleading - they should be renamed to "math-master" and "math-grandmaster" to reflect that they are concept-based, not level-based.
 
 6. **Testing**: After removing level requirements, verify that:
    - Users can practice any unlocked concept regardless of level

@@ -345,11 +345,11 @@ class QuestionService:
     @staticmethod
     def generate_operands_with_constraints(
         operation: str,
-        level: int,
+        concept_id: str,
         test_constraints: dict[str, Any] | None = None,
         max_attempts: int = 100,
     ) -> tuple[int, int]:
-        """Generate operands that satisfy level constraints.
+        """Generate operands that satisfy concept constraints.
         
         Uses a pipeline pattern:
         1. Normalize constraints from config and test_constraints
@@ -359,26 +359,25 @@ class QuestionService:
         
         Args:
             operation: The math operation (addition, subtraction, multiplication, division)
-            level: The difficulty level
+            concept_id: The concept identifier (e.g., "c_concept_001", "c_add_1s")
             test_constraints: Optional test-specific constraints
             max_attempts: Maximum attempts for general strategy generation
             
         Returns:
             Tuple of (operand1, operand2) that satisfy the constraints
         """
-        # Convert level to concept_id for lookup
-        concept_id = f"c_concept_{level:03d}"
+        # Get concept configuration
         config = CONCEPTS_CONFIG.get(concept_id)
         if not config:
-            raise ValueError(f"Level {level} (concept {concept_id}) configuration not found")
+            raise ValueError(f"Concept {concept_id} configuration not found")
         
         constraints = config.get("constraints", {})
         op1_range = config["operand1_range"]
         op2_range = config["operand2_range"]
         
-        # Step 1: Normalize constraints
+        # Step 1: Normalize constraints (level parameter deprecated, using placeholder)
         normalized = QuestionService._normalize_constraints(
-            constraints, test_constraints, operation, level
+            constraints, test_constraints, operation, level=1
         )
         
         # Step 2: Try test constraint strategies (highest priority)
@@ -388,9 +387,9 @@ class QuestionService:
         if result is not None:
             return result
         
-        # Step 3: Try fixed operand2 strategy
+        # Step 3: Try fixed operand2 strategy (level parameter deprecated, using placeholder)
         result = QuestionService._generate_with_fixed_operand2(
-            normalized, op1_range, op2_range, level
+            normalized, op1_range, op2_range, level=1
         )
         if result is not None:
             return result
@@ -513,7 +512,7 @@ class QuestionService:
     @staticmethod
     def create_layout_config(
         operation: str,
-        level: int,
+        concept_id: str | None = None,
         operand1: int,
         operand2: int,
         answer_format: str = "integer",
@@ -521,11 +520,12 @@ class QuestionService:
         config_override: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         """Create layout configuration matching frontend ProblemLayoutConfig type."""
-        # Get level config to determine layout type (convert level to concept_id for lookup)
+        # Get concept config to determine layout type
         if config_override:
             config = config_override
         else:
-            concept_id = f"c_concept_{level:03d}"
+            if not concept_id:
+                raise ValueError("concept_id is required when config_override is not provided")
             config = CONCEPTS_CONFIG.get(concept_id)
         layout_type = config.get("layout_type", "vertical") if config else "vertical"
         partial_mode = config.get("partial_products_mode", "easy") if config else "easy"
@@ -586,7 +586,7 @@ class QuestionService:
     @log_query
     def generate_question(
         operation: str,
-        level: int,
+        concept_id: str | None = None,
         test_constraints: dict[str, Any] | None = None,
         config_override: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
@@ -594,34 +594,31 @@ class QuestionService:
         
         Args:
             operation: The operation type (addition, subtraction, multiplication, division)
-            level: The difficulty level
+            concept_id: The concept identifier (e.g., "c_concept_001", "c_add_1s")
             test_constraints: Optional constraints for test sessions (e.g., {"multiplication_table": 5})
+            config_override: Optional config dict to use instead of looking up by concept_id
         
         Returns:
             Dictionary with question data including id, prompt, operands, correct_answer, layout, etc.
         """
-        # Get level configuration (convert level to concept_id for lookup)
+        # Get concept configuration
         if config_override:
             config = config_override
         else:
-            concept_id = f"c_concept_{level:03d}"
+            if not concept_id:
+                raise ValueError("concept_id is required when config_override is not provided")
             config = CONCEPTS_CONFIG.get(concept_id)
         if not config:
-            raise ValueError(f"Level {level} (concept {concept_id}) configuration not found")
+            raise ValueError(f"Concept {concept_id} configuration not found")
         
         # Override operation from config if test_constraints don't specify
         if not test_constraints or "operation" not in test_constraints:
             operation = config["operation"]
         
-        # Generate operands with constraints
-        if config_override is None:
-            operand1, operand2 = QuestionService.generate_operands_with_constraints(
-                operation, level, test_constraints
-            )
-        else:
-            operand1, operand2 = QuestionService._generate_operands_with_config(
-                operation, config, test_constraints
-            )
+        # Generate operands with constraints (always use config_override path when available)
+        operand1, operand2 = QuestionService._generate_operands_with_config(
+            operation, config, test_constraints
+        )
         
         # Get answer format from config
         answer_format = config.get("answer_format", "integer")
@@ -638,7 +635,7 @@ class QuestionService:
         
         # Create layout config
         layout_config = QuestionService.create_layout_config(
-            operation, level, operand1, operand2, answer_format, test_constraints, config_override=config
+            operation, concept_id, operand1, operand2, answer_format, test_constraints, config_override=config
         )
         
         # Override layout type if specified in config
@@ -675,12 +672,9 @@ class QuestionService:
             hint = "Use the long division algorithm: divide, multiply, subtract, bring down."
         
         # Create question in database
-        required_level = level
-        # Legacy level field removed - concepts no longer have legacy_level
-        # Use concept_id directly for any level-based logic if needed
-
-        difficulty = f"Level {required_level}"
-        target_ms = 4000 + required_level * 500
+        # Legacy level fields removed - no longer setting required_level or level_tag
+        difficulty = "Standard"
+        target_ms = 4000  # Default target time
         
         question = PracticeService.create_question(
             operation=operation,
@@ -688,9 +682,9 @@ class QuestionService:
             operand2=operand2,
             correct_answer=correct_answer,
             prompt=prompt,
-            required_level=required_level,
+            required_level=1,  # Legacy field, will be removed in Phase 5
             difficulty=difficulty,
-            level_tag=str(required_level),
+            level_tag=None,  # Legacy field, will be removed in Phase 5
             target_ms=target_ms,
             hint=hint,
             answer_format=answer_format,
@@ -747,7 +741,7 @@ class QuestionService:
             return result
         
         result = QuestionService._generate_with_fixed_operand2(
-            normalized, op1_range, op2_range, level
+            normalized, op1_range, op2_range, level=1
         )
         if result is not None:
             return result

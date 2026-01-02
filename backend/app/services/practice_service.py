@@ -116,24 +116,6 @@ class PracticeService:
 
     @staticmethod
     @log_query
-    def get_questions_for_level(
-        level: int, operation: str | None = None, limit: int | None = None
-    ) -> list[Question]:
-        """Get questions available for a given level."""
-        query = Question.query.filter(Question.required_level <= level)
-
-        if operation:
-            query = query.filter_by(operation=operation)
-
-        query = query.order_by(Question.created_at.desc())
-
-        if limit:
-            query = query.limit(limit)
-
-        return query.all()
-
-    @staticmethod
-    @log_query
     def record_response(
         session_id: int | None,
         question_id: int,

@@ -154,7 +154,6 @@ def start_practice_session():
     payload = get_json_payload()
     user_id = get_user_id_from_payload(payload)
     mode = payload.get("mode", "standard")
-    level = payload.get("level")
     concept_id = payload.get("concept_id")
     resume_oldest = payload.get("resume_oldest", False)
 
@@ -165,7 +164,6 @@ def start_practice_session():
         session_data = SessionEngineService.generate_session(
             user_id=user_id,
             mode=mode,
-            level=level,
             concept_id=concept_id,
             resume_oldest=resume_oldest,
         )

@@ -6,7 +6,6 @@ from typing import Any
 
 from ..services.concept_config_service import ConceptConfigService
 from ..services.question_service import QuestionService
-from ..utils.legacy_mappings import extract_legacy_level_from_concept_id
 
 
 class QuestionGenerationService:
@@ -36,9 +35,6 @@ class QuestionGenerationService:
         if not config:
             raise ValueError(f"Unsupported concept_id for practice session: {concept_id}")
         
-        # Determine concept level (for backward compatibility with QuestionService)
-        concept_level = extract_legacy_level_from_concept_id(concept_id)
-        
         operation = config["operation"]
         questions: list[dict[str, Any]] = []
         
@@ -49,13 +45,13 @@ class QuestionGenerationService:
                 try:
                     question_data = QuestionService.generate_question(
                         operation=operation,
-                        level=concept_level or 1,
+                        concept_id=concept_id,
                         test_constraints=None,
                         config_override=config,
                     )
                     break  # Success, exit retry loop
                 except ValueError:
-                    # Invalid level configuration (e.g., division by zero)
+                    # Invalid configuration (e.g., division by zero)
                     if retry >= max_retries - 1:
                         raise
             

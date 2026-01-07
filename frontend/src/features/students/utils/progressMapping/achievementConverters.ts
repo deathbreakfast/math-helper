@@ -8,11 +8,30 @@ import { extractTierFromCode, cleanTitle } from '../achievementUtils'
 export function convertBackendDefinitionToFrontend(
   code: string,
   definition: BackendAchievementDefinition,
-  userAchievements: Array<{ code?: string; earnedAt?: Date }>
+  userAchievements: Array<{ code?: string; earnedAt?: Date; metadata?: Record<string, any> }>
 ): Achievement {
   const category = definition.category || 'milestone'
-  const earnedAchievement = userAchievements.find((a) => a.code === code)
+  
+  // Step 4: Log conversion step to show which achievement is selected
+  const matchingAchievements = userAchievements.filter((a) => a.code === code)
+  const earnedAchievement = matchingAchievements[0] // .find() gets first match
   const isUnlocked = !!earnedAchievement
+  
+  if (import.meta.env.DEV && matchingAchievements.length > 1) {
+    // Only log if there are multiple matches (potential data loss)
+    console.warn(`⚠️ convertBackendDefinitionToFrontend: Code "${code}" has ${matchingAchievements.length} achievements, but only using first one:`, {
+      selected: {
+        metadata: earnedAchievement?.metadata,
+        concept_id: earnedAchievement?.metadata?.concept_id,
+        earnedAt: earnedAchievement?.earnedAt,
+      },
+      ignored: matchingAchievements.slice(1).map(a => ({
+        metadata: a.metadata,
+        concept_id: a.metadata?.concept_id,
+        earnedAt: a.earnedAt,
+      })),
+    })
+  }
   
   // Determine achievement type based on category
   let type: Achievement['type'] = 'milestone'
@@ -89,8 +108,8 @@ export function convertBackendDefinitionToFrontend(
     category,
     count: achievementCount,
     lastEarnedAt: earnedAchievement?.earnedAt ? new Date(earnedAchievement.earnedAt) : undefined,
-    // Metadata is not available in userAchievements array - it comes from backend requirements
-    metadata: undefined,
+    // Pass through metadata from earned achievement (contains concept_id, level, operation, etc.)
+    metadata: earnedAchievement?.metadata,
     xp_reward: definition.xp_reward,
   }
 }
@@ -100,8 +119,8 @@ export function convertBackendDefinitionToFrontend(
  * Used as fallback when achievement definitions are not available.
  */
 export function convertBackendAchievementToFrontend(
-  backendAchievement: { code?: string; title?: string; description?: string; icon?: string; category?: string; earnedAt?: Date },
-  userAchievements: Array<{ code?: string; earnedAt?: Date }>
+  backendAchievement: { code?: string; title?: string; description?: string; icon?: string; category?: string; earnedAt?: Date; metadata?: Record<string, any> },
+  userAchievements: Array<{ code?: string; earnedAt?: Date; metadata?: Record<string, any> }>
 ): Achievement {
   const code = backendAchievement.code || ''
   const category = backendAchievement.category || 'milestone'
@@ -170,8 +189,8 @@ export function convertBackendAchievementToFrontend(
     // Count how many times this achievement code appears
     count: userAchievements.filter((a) => a.code === code).length,
     lastEarnedAt: backendAchievement.earnedAt ? new Date(backendAchievement.earnedAt) : undefined,
-    // Metadata is not available in LearnerAchievement type - it comes from backend requirements
-    metadata: undefined,
+    // Pass through metadata from backend (contains concept_id, level, operation, etc.)
+    metadata: backendAchievement.metadata,
     // Not always available in this fallback path (depends on /api/users payload).
     xp_reward: (backendAchievement as any).xp_reward,
   }

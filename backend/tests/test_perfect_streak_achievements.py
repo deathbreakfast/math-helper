@@ -160,6 +160,22 @@ def test_perfect_streak_silver_with_bronze_exists_once(app, test_user):
             user = db.session.get(User, test_user.id)
             metrics = AnalyticsService.compute_user_metrics(user.id)
             AchievementService.ensure_achievements(user, metrics, session_id=session.id)
+            
+            # After session 4, verify bronze count is still 1 (not awarded again)
+            if session_num == 3:  # session_num is 0-indexed, so 3 is the 4th session
+                bronze_count_after_4 = Achievement.query.filter(
+                    Achievement.user_id == test_user.id,
+                    Achievement.code == "perfect-streak-bronze"
+                ).count()
+                assert bronze_count_after_4 == 1, "Bronze should NOT be awarded at session 4 (already awarded at session 3)"
+                
+                # Verify bronze is NOT linked to session 4
+                bronze_in_session_4 = Achievement.query.filter(
+                    Achievement.user_id == test_user.id,
+                    Achievement.code == "perfect-streak-bronze",
+                    Achievement.session_id == sessions[3].id
+                ).first()
+                assert bronze_in_session_4 is None, "Bronze should NOT be linked to session 4"
         
         # Verify silver was awarded
         silver_achievement = Achievement.query.filter_by(

@@ -1,7 +1,6 @@
 import React, { useRef, useCallback, useState, useEffect } from 'react'
 import ForceGraph2D from 'react-force-graph-2d'
 import type { ForceGraphNode, ForceGraphEdge } from '../../utils/forceGraphData'
-import { getTierColor } from '../../utils/achievementUtils'
 
 type ForceGraphCanvasProps = {
   nodes: ForceGraphNode[]
@@ -20,7 +19,7 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
   onNodeClick,
   onNodeHover,
 }) => {
-  const fgRef = useRef<any>()
+  const fgRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState(() => ({ width, height }))
 
@@ -85,7 +84,7 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
   }, [onNodeHover])
 
   // Custom node paint function to render icons and styling
-  const nodePaint = useCallback((node: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+  const nodePaint = useCallback((node: any, ctx: CanvasRenderingContext2D, _globalScale: number) => {
     const forceNode = node as ForceGraphNode
     // Root category nodes are largest (27px), math concepts are 18px, achievements are 9px
     const size = forceNode.size || (
@@ -126,16 +125,16 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
       textOpacity = 1.0
       borderWidth = 3 // Thicker border for root nodes
     } else if (forceNode.type === 'math-concept') {
-      // Math concepts have different styling
+      // Math concepts: locked = grey/desaturated, unlocked = green stroke
       if (forceNode.status === 'locked') {
-        // Locked math concepts: grayed out
+        // Locked math concepts: grey/desaturated, no green stroke
         gradient = '#e5e7eb' // gray-200
         borderColor = '#9ca3af' // gray-400
-        iconOpacity = 0.3
+        iconOpacity = 0.4
         textOpacity = 0.5
         borderWidth = 2
       } else {
-        // Unlocked math concepts: blue/purple gradient with green outline
+        // Unlocked math concepts: full color with green stroke
         const gradientObj = ctx.createRadialGradient(
           node.x - radius * 0.3,
           node.y - radius * 0.3,
@@ -147,22 +146,17 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
         gradientObj.addColorStop(0, '#c7d2fe') // blue-200 (lighter)
         gradientObj.addColorStop(1, '#a5b4fc') // blue-300 (darker)
         gradient = gradientObj
-        borderColor = '#86efac' // green-300 to match MathConceptCard
+        borderColor = '#86efac' // green-300 (green stroke for unlocked)
         iconOpacity = 1.0
         textOpacity = 1.0
-        borderWidth = 2 // Thicker border for math concept nodes
+        borderWidth = 2
       }
     } else {
       // Achievement nodes
-      if (forceNode.status === 'locked') {
-        // Locked nodes: grayed out
-        gradient = '#e5e7eb' // gray-200
-        borderColor = '#9ca3af' // gray-400
-        iconOpacity = 0.3
-        textOpacity = 0.5
-        borderWidth = 1
-      } else if (forceNode.status === 'unlocked') {
-        // Unlocked nodes: full color with green outline
+      const hasMetadata = forceNode.relatedConceptLocked !== undefined
+      
+      if (forceNode.status === 'unlocked') {
+        // Awarded: full color with green stroke
         const gradientObj = ctx.createRadialGradient(
           node.x - radius * 0.3,
           node.y - radius * 0.3,
@@ -181,29 +175,87 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
         } else if (forceNode.tier === 'Gold') {
           gradientObj.addColorStop(0, '#fde047') // yellow-300 (lighter)
           gradientObj.addColorStop(1, '#fbbf24') // yellow-400 (darker)
+        } else {
+          // Default gradient for other tiers
+          gradientObj.addColorStop(0, '#e5e7eb') // gray-200
+          gradientObj.addColorStop(1, '#d1d5db') // gray-300
         }
         gradient = gradientObj
-        borderColor = '#86efac' // green-300 to match MathConceptCard
+        borderColor = '#86efac' // green-300 (green stroke for awarded)
         iconOpacity = 1.0
         textOpacity = 1.0
-        borderWidth = 1.5 // Proportionally smaller
-      } else if (forceNode.status === 'in-progress') {
-        // In-progress nodes: blue styling (no green border)
-        const gradientObj = ctx.createRadialGradient(
-          node.x - radius * 0.3,
-          node.y - radius * 0.3,
-          0,
-          node.x,
-          node.y,
-          radius
-        )
-        gradientObj.addColorStop(0, '#bfdbfe') // blue-200 (lighter)
-        gradientObj.addColorStop(1, '#93c5fd') // blue-300 (darker)
-        borderColor = '#60a5fa' // blue-400
-        gradient = gradientObj
-        iconOpacity = 1.0
-        textOpacity = 1.0
-        borderWidth = 1
+        borderWidth = 1.5
+      } else if (forceNode.status === 'locked') {
+        // Locked achievement
+        if (hasMetadata) {
+          // Achievement with metadata (concept requirement)
+          if (forceNode.relatedConceptLocked === false) {
+            // Discovered: concept unlocked but achievement not earned - grey stroke, saturated icon
+            const gradientObj = ctx.createRadialGradient(
+              node.x - radius * 0.3,
+              node.y - radius * 0.3,
+              0,
+              node.x,
+              node.y,
+              radius
+            )
+            
+            if (forceNode.tier === 'Bronze') {
+              gradientObj.addColorStop(0, '#f59e0b') // amber-500 (lighter)
+              gradientObj.addColorStop(1, '#d97706') // amber-600 (darker)
+            } else if (forceNode.tier === 'Silver') {
+              gradientObj.addColorStop(0, '#d1d5db') // gray-300 (lighter)
+              gradientObj.addColorStop(1, '#9ca3af') // gray-400 (darker)
+            } else if (forceNode.tier === 'Gold') {
+              gradientObj.addColorStop(0, '#fde047') // yellow-300 (lighter)
+              gradientObj.addColorStop(1, '#fbbf24') // yellow-400 (darker)
+            } else {
+              gradientObj.addColorStop(0, '#e5e7eb')
+              gradientObj.addColorStop(1, '#d1d5db')
+            }
+            gradient = gradientObj
+            borderColor = '#9ca3af' // grey stroke
+            iconOpacity = 1.0 // Saturated
+            textOpacity = 1.0
+            borderWidth = 1
+          } else {
+            // Undiscovered: concept locked - grey stroke, desaturated/no icon
+            gradient = '#e5e7eb' // gray-200
+            borderColor = '#9ca3af' // gray-400 (grey stroke)
+            iconOpacity = 0.2 // Very desaturated
+            textOpacity = 0.4
+            borderWidth = 1
+          }
+        } else {
+          // Achievement without metadata: discovered state (grey stroke, no green)
+          const gradientObj = ctx.createRadialGradient(
+            node.x - radius * 0.3,
+            node.y - radius * 0.3,
+            0,
+            node.x,
+            node.y,
+            radius
+          )
+          
+          if (forceNode.tier === 'Bronze') {
+            gradientObj.addColorStop(0, '#f59e0b') // amber-500 (lighter)
+            gradientObj.addColorStop(1, '#d97706') // amber-600 (darker)
+          } else if (forceNode.tier === 'Silver') {
+            gradientObj.addColorStop(0, '#d1d5db') // gray-300 (lighter)
+            gradientObj.addColorStop(1, '#9ca3af') // gray-400 (darker)
+          } else if (forceNode.tier === 'Gold') {
+            gradientObj.addColorStop(0, '#fde047') // yellow-300 (lighter)
+            gradientObj.addColorStop(1, '#fbbf24') // yellow-400 (darker)
+          } else {
+            gradientObj.addColorStop(0, '#e5e7eb')
+            gradientObj.addColorStop(1, '#d1d5db')
+          }
+          gradient = gradientObj
+          borderColor = '#9ca3af' // grey stroke (not green)
+          iconOpacity = 1.0
+          textOpacity = 1.0
+          borderWidth = 1
+        }
       }
     }
 
@@ -217,7 +269,14 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
     ctx.stroke()
 
     // Draw icon (emoji) in center with opacity
-    if (forceNode.icon) {
+    // For undiscovered achievements (with metadata and locked concept), don't show icon
+    const shouldShowIcon = !(
+      forceNode.type === 'achievement' &&
+      forceNode.relatedConceptLocked === true &&
+      forceNode.status === 'locked'
+    )
+    
+    if (forceNode.icon && shouldShowIcon) {
       ctx.save()
       ctx.globalAlpha = iconOpacity
       ctx.font = `${size * 0.8}px Arial` // Slightly larger relative to node size
@@ -254,7 +313,7 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
   }, [])
 
   // Custom link paint function to render edge labels
-  const linkPaint = useCallback((link: any, ctx: CanvasRenderingContext2D, globalScale: number) => {
+  const linkPaint = useCallback((link: any, ctx: CanvasRenderingContext2D, _globalScale: number) => {
     const forceEdge = link as ForceGraphEdge
     const source = link.source as ForceGraphNode
     const target = link.target as ForceGraphNode
@@ -267,15 +326,27 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
       return // Skip rendering if node positions are invalid
     }
 
-    // Determine edge color based on target tier (the higher tier)
+    // Determine edge color based on node states
     let edgeColor = 'rgba(156, 163, 175, 0.6)' // Default gray
-    if (target.tier === 'Gold') {
-      edgeColor = 'rgba(251, 191, 36, 0.6)' // yellow-400
-    } else if (target.tier === 'Silver') {
-      edgeColor = 'rgba(156, 163, 175, 0.6)' // gray-400
-    } else if (target.tier === 'Bronze') {
-      edgeColor = 'rgba(217, 119, 6, 0.6)' // amber-600
+    
+    // Edge between math concepts: green if both unlocked, grey otherwise
+    if (source.type === 'math-concept' && target.type === 'math-concept') {
+      if (source.status === 'unlocked' && target.status === 'unlocked') {
+        edgeColor = 'rgba(34, 197, 94, 0.6)' // green-500
+      } else {
+        edgeColor = 'rgba(156, 163, 175, 0.6)' // grey
+      }
     }
+    // Edge from achievement to math concept: green if achievement is awarded, grey otherwise
+    else if (source.type === 'achievement' && target.type === 'math-concept') {
+      if (source.status === 'unlocked') {
+        edgeColor = 'rgba(34, 197, 94, 0.6)' // green-500
+      } else {
+        edgeColor = 'rgba(156, 163, 175, 0.6)' // grey
+      }
+    }
+    // Achievement chain edges (achievement to achievement): keep default grey for now
+    // (could be styled based on tier if needed, but user didn't specify)
 
     // Draw line with arrow
     ctx.beginPath()
@@ -288,7 +359,6 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
     // Draw arrowhead
     const angle = Math.atan2(target.y - source.y, target.x - source.x)
     const arrowLength = 8
-    const arrowWidth = 5
     const arrowX = target.x - Math.cos(angle) * (target.size || 9) / 2
     const arrowY = target.y - Math.sin(angle) * (target.size || 9) / 2
 

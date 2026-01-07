@@ -1,4 +1,4 @@
-import { useMemo, useCallback } from 'react'
+import { useMemo, useCallback, useEffect } from 'react'
 import { motion } from 'framer-motion'
 import { AlertCircle } from 'lucide-react'
 import type { UserProgressData } from '../../utils/progressMapping'
@@ -6,6 +6,10 @@ import type { Achievement } from '../../data/achievements'
 import type { BackendAchievementDefinition } from '../../../lib/levels/api'
 import { ForceGraphCanvas } from './ForceGraphCanvas'
 import { transformAchievementsToForceGraph, type ForceGraphNode } from '../../utils/forceGraphData'
+import { useMathConcepts } from '../../hooks/useMathConcepts'
+import { compareDataStructures, logMockDataSnapshot, logLiveDataSnapshot, compareForceGraphOutput, traceAchievementDataFlow } from '../../utils/forceGraphDataComparison'
+import { useLearners } from '../../hooks/useLearners'
+import { useConceptRequirements } from '../../../../lib/concepts/hooks'
 
 type ForceGraphTabProps = {
   achievements: Achievement[]
@@ -20,10 +24,55 @@ export const ForceGraphTab: React.FC<ForceGraphTabProps> = ({
   userId,
   achievementDefinitions,
 }) => {
+  // Get math concepts for title formatting
+  const { concepts: mathConcepts } = useMathConcepts({
+    userData,
+    isActive: true,
+    userId,
+  })
+  
+  // Get backend concept requirements for enriching achievements with concept-specific variants
+  const conceptIds = useMemo(() => mathConcepts.map(c => c.conceptId), [mathConcepts])
+  const { requirements: backendRequirements } = useConceptRequirements(conceptIds, true, userId)
+  
+  // Get user object for tracing (if available)
+  const { state: { users } } = useLearners()
+  const user = users.find(u => u.id === userId)
+  
+  // Compare mock data structure with live data structure (dev/debugging only)
+  // This helps ensure the journey tab behaves the same way as the mock data test
+  useEffect(() => {
+    // Only log in development mode
+    if (import.meta.env.DEV) {
+      // Comprehensive data flow tracing
+      if (user) {
+        traceAchievementDataFlow(user, achievementDefinitions)
+      }
+      
+      logMockDataSnapshot()
+      logLiveDataSnapshot(achievements, mathConcepts)
+      
+      // Compare raw data structures
+      const structureComparison = compareDataStructures(achievements, mathConcepts)
+      if (!structureComparison.achievementsMatch || !structureComparison.conceptsMatch) {
+        console.warn('⚠️ Data structure mismatch detected:', structureComparison.differences)
+      } else {
+        console.log('✅ Raw data structures match between mock and live data')
+      }
+      
+      // Compare transformed force graph data (nodes and edges)
+      // This is the key comparison - edges should connect the same way
+      const graphComparison = compareForceGraphOutput(achievements, mathConcepts)
+      if (graphComparison.missingLiveEdges.length > 0 || graphComparison.nodeIdComparison.mockOnlyNodeIds.length > 0) {
+        console.warn('⚠️ Live data is missing some nodes/edges that mock data has. See comparison above.')
+      }
+    }
+  }, [achievements, mathConcepts])
+  
   // Transform achievements into force graph data
   const graphData = useMemo(() => {
-    return transformAchievementsToForceGraph(achievements)
-  }, [achievements])
+    return transformAchievementsToForceGraph(achievements, mathConcepts, undefined, backendRequirements)
+  }, [achievements, mathConcepts, backendRequirements])
 
   // Handle node click - console.log with type and id
   const handleNodeClick = useCallback((node: ForceGraphNode) => {

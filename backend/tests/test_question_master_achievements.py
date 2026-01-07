@@ -168,5 +168,85 @@ def test_question_master_only_highest_tier_awarded(app, test_user):
         # This test documents that gold should be awarded for 1000+ questions
 
 
+def test_question_master_only_one_per_tier(app, test_user):
+    """Test that only one achievement per tier is awarded, even when answering more questions."""
+    with app.app_context():
+        # Step 1: Answer 100 questions -> should get bronze
+        questions1 = create_test_questions(100)
+        for i in range(0, 100, 20):
+            session_questions = questions1[i:i+20]
+            responses_data = [{
+                'question_id': q.id,
+                'answer': q.correct_answer,
+                'is_correct': True,
+                'duration_ms': 3000
+            } for q in session_questions]
+            
+            session = create_test_session_with_responses(test_user.id, responses_data)
+            user = db.session.get(User, test_user.id)
+            metrics = AnalyticsService.compute_user_metrics(user.id)
+            AchievementService.ensure_achievements(user, metrics, session_id=session.id)
+        
+        # Verify bronze was awarded
+        bronze_count = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="question-master-bronze"
+        ).count()
+        assert bronze_count == 1, f"Should have exactly 1 bronze achievement after 100 questions, got {bronze_count}"
+        
+        # Step 2: Answer 100 more questions (total 200) -> should still have only 1 bronze
+        questions2 = create_test_questions(100)
+        for i in range(0, 100, 20):
+            session_questions = questions2[i:i+20]
+            responses_data = [{
+                'question_id': q.id,
+                'answer': q.correct_answer,
+                'is_correct': True,
+                'duration_ms': 3000
+            } for q in session_questions]
+            
+            session = create_test_session_with_responses(test_user.id, responses_data)
+            user = db.session.get(User, test_user.id)
+            metrics = AnalyticsService.compute_user_metrics(user.id)
+            AchievementService.ensure_achievements(user, metrics, session_id=session.id)
+        
+        # Verify still only 1 bronze exists
+        bronze_count = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="question-master-bronze"
+        ).count()
+        assert bronze_count == 1, f"Should still have exactly 1 bronze achievement after 200 questions, got {bronze_count}"
+        
+        # Step 3: Answer 300 more questions (total 500) -> should get silver, still only 1 bronze
+        questions3 = create_test_questions(300)
+        for i in range(0, 300, 50):
+            session_questions = questions3[i:i+50]
+            responses_data = [{
+                'question_id': q.id,
+                'answer': q.correct_answer,
+                'is_correct': True,
+                'duration_ms': 3000
+            } for q in session_questions]
+            
+            session = create_test_session_with_responses(test_user.id, responses_data)
+            user = db.session.get(User, test_user.id)
+            metrics = AnalyticsService.compute_user_metrics(user.id)
+            AchievementService.ensure_achievements(user, metrics, session_id=session.id)
+        
+        # Verify silver was awarded
+        silver_count = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="question-master-silver"
+        ).count()
+        assert silver_count == 1, f"Should have exactly 1 silver achievement after 500 questions, got {silver_count}"
+        
+        # Verify still only 1 bronze exists
+        bronze_count = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="question-master-bronze"
+        ).count()
+        assert bronze_count == 1, f"Should still have exactly 1 bronze achievement after 500 questions, got {bronze_count}"
+
+
 
 

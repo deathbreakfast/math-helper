@@ -91,6 +91,11 @@ class LightningFastChecker(AchievementChecker):
         if not avg_speed_seconds:
             return new_achievements
         
+        # Minimum correct questions required before awarding (to prevent awarding with very few correct answers)
+        min_correct_questions = 9
+        if total_questions < min_correct_questions:
+            return new_achievements
+        
         # Get speed multiplier for this concept
         speed_multiplier = get_concept_speed_multiplier(concept_id)
         

@@ -55,7 +55,8 @@ CONCEPT_UNLOCK_REQUIREMENTS: dict[str, list[ConceptRequirement]] = {
     "c_concept_023": [
         {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_008"}, "order": 1},
     ],
-    # Note: c_concept_011 through c_concept_021, c_concept_024 through c_concept_045 are unlocked by default (no requirements listed)
+    # Note: c_concept_011 through c_concept_021, c_concept_024 through c_concept_025 are unlocked by default (no requirements listed)
+    # Note: c_concept_026 through c_concept_045 (Division concepts) have requirements defined below
     # Note: c_concept_004 removed (covered by c_sub_0s), c_concept_009 removed
 
     # Single Digit Addition (1s): starter concept
@@ -154,6 +155,68 @@ CONCEPT_UNLOCK_REQUIREMENTS: dict[str, list[ConceptRequirement]] = {
     "c_mul_3s": [
         {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_mul_2s"}, "order": 1},
         {"achievement_code": "speed-demon-platinum", "quantity": 1, "order": 2},
+    ],
+
+    # Division by 1-12
+    "c_concept_026": [  # Division by 1
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_021"}, "order": 1},
+    ],
+    "c_concept_027": [  # Division by 2
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_026"}, "order": 1},
+    ],
+    "c_concept_028": [  # Division by 3
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_027"}, "order": 1},
+    ],
+    "c_concept_029": [  # Division by 4
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_028"}, "order": 1},
+    ],
+    "c_concept_030": [  # Division by 5
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_029"}, "order": 1},
+    ],
+    "c_concept_031": [  # Division by 6
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_030"}, "order": 1},
+    ],
+    "c_concept_032": [  # Division by 7
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_031"}, "order": 1},
+    ],
+    "c_concept_033": [  # Division by 8
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_032"}, "order": 1},
+    ],
+    "c_concept_034": [  # Division by 9
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_033"}, "order": 1},
+    ],
+    "c_concept_035": [  # Division by 10
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_034"}, "order": 1},
+    ],
+    "c_concept_036": [  # Division by 11
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_035"}, "order": 1},
+    ],
+    "c_concept_037": [  # Division by 0
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_036"}, "order": 1},
+    ],
+    "c_concept_038": [  # Division by 10 (Repeated)
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_037"}, "order": 1},
+    ],
+    "c_concept_039": [  # Division with Remainders (Single Digit Divisors)
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_038"}, "order": 1},
+    ],
+    "c_concept_040": [  # Division with Remainders (Two Digit Dividends)
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_039"}, "order": 1},
+    ],
+    "c_concept_041": [  # Two Digit Division
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_040"}, "order": 1},
+    ],
+    "c_concept_042": [  # Three Digit Division
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_041"}, "order": 1},
+    ],
+    "c_concept_043": [  # Division with Remainders (Three Digit)
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_042"}, "order": 1},
+    ],
+    "c_concept_044": [  # Long Division
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_043"}, "order": 1},
+    ],
+    "c_concept_045": [  # Advanced Division
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_044"}, "order": 1},
     ],
 }
 

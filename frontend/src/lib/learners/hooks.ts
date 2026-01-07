@@ -97,6 +97,56 @@ export const useLearners = (): UseLearnersState => {
         throw new Error('Unable to load user data.')
       }
       const data = await response.json()
+      
+      // Step 1: Log raw API response to see backend data structure
+      if (import.meta.env.DEV) {
+        const rawAchievements = data.achievements || []
+        const withMetadata = rawAchievements.filter((a: any) => a.metadata?.concept_id)
+        const withoutMetadata = rawAchievements.filter((a: any) => !a.metadata?.concept_id)
+        
+        console.group('🔍 Step 1: Raw API Response (Backend Data)')
+        console.log('Raw API Response:', {
+          userId: data.id,
+          achievementCount: rawAchievements.length,
+          withMetadata: withMetadata.length,
+          withoutMetadata: withoutMetadata.length,
+        })
+        console.log('Sample Raw Achievements WITH metadata (first 5):', 
+          withMetadata.slice(0, 5).map((a: any) => ({
+            code: a.code,
+            metadata: a.metadata,
+            concept_id: a.metadata?.concept_id,
+          }))
+        )
+        console.log('Sample Raw Achievements WITHOUT metadata (first 5):', 
+          withoutMetadata.slice(0, 5).map((a: any) => ({
+            code: a.code,
+            metadata: a.metadata,
+          }))
+        )
+        // Check for duplicate codes with different metadata
+        const codeGroups = new Map<string, any[]>()
+        rawAchievements.forEach((a: any) => {
+          if (a.code) {
+            if (!codeGroups.has(a.code)) {
+              codeGroups.set(a.code, [])
+            }
+            codeGroups.get(a.code)!.push(a)
+          }
+        })
+        const duplicateCodes = Array.from(codeGroups.entries()).filter(([_, achievements]) => achievements.length > 1)
+        if (duplicateCodes.length > 0) {
+          console.log('⚠️ Duplicate codes with multiple achievements (first 10):', 
+            duplicateCodes.slice(0, 10).map(([code, achievements]) => ({
+              code,
+              count: achievements.length,
+              metadataVariants: achievements.map((a: any) => a.metadata?.concept_id || 'no metadata'),
+            }))
+          )
+        }
+        console.groupEnd()
+      }
+      
       const user = mapApiLearner(data)
       
       // Update the user in the learners array

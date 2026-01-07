@@ -45,6 +45,11 @@ class SessionAchievementsChecker(AchievementChecker):
         user_achievement_codes = {code[0] for code in user_achievement_codes}
         
         for achievement_code, config in achievement_configs.items():
+            # Skip perfect-streak achievements - they are handled by PerfectStreakChecker
+            # which uses run_key to track uninterrupted runs
+            if achievement_code.startswith("perfect-streak-"):
+                continue
+                
             req_type = config.get("requirements", {}).get("type")
             if req_type not in ["session_accuracy_and_consecutive", "perfect_sessions", "level_mastery", "completed_session_count"]:
                 continue

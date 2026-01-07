@@ -145,7 +145,7 @@ def _generate_question_master_achievements() -> dict[str, dict[str, Any]]:
             "tier": tier,
             "requirements": requirements,
             "constraint": {
-                "allow_multiple_per_tier": True,
+                "allow_multiple_per_tier": False,
                 "allow_multiple_per_session": False,
                 "unique_achievement": False,
             },

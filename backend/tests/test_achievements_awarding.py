@@ -74,10 +74,10 @@ def test_first_victory_achievement(app, test_user):
 
 
 def test_first_steps_achievement(app, test_user):
-    """ACH-AWARD-002: first-steps achievement awarded after 10 addition problems at level 1."""
+    """ACH-AWARD-002: first-steps achievement awarded after 10 addition problems for concept c_concept_001."""
     with app.app_context():
-        # Create 10 addition questions at level 1
-        questions = create_test_questions(10, operation="addition")
+        # Create 10 addition questions for concept c_concept_001
+        questions = create_test_questions(10, concept_id="c_concept_001", operation="addition")
         responses_data = [{
             'question_id': q.id,
             'answer': q.correct_answer,
@@ -85,7 +85,7 @@ def test_first_steps_achievement(app, test_user):
             'duration_ms': 3000
         } for q in questions]
         
-        session = create_test_session_with_responses(test_user.id, responses_data, experience=0)
+        session = create_test_session_with_responses(test_user.id, responses_data, concept_id="c_concept_001")
         
         # Get user and compute metrics, then check and award achievements
         user = db.session.get(User, test_user.id)
@@ -148,7 +148,7 @@ def test_first_steps_achievement(app, test_user):
             'duration_ms': 3000
         }]
         
-        session = create_test_session_with_responses(test_user.id, responses_data, experience=0)
+        session = create_test_session_with_responses(test_user.id, responses_data)
         
         # Get user and compute metrics, then check and award achievements
         user = db.session.get(User, test_user.id)
@@ -260,6 +260,85 @@ def test_speed_demon_gold_achievement(app, test_user):
         ).first()
         
         assert achievement is not None, "Speed demon achievement (gold or higher) should be awarded"
+
+
+def test_speed_demon_only_highest_tier_per_session(app, test_user):
+    """Test that Speed Demon awards only the highest qualifying tier per session."""
+    with app.app_context():
+        # Create session with 1.8s average (qualifies for grandmaster and all lower tiers)
+        # Grandmaster: ≤1.8s, Master: ≤2.1s, Diamond: ≤2.4s, Platinum: ≤2.7s, Gold: ≤3.0s, Silver: ≤4.0s, Bronze: ≤5.0s
+        questions = create_test_questions(10)
+        responses_data = [{
+            'question_id': q.id,
+            'answer': q.correct_answer,
+            'is_correct': True,
+            'duration_ms': 1800  # 1.8 seconds per question (qualifies for grandmaster and all lower tiers)
+        } for q in questions]
+        
+        session = create_test_session_with_responses(test_user.id, responses_data)
+        
+        # Get user and compute metrics, then check and award achievements
+        user = db.session.get(User, test_user.id)
+        metrics = AnalyticsService.compute_user_metrics(user.id)
+        AchievementService.ensure_achievements(user, metrics, session_id=session.id)
+        
+        # Verify only grandmaster is awarded (highest qualifying tier)
+        grandmaster = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="speed-demon-grandmaster",
+            session_id=session.id
+        ).first()
+        
+        assert grandmaster is not None, "Speed Demon (Grandmaster) should be awarded for 1.8s average"
+        
+        # Verify no lower tier achievements were awarded for this session
+        bronze = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="speed-demon-bronze",
+            session_id=session.id
+        ).first()
+        silver = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="speed-demon-silver",
+            session_id=session.id
+        ).first()
+        gold = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="speed-demon-gold",
+            session_id=session.id
+        ).first()
+        platinum = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="speed-demon-platinum",
+            session_id=session.id
+        ).first()
+        diamond = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="speed-demon-diamond",
+            session_id=session.id
+        ).first()
+        master = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="speed-demon-master",
+            session_id=session.id
+        ).first()
+        
+        assert bronze is None, "Bronze should NOT be awarded when grandmaster qualifies"
+        assert silver is None, "Silver should NOT be awarded when grandmaster qualifies"
+        assert gold is None, "Gold should NOT be awarded when grandmaster qualifies"
+        assert platinum is None, "Platinum should NOT be awarded when grandmaster qualifies"
+        assert diamond is None, "Diamond should NOT be awarded when grandmaster qualifies"
+        assert master is None, "Master should NOT be awarded when grandmaster qualifies"
+        
+        # Verify only one achievement was awarded for this session
+        all_session_achievements = Achievement.query.filter_by(
+            user_id=test_user.id,
+            session_id=session.id
+        ).filter(
+            Achievement.code.like("speed-demon-%")
+        ).all()
+        
+        assert len(all_session_achievements) == 1, f"Should award only one Speed Demon achievement per session, got {len(all_session_achievements)}"
 
 
 def test_speed_demon_champion_divine_flow(app, test_user):
@@ -538,7 +617,7 @@ def test_first_steps_only_awarded_once(app, test_user):
             'duration_ms': 3000
         }]
         
-        session1 = create_test_session_with_responses(test_user.id, responses_data1, experience=0)
+        session1 = create_test_session_with_responses(test_user.id, responses_data1)
         user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session1.id)
@@ -559,7 +638,7 @@ def test_first_steps_only_awarded_once(app, test_user):
             'duration_ms': 3000
         }]
         
-        session2 = create_test_session_with_responses(test_user.id, responses_data2, experience=0)
+        session2 = create_test_session_with_responses(test_user.id, responses_data2)
         user = db.session.get(User, test_user.id)
         metrics = AnalyticsService.compute_user_metrics(user.id)
         AchievementService.ensure_achievements(user, metrics, session_id=session2.id)
@@ -637,7 +716,7 @@ def test_first_victory_not_awarded_on_incomplete_session(app, test_user):
         session = PracticeSession(
             user_id=test_user.id,
             mode="standard",
-            level=1,
+            concept_id="c_concept_001",
             started_at=datetime.utcnow(),
             completed_at=None  # Session is NOT completed
         )

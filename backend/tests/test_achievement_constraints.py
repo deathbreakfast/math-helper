@@ -552,7 +552,7 @@ def test_question_master_one_per_tier_once_per_session(app, test_user):
         question_master_bronze = ACHIEVEMENTS_CONFIG.get("question-master-bronze")
         assert question_master_bronze is not None, "Question Master bronze should exist"
         constraint = question_master_bronze.get("constraint", {})
-        assert constraint.get("allow_multiple_per_tier") == True, "Should allow multiple per tier (different tiers)"
+        assert constraint.get("allow_multiple_per_tier") == False, "Should NOT allow multiple per tier (only one per tier)"
         assert constraint.get("allow_multiple_per_session") == False, "Should not allow multiple per session"
 
 

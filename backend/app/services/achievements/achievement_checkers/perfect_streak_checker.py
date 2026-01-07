@@ -99,59 +99,61 @@ class PerfectStreakChecker(AchievementChecker):
                 qualifying_tiers.append((tier, achievement_code, config))
         
         if qualifying_tiers:
-            # Sort by tier value (highest first)
+            # Sort by tier value (highest first) for processing order
             from ....utils.tier_utils import get_tier_value
             qualifying_tiers.sort(key=lambda x: get_tier_value(x[0]), reverse=True)
-            highest_tier, achievement_code, config = qualifying_tiers[0]
             
-            # Check for Champion tier if this is Divine
-            # Note: Champion eligibility check is handled at orchestrator level to avoid circular imports
-            if highest_tier == "divine":
-                champion_code = "perfect-streak-champion"
-                champion_config = self.achievement_configs.get(champion_code)
-                if champion_config:
-                    champion_req = champion_config.get("requirements", {})
-                    if consecutive_perfect >= champion_req.get("min_sessions", 0):
-                        # Champion eligibility will be checked by orchestrator
-                        # For now, award divine tier
-                        pass
-            
-            # Check if this achievement already exists for this run key
-            # We use metadata to store the run_key, making each run unique
+            # Award ALL qualifying tiers (not just highest)
+            # Each tier should be awarded once per run
             run_metadata = {"run_key": run_key} if run_key else None
-            existing_for_run = self._check_existing_for_run(
-                user_id=user.id,
-                code=achievement_code,
-                run_key=run_key
-            )
             
-            if not existing_for_run:
-                # Only create if it doesn't exist for this run
-                # The constraint check in create_achievement will now prioritize
-                # metadata (run_key) for perfect-streak achievements
-                achievement = self._create_achievement(
+            for tier, achievement_code, config in qualifying_tiers:
+                # Check for Champion tier if this is Divine
+                # Note: Champion eligibility check is handled at orchestrator level to avoid circular imports
+                if tier == "divine":
+                    champion_code = "perfect-streak-champion"
+                    champion_config = self.achievement_configs.get(champion_code)
+                    if champion_config:
+                        champion_req = champion_config.get("requirements", {})
+                        if consecutive_perfect >= champion_req.get("min_sessions", 0):
+                            # Champion eligibility will be checked by orchestrator
+                            # For now, award divine tier
+                            pass
+                
+                # Check if this specific tier already exists for this run
+                existing_for_run = self._check_existing_for_run(
                     user_id=user.id,
                     code=achievement_code,
-                    title=config["title"],
-                    description=config["description"],
-                    icon=config["icon"],
-                    category=config["category"],
-                    session_id=session_id,
-                    metadata=run_metadata,
+                    run_key=run_key
                 )
-                # Verify this is a newly created achievement (not an existing one)
-                # by checking if it has the run_key we just passed
-                if achievement.achievement_metadata:
-                    try:
-                        achievement_metadata = json.loads(achievement.achievement_metadata)
-                        if achievement_metadata.get("run_key") == run_key:
-                            # This is a new achievement for this run
-                            new_achievements.append(achievement)
-                    except (json.JSONDecodeError, TypeError):
-                        # If metadata parsing fails, skip (shouldn't happen)
-                        pass
-                # If no metadata, it's likely an existing achievement that was returned
-                # (shouldn't happen with our pre-check, but be safe)
+                
+                if not existing_for_run:
+                    # Only create if it doesn't exist for this run
+                    # The constraint check in create_achievement will now prioritize
+                    # metadata (run_key) for perfect-streak achievements
+                    achievement = self._create_achievement(
+                        user_id=user.id,
+                        code=achievement_code,
+                        title=config["title"],
+                        description=config["description"],
+                        icon=config["icon"],
+                        category=config["category"],
+                        session_id=session_id,
+                        metadata=run_metadata,
+                    )
+                    # Verify this is a newly created achievement (not an existing one)
+                    # by checking if it has the run_key we just passed
+                    if achievement.achievement_metadata:
+                        try:
+                            achievement_metadata = json.loads(achievement.achievement_metadata)
+                            if achievement_metadata.get("run_key") == run_key:
+                                # This is a new achievement for this run
+                                new_achievements.append(achievement)
+                        except (json.JSONDecodeError, TypeError):
+                            # If metadata parsing fails, skip (shouldn't happen)
+                            pass
+                    # If no metadata, it's likely an existing achievement that was returned
+                    # (shouldn't happen with our pre-check, but be safe)
         
         return new_achievements
     

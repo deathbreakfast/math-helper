@@ -61,7 +61,7 @@ def test_practice_session_id(app, test_user_id, test_question_id):
         session = PracticeSession(
             user_id=test_user_id,
             mode="standard",
-            level=1,
+            concept_id="c_concept_001",
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=100,
@@ -97,7 +97,7 @@ def test_test_session_id(app, test_user_id, test_question_id):
         session = PracticeSession(
             user_id=test_user_id,
             mode="standard",
-            level=1,
+            concept_id="c_concept_001",
             started_at=datetime.utcnow(),
             completed_at=datetime.utcnow(),
             total_questions=100,

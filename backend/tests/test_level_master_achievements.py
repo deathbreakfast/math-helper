@@ -561,3 +561,177 @@ def test_level_master_concept_isolation(app, test_user):
         assert metadata1.get("concept_id") == "c_add_1s", "First achievement should be for concept_id c_add_1s"
         assert metadata2.get("concept_id") == "c_add_2s", "Second achievement should be for concept_id c_add_2s"
 
+
+def test_math_master_silver_across_multiple_sessions(app, test_user):
+    """Test that Math Master Silver is awarded across multiple sessions for the same concept."""
+    with app.app_context():
+        base_time = datetime.utcnow()
+        concept_id = "c_add_1s"
+        
+        # Create 6 sessions, each with 10 correct questions (total 60)
+        for session_num in range(6):
+            questions = create_test_questions(10)
+            responses_data = []
+            for i, q in enumerate(questions):
+                responses_data.append({
+                    'question_id': q.id,
+                    'answer': q.correct_answer,
+                    'is_correct': True,
+                    'duration_ms': 3000,
+                    'answered_at': base_time + timedelta(seconds=session_num * 100 + i)
+                })
+            
+            session = create_test_session_with_responses(
+                test_user.id,
+                responses_data,
+                concept_id=concept_id
+            )
+            AchievementService.check_level_master_achievements(test_user)
+        
+        # Verify only one bronze exists (awarded after 30 consecutive)
+        bronze_achievements = Achievement.query.filter(
+            Achievement.user_id == test_user.id,
+            Achievement.code == "math-master-bronze"
+        ).all()
+        
+        bronze_for_concept = None
+        for ach in bronze_achievements:
+            if ach.achievement_metadata:
+                try:
+                    metadata = json.loads(ach.achievement_metadata)
+                    if metadata.get("concept_id") == concept_id:
+                        bronze_for_concept = ach
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        
+        assert bronze_for_concept is not None, "Should have bronze achievement for c_add_1s after 30 consecutive"
+        
+        # Count bronze achievements for this concept
+        bronze_count = 0
+        for ach in bronze_achievements:
+            if ach.achievement_metadata:
+                try:
+                    metadata = json.loads(ach.achievement_metadata)
+                    if metadata.get("concept_id") == concept_id:
+                        bronze_count += 1
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        
+        assert bronze_count == 1, f"Should have exactly 1 bronze achievement for {concept_id}, got {bronze_count}"
+        
+        # Verify only one silver exists (awarded after 60 consecutive)
+        silver_achievements = Achievement.query.filter(
+            Achievement.user_id == test_user.id,
+            Achievement.code == "math-master-silver"
+        ).all()
+        
+        silver_for_concept = None
+        for ach in silver_achievements:
+            if ach.achievement_metadata:
+                try:
+                    metadata = json.loads(ach.achievement_metadata)
+                    if metadata.get("concept_id") == concept_id:
+                        silver_for_concept = ach
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        
+        assert silver_for_concept is not None, "Should have silver achievement for c_add_1s after 60 consecutive"
+        
+        # Count silver achievements for this concept
+        silver_count = 0
+        for ach in silver_achievements:
+            if ach.achievement_metadata:
+                try:
+                    metadata = json.loads(ach.achievement_metadata)
+                    if metadata.get("concept_id") == concept_id:
+                        silver_count += 1
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        
+        assert silver_count == 1, f"Should have exactly 1 silver achievement for {concept_id}, got {silver_count}"
+        
+        # Verify bronze and silver are from different sessions (or at least different timestamps)
+        assert bronze_for_concept.id != silver_for_concept.id, "Bronze and silver should be different achievements"
+
+
+def test_math_master_silver_not_awarded_mixed_concepts_multiple_sessions(app, test_user):
+    """Test that Math Master Silver is NOT awarded when mixing concepts across multiple sessions."""
+    with app.app_context():
+        base_time = datetime.utcnow()
+        
+        # Create 4 sessions with c_add_1s (10 questions each = 40 total)
+        for session_num in range(4):
+            questions = create_test_questions(10)
+            responses_data = []
+            for i, q in enumerate(questions):
+                responses_data.append({
+                    'question_id': q.id,
+                    'answer': q.correct_answer,
+                    'is_correct': True,
+                    'duration_ms': 3000,
+                    'answered_at': base_time + timedelta(seconds=session_num * 100 + i)
+                })
+            
+            session = create_test_session_with_responses(
+                test_user.id,
+                responses_data,
+                concept_id="c_add_1s"
+            )
+            AchievementService.check_level_master_achievements(test_user)
+        
+        # Create 2 sessions with c_add_2s (10 questions each = 20 total)
+        for session_num in range(2):
+            questions = create_test_questions(10)
+            responses_data = []
+            for i, q in enumerate(questions):
+                responses_data.append({
+                    'question_id': q.id,
+                    'answer': q.correct_answer,
+                    'is_correct': True,
+                    'duration_ms': 3000,
+                    'answered_at': base_time + timedelta(seconds=400 + session_num * 100 + i)
+                })
+            
+            session = create_test_session_with_responses(
+                test_user.id,
+                responses_data,
+                concept_id="c_add_2s"
+            )
+            AchievementService.check_level_master_achievements(test_user)
+        
+        # Verify silver is NOT awarded (only 40 consecutive from c_add_1s, not 60)
+        silver_achievements = Achievement.query.filter(
+            Achievement.user_id == test_user.id,
+            Achievement.code == "math-master-silver"
+        ).all()
+        
+        silver_for_c_add_1s = None
+        for ach in silver_achievements:
+            if ach.achievement_metadata:
+                try:
+                    metadata = json.loads(ach.achievement_metadata)
+                    if metadata.get("concept_id") == "c_add_1s":
+                        silver_for_c_add_1s = ach
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        
+        assert silver_for_c_add_1s is None, "Silver should NOT be awarded (only 40 consecutive from c_add_1s, not 60)"
+        
+        # Verify bronze IS awarded for c_add_1s (30 consecutive)
+        bronze_achievements = Achievement.query.filter(
+            Achievement.user_id == test_user.id,
+            Achievement.code == "math-master-bronze"
+        ).all()
+        
+        bronze_for_c_add_1s = None
+        for ach in bronze_achievements:
+            if ach.achievement_metadata:
+                try:
+                    metadata = json.loads(ach.achievement_metadata)
+                    if metadata.get("concept_id") == "c_add_1s":
+                        bronze_for_c_add_1s = ach
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        
+        assert bronze_for_c_add_1s is not None, "Bronze should be awarded for c_add_1s (30 consecutive)"
+

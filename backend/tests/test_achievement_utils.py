@@ -202,7 +202,7 @@ class TestAchievementUtils:
             session = PracticeSession(
                 user_id=test_user.id,
                 mode="standard",
-                level=1
+                concept_id="c_concept_001"
             )
             db.session.add(session)
             db.session.commit()

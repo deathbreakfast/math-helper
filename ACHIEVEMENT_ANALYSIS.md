@@ -38,7 +38,10 @@ What is done to test: Creates first session and checks achievements, then create
 What is expected in test: Only one first-steps achievement should exist after both sessions
 
 ### Changes
-Intentionally left blank for after review.
+
+> Test description: Verifies first-steps achievement is awarded after 10 addition problems at level 1
+
+Level one? This should be a math concept, what concept is it using?
 
 ---
 
@@ -150,7 +153,11 @@ What is done to test: Creates multiple sessions totaling 1000 responses, checks 
 What is expected in test: Only gold should be awarded, not bronze or silver
 
 ### Changes
-Intentionally left blank for after review.
+
+There seems to be a requirement that was dropped here. The user should only be awarded one of each tier.
+
+Expected behavior: Awnser 100 questions -> get bronze -> Anwser 100 more -> have only 1 bronze tier award.
+Let's make sure we have test coverage for multiple tiers and verify only one of each.
 
 ---
 
@@ -213,7 +220,11 @@ What is done to test: Creates each session sequentially, checks achievements and
 What is expected in test: Session 1 should award champion and set server record, session 2 should award divine (not champion), session 3 should award champion again and update record
 
 ### Changes
-Intentionally left blank for after review.
+> - Awarded based on lifetime average speed across all questions
+
+This is incorrect. It should be awarded based on the average speed of the session.
+
+This seems to have a missing test, only one tier (the highest) should be awarded each session.
 
 ---
 
@@ -229,7 +240,7 @@ Achievement description: X consecutive perfect sessions (100% accuracy) - awarde
 - When streak is broken by an imperfect session, a new run starts
 - Can be re-awarded after a run is broken
 - Only highest qualifying tier should be awarded per run
-- Bronze should be awarded on 3rd perfect session, not on 4th if already awarded
+- Bronze should be awarded on 3rd perfect session, not on 4th if already awarded for this run
 
 ### Test Coverage
 Summary: Tests verify Perfect Streak awards for consecutive perfect sessions, breaks on imperfect sessions, and can be re-earned.
@@ -452,7 +463,16 @@ What is done to test: Creates two sessions with different concept_ids, calls Ach
 What is expected in test: Both concepts should have separate bronze achievements with correct concept_id metadata
 
 ### Changes
-Intentionally left blank for after review.
+
+NOTE: This should have been relabed to math master
+
+> #### test_level_master_silver_exactly_60
+
+We don't seem to have a test that verifies this over multiple sessions. We should do six sessions at 10 questions each. and ensure only one bronze and one silver exist.
+
+> #### test_level_master_silver_not_awarded_mixed_concepts
+
+Same here. Let's also try this across multiple sessions to verify the same thing.
 
 ---
 
@@ -547,7 +567,10 @@ What is done to test: Creates multiple sessions with concept_id "c_add_1s" and l
 What is expected in test: Achievement should be awarded (1.3s < 5.0s qualifies for bronze with 50+ questions), with metadata containing concept_id
 
 ### Changes
-Intentionally left blank for after review.
+
+There should be a min number of questions correct before awarding. E.g. if only one question was correct, we shouldn't grant this if the others were incorrect. Let's say a min number of 9 questions. Make sure we have tests to verify this as well.
+
+We are missing tests that verify only one lightning fast achievement per tier per math concept. E.g. there is no need to grant two bronze for add 1s as example.
 
 ---
 
@@ -730,7 +753,12 @@ What is done to test: Creates achievement for one level, then calls checker
 What is expected in test: Should NOT award Level Grandmaster (only 1 level qualified out of 45)
 
 ### Changes
-Intentionally left blank for after review.
+
+Should be using math concepts.
+
+We are missing tests to check that it doesn't grant for other combinations e.g. missing one achievement did we get granted grandmaster?
+
+We are missing tests to ensure higher tiers can be substituted. E.g. All silver for all math concepts but one, then bronze on the last one. It should grant bronze.
 
 ---
 
@@ -771,7 +799,8 @@ What is done to test: Creates silver achievement, then calls checker for bronze 
 What is expected in test: Should NOT award (not all levels qualified), but should correctly identify that silver qualifies for bronze requirement
 
 ### Changes
-Intentionally left blank for after review.
+
+Should be using math concepts.
 
 ---
 

@@ -197,3 +197,119 @@ def test_check_tier_substitution(app, test_user, level_grandmaster_checker):
         assert len(result) == 1, "Should award math-grandmaster when all descriptive concepts have Level Master (Bronze or higher)"
         assert result[0].code == "math-grandmaster", "Should award math-grandmaster achievement"
 
+
+def test_math_grandmaster_not_awarded_when_missing_one_concept(app, test_user, level_grandmaster_checker):
+    """Test that Math Grandmaster is NOT awarded when one descriptive concept is missing Math Master achievement."""
+    with app.app_context():
+        from app import db
+        from app.services.achievements.achievement_utils import create_achievement
+        
+        # Get all descriptive concepts (not c_concept_###)
+        descriptive_concepts = sorted([
+            concept_id for concept_id in CONCEPTS_CONFIG.keys()
+            if not concept_id.startswith("c_concept_")
+        ])
+        
+        if len(descriptive_concepts) < 2:
+            pytest.skip("Need at least 2 descriptive concepts for this test")
+        
+        # Create math-master-bronze achievements for all descriptive concepts except one
+        missing_concept = descriptive_concepts[-1]  # Use the last concept as the missing one
+        
+        for concept_id in descriptive_concepts:
+            if concept_id != missing_concept:
+                metadata = {"concept_id": concept_id}
+                create_achievement(
+                    user_id=test_user.id,
+                    code="math-master-bronze",
+                    title="Math Master (Bronze)",
+                    description="30 consecutive correct",
+                    icon="🏆",
+                    category="accuracy",
+                    metadata=metadata,
+                )
+        
+        db.session.commit()
+        
+        # Check Level Grandmaster
+        result = level_grandmaster_checker.check(test_user)
+        
+        # Should NOT award math-grandmaster (one concept is missing)
+        assert len(result) == 0, "Should NOT award math-grandmaster when one descriptive concept lacks Math Master achievement"
+        
+        # Now create achievement for the missing concept
+        metadata = {"concept_id": missing_concept}
+        create_achievement(
+            user_id=test_user.id,
+            code="math-master-bronze",
+            title="Math Master (Bronze)",
+            description="30 consecutive correct",
+            icon="🏆",
+            category="accuracy",
+            metadata=metadata,
+        )
+        
+        db.session.commit()
+        
+        # Check Level Grandmaster again
+        result = level_grandmaster_checker.check(test_user)
+        
+        # Should NOW award math-grandmaster (all concepts have Math Master)
+        assert len(result) == 1, "Should award math-grandmaster when all descriptive concepts have Math Master achievement"
+        assert result[0].code == "math-grandmaster", "Should award math-grandmaster achievement"
+
+
+def test_math_grandmaster_tier_substitution_explicit(app, test_user, level_grandmaster_checker):
+    """Test that Math Grandmaster IS awarded when all concepts have Math Master, with mixed tiers (silver qualifies for bronze requirement)."""
+    with app.app_context():
+        from app import db
+        from app.services.achievements.achievement_utils import create_achievement
+        
+        # Get all descriptive concepts (not c_concept_###)
+        descriptive_concepts = sorted([
+            concept_id for concept_id in CONCEPTS_CONFIG.keys()
+            if not concept_id.startswith("c_concept_")
+        ])
+        
+        if len(descriptive_concepts) < 2:
+            pytest.skip("Need at least 2 descriptive concepts for this test")
+        
+        # Create math-master-silver for all descriptive concepts except one
+        # Create math-master-bronze for the last concept
+        last_concept = descriptive_concepts[-1]
+        
+        for concept_id in descriptive_concepts:
+            if concept_id != last_concept:
+                # Silver for most concepts (higher tier qualifies for bronze requirement)
+                metadata = {"concept_id": concept_id}
+                create_achievement(
+                    user_id=test_user.id,
+                    code="math-master-silver",
+                    title="Math Master (Silver)",
+                    description="60 consecutive correct",
+                    icon="🏆",
+                    category="accuracy",
+                    metadata=metadata,
+                )
+            else:
+                # Bronze for the last concept
+                metadata = {"concept_id": concept_id}
+                create_achievement(
+                    user_id=test_user.id,
+                    code="math-master-bronze",
+                    title="Math Master (Bronze)",
+                    description="30 consecutive correct",
+                    icon="🏆",
+                    category="accuracy",
+                    metadata=metadata,
+                )
+        
+        db.session.commit()
+        
+        # Check Level Grandmaster
+        result = level_grandmaster_checker.check(test_user)
+        
+        # Should award math-grandmaster (silver qualifies for bronze requirement)
+        assert len(result) == 1, "Should award math-grandmaster when all descriptive concepts have Math Master (silver qualifies for bronze requirement)"
+        assert result[0].code == "math-grandmaster", "Should award math-grandmaster achievement"
+

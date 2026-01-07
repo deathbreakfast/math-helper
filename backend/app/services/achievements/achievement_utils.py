@@ -82,6 +82,8 @@ def _check_existing_achievement(
     
     # For perfect-streak achievements, check by metadata (run_key) first
     # This ensures we check for the same run before checking by session_id
+    # Perfect streak achievements use run_key to identify the uninterrupted run,
+    # so we should ONLY check by run_key, not by session_id
     if code.startswith("perfect-streak-") and metadata:
         metadata_json = json.dumps(metadata, sort_keys=True)
         existing = Achievement.query.filter_by(
@@ -91,6 +93,9 @@ def _check_existing_achievement(
         ).first()
         if existing:
             return existing
+        # For perfect-streak, if run_key check didn't find it, don't check by session_id
+        # Return None to allow creation (the perfect streak checker handles run_key logic)
+        return None
     
     # Multiple per tier, once per session: check if same tier awarded in this session
     if constraint.get("allow_multiple_per_tier") and not constraint.get("allow_multiple_per_session"):

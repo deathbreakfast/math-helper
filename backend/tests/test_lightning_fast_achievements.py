@@ -273,12 +273,9 @@ def test_lightning_fast_with_descriptive_concept_id(app, test_user):
     """Test that Lightning Fast works with descriptive concept IDs (e.g., c_add_1s).
     
     Bug reproduction: User completed "Single Digit Addition (1s)" 6 times with avg time 1.3s.
-    This should qualify for bronze (1.3s < 5.0s) with 50+ questions, but currently fails
-    because:
-    1. The checker requires session.level to be set (line 54), but descriptive concepts may have level=None
-    2. The checker filters by Question.required_level instead of session.concept_id
+    This should qualify for bronze (1.3s < 5.0s) with 50+ questions.
     
-    This test reproduces the bug by creating sessions with concept_id but level=None.
+    This test verifies that sessions with descriptive concept_id work correctly.
     """
     with app.app_context():
         # Create 6 sessions with c_add_1s concept, each with ~10 questions
@@ -287,7 +284,7 @@ def test_lightning_fast_with_descriptive_concept_id(app, test_user):
         total_sessions = 6
         avg_duration_ms = 1300  # 1.3 seconds per question
         
-        all_questions = create_test_questions(questions_per_session * total_sessions, experience=0)
+        all_questions = create_test_questions(questions_per_session * total_sessions)
         question_idx = 0
         
         sessions = []
@@ -302,12 +299,11 @@ def test_lightning_fast_with_descriptive_concept_id(app, test_user):
                 'duration_ms': avg_duration_ms  # 1.3 seconds per question
             } for q in session_questions]
             
-            # Create session with descriptive concept_id c_add_1s and level=None
-            # This matches the real scenario where descriptive concepts don't have a legacy level
+            # Create session with descriptive concept_id c_add_1s
+            # This matches the real scenario where descriptive concepts use concept_id
             session = create_test_session_with_responses(
                 test_user.id,
                 responses_data,
-                level=None,  # No level set for descriptive concepts
                 concept_id="c_add_1s"
             )
             sessions.append(session)
@@ -338,4 +334,191 @@ def test_lightning_fast_with_descriptive_concept_id(app, test_user):
             assert metadata.get("concept_id") == "c_add_1s", (
                 "Achievement should have concept_id c_add_1s in metadata"
             )
+
+
+def test_lightning_fast_requires_minimum_correct_questions(app, test_user):
+    """Test that Lightning Fast requires minimum 9 correct questions before awarding."""
+    with app.app_context():
+        # Create 50 questions: 1 correct at 1s, 49 incorrect at 1s
+        questions = create_test_questions(50)
+        responses_data = []
+        for i, q in enumerate(questions):
+            is_correct = (i == 0)  # Only first question is correct
+            responses_data.append({
+                'question_id': q.id,
+                'answer': q.correct_answer if is_correct else "wrong",
+                'is_correct': is_correct,
+                'duration_ms': 1000  # 1 second per question
+            })
+        
+        session = create_test_session_with_responses(
+            test_user.id,
+            responses_data,
+            concept_id="c_add_1s"
+        )
+        
+        # Check achievements
+        AchievementService.check_lightning_fast_achievements(test_user, session.id)
+        
+        # Verify NO achievement awarded (only 1 correct, below minimum of 9)
+        achievement = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="lightning-fast-bronze"
+        ).first()
+        
+        assert achievement is None, "Lightning Fast should NOT be awarded with only 1 correct question (below minimum of 9)"
+        
+        # Now create 50 questions: 9 correct at 1s, 41 incorrect at 1s
+        # This should NOT award because you need 50 correct questions for bronze, not just 9
+        questions2 = create_test_questions(50)
+        responses_data2 = []
+        for i, q in enumerate(questions2):
+            is_correct = (i < 9)  # First 9 questions are correct
+            responses_data2.append({
+                'question_id': q.id,
+                'answer': q.correct_answer if is_correct else "wrong",
+                'is_correct': is_correct,
+                'duration_ms': 1000  # 1 second per question
+            })
+        
+        session2 = create_test_session_with_responses(
+            test_user.id,
+            responses_data2,
+            concept_id="c_add_1s"
+        )
+        
+        # Check achievements
+        AchievementService.check_lightning_fast_achievements(test_user, session2.id)
+        
+        # Verify achievement is NOT awarded (9 correct is above minimum 9 check, but below 50 required for bronze)
+        achievement = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="lightning-fast-bronze"
+        ).first()
+        
+        assert achievement is None, "Lightning Fast should NOT be awarded with only 9 correct questions (needs 50 correct for bronze)"
+        
+        # Now create 50 correct questions at 1s - this should award
+        questions3 = create_test_questions(50)
+        responses_data3 = [{
+            'question_id': q.id,
+            'answer': q.correct_answer,
+            'is_correct': True,
+            'duration_ms': 1000  # 1 second per question
+        } for q in questions3]
+        
+        session3 = create_test_session_with_responses(
+            test_user.id,
+            responses_data3,
+            concept_id="c_add_1s"
+        )
+        
+        # Check achievements
+        AchievementService.check_lightning_fast_achievements(test_user, session3.id)
+        
+        # Verify achievement IS awarded (50 correct qualifies for bronze)
+        achievement = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="lightning-fast-bronze"
+        ).first()
+        
+        assert achievement is not None, "Lightning Fast SHOULD be awarded with 50 correct questions (meets requirement for bronze)"
+
+
+def test_lightning_fast_only_one_per_tier_per_concept(app, test_user):
+    """Test that Lightning Fast awards only one achievement per tier per concept."""
+    with app.app_context():
+        # Session 1: 50 questions at 4s average for c_add_1s -> bronze awarded
+        questions1 = create_test_questions(50)
+        session1 = create_test_session_with_responses(test_user.id, [{
+            'question_id': q.id,
+            'answer': q.correct_answer,
+            'is_correct': True,
+            'duration_ms': 4000  # 4 seconds per question (qualifies for bronze <5s)
+        } for q in questions1], concept_id="c_add_1s")
+        
+        AchievementService.check_lightning_fast_achievements(test_user, session1.id)
+        
+        # Verify bronze was awarded for c_add_1s
+        bronze1 = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="lightning-fast-bronze"
+        ).all()
+        
+        bronze_for_c_add_1s = None
+        for ach in bronze1:
+            if ach.achievement_metadata:
+                try:
+                    import json
+                    metadata = json.loads(ach.achievement_metadata)
+                    if metadata.get("concept_id") == "c_add_1s":
+                        bronze_for_c_add_1s = ach
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        
+        assert bronze_for_c_add_1s is not None, "Bronze should be awarded for c_add_1s after first session"
+        
+        # Session 2: 50 more questions at 4s average for c_add_1s -> verify still only 1 bronze for c_add_1s
+        questions2 = create_test_questions(50)
+        session2 = create_test_session_with_responses(test_user.id, [{
+            'question_id': q.id,
+            'answer': q.correct_answer,
+            'is_correct': True,
+            'duration_ms': 4000  # 4 seconds per question
+        } for q in questions2], concept_id="c_add_1s")
+        
+        AchievementService.check_lightning_fast_achievements(test_user, session2.id)
+        
+        # Count bronze achievements for c_add_1s
+        bronze_count_c_add_1s = 0
+        for ach in Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="lightning-fast-bronze"
+        ).all():
+            if ach.achievement_metadata:
+                try:
+                    import json
+                    metadata = json.loads(ach.achievement_metadata)
+                    if metadata.get("concept_id") == "c_add_1s":
+                        bronze_count_c_add_1s += 1
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        
+        assert bronze_count_c_add_1s == 1, f"Should have exactly 1 bronze achievement for c_add_1s, got {bronze_count_c_add_1s}"
+        
+        # Session 3: 50 questions at 4s average for c_add_2s -> verify separate bronze for c_add_2s
+        questions3 = create_test_questions(50)
+        session3 = create_test_session_with_responses(test_user.id, [{
+            'question_id': q.id,
+            'answer': q.correct_answer,
+            'is_correct': True,
+            'duration_ms': 4000  # 4 seconds per question
+        } for q in questions3], concept_id="c_add_2s")
+        
+        AchievementService.check_lightning_fast_achievements(test_user, session3.id)
+        
+        # Count bronze achievements for c_add_2s
+        bronze_count_c_add_2s = 0
+        for ach in Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="lightning-fast-bronze"
+        ).all():
+            if ach.achievement_metadata:
+                try:
+                    import json
+                    metadata = json.loads(ach.achievement_metadata)
+                    if metadata.get("concept_id") == "c_add_2s":
+                        bronze_count_c_add_2s += 1
+                except (json.JSONDecodeError, KeyError):
+                    pass
+        
+        assert bronze_count_c_add_2s == 1, f"Should have exactly 1 bronze achievement for c_add_2s, got {bronze_count_c_add_2s}"
+        
+        # Verify exactly 2 bronze achievements exist (one per concept)
+        all_bronze = Achievement.query.filter_by(
+            user_id=test_user.id,
+            code="lightning-fast-bronze"
+        ).all()
+        
+        assert len(all_bronze) == 2, f"Should have exactly 2 bronze achievements (one per concept), got {len(all_bronze)}"
 

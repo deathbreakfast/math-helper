@@ -7,6 +7,7 @@ import { JourneyHeader } from './journey/JourneyHeader'
 import { JourneyStatsOverview } from './journey/JourneyStatsOverview'
 import { JourneyTabNavigation, type TabId } from './journey/JourneyTabNavigation'
 import { OverviewTab } from './journey/OverviewTab'
+import { AchievementsTab } from './journey/AchievementsTab'
 import { ForceGraphTab } from './journey/ForceGraphTab'
 import { useFilteredAchievements } from '../hooks/useFilteredAchievements'
 import { useJourneyFilters } from '../hooks/useJourneyFilters'
@@ -129,10 +130,24 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
                 const userId = userData?.id || params.userId
                 if (userId) {
                   const queryString = searchParams.toString() ? `?${searchParams.toString()}` : ''
-                  router.navigate(`/journey/${userId}/force-graph${queryString}`)
+                  router.navigate(`/journey/${userId}/achievements${queryString}`)
                 }
               }}
               userData={userData}
+            />
+          )}
+
+          {activeTab === 'achievements' && (
+            <AchievementsTab
+              filteredAchievements={filteredAchievements}
+              achievementFilter={achievementFilter}
+              statusFilter={statusFilter}
+              textFilter={textFilter}
+              onAchievementFilterChange={setAchievementFilter}
+              onStatusFilterChange={setStatusFilter}
+              onTextFilterChange={setTextFilter}
+              userId={userData?.id || params.userId || ''}
+              achievementDefinitions={achievementDefinitions}
             />
           )}
 

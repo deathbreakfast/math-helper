@@ -568,7 +568,7 @@ export function createAchievementToConceptEdges(
             chainId: 'unlock-requirement',
             labelColor: 'green',
           })
-          if (import.meta.env.DEV && conceptId === 'c_add_2s') {
+          if (import.meta.env.DEV && (conceptId === 'c_add_2s' || achievementCode.includes('math-master'))) {
             console.log(`✅ Edge created: ${expectedAchievementId} -> ${conceptId}`)
           }
         } else if (import.meta.env.DEV) {
@@ -576,16 +576,29 @@ export function createAchievementToConceptEdges(
           const availableNodeIds = Array.from(achievementNodeMap.keys())
             .filter(id => id.includes(achievementCode) || id.includes(baseCode || ''))
             .slice(0, 10)
-          console.warn(`⚠️ Edge creation failed for ${conceptId}:`, {
-            achievementCode,
-            sourceConceptId,
-            expectedAchievementId,
-            availableSimilarNodes: availableNodeIds,
-            allNodeIds: Array.from(achievementNodeMap.keys()).length,
-            fullNodeIds: Array.from(achievementNodeMap.keys()).filter(id => 
-              id.includes(achievementCode) || id.includes(baseCode || '')
-            ),
-          })
+          
+          // Enhanced logging for math-master achievements
+          if (achievementCode.includes('math-master')) {
+            const allMathMasterNodes = Array.from(achievementNodeMap.keys()).filter(id => id.includes('math-master'))
+            console.warn(`⚠️ Math Master edge creation failed for ${conceptId}:`, {
+              achievementCode,
+              sourceConceptId,
+              expectedAchievementId,
+              availableMathMasterNodes: allMathMasterNodes,
+              availableSimilarNodes: availableNodeIds,
+            })
+          } else {
+            console.warn(`⚠️ Edge creation failed for ${conceptId}:`, {
+              achievementCode,
+              sourceConceptId,
+              expectedAchievementId,
+              availableSimilarNodes: availableNodeIds,
+              allNodeIds: Array.from(achievementNodeMap.keys()).length,
+              fullNodeIds: Array.from(achievementNodeMap.keys()).filter(id => 
+                id.includes(achievementCode) || id.includes(baseCode || '')
+              ),
+            })
+          }
         }
       }
     }
@@ -1365,17 +1378,156 @@ export function transformAchievementsToForceGraph(
   const normalizedAchievements = normalizeAchievementsForGraph(enrichedAchievements)
   
   const achievementNodes = createForceGraphNodes(normalizedAchievements, concepts, backendRequirements)
+  
+  // Filter out base achievement nodes that have enriched variants (with -required-by-)
+  // If an achievement has variants like "accuracy-ace-bronze-required-by-c_add_10s",
+  // we should exclude the base "accuracy-ace-bronze" node
+  // Also handle concept-specific variants like "lightning-fast-bronze-c_add_1s-required-by-c_add_1s"
+  const enrichedAchievementBaseIds = new Set<string>()
+  normalizedAchievements
+    .filter(a => a.id.includes('-required-by-'))
+    .forEach(a => {
+      // Extract base ID from enriched ID
+      // Examples:
+      // "accuracy-ace-bronze-required-by-c_add_10s" -> "accuracy-ace-bronze"
+      // "lightning-fast-bronze-c_add_1s-required-by-c_add_1s" -> "lightning-fast-bronze-c_add_1s" AND "lightning-fast-bronze"
+      const requiredByIndex = a.id.indexOf('-required-by-')
+      if (requiredByIndex > 0) {
+        const beforeRequiredBy = a.id.substring(0, requiredByIndex)
+        enrichedAchievementBaseIds.add(beforeRequiredBy)
+        
+        // For concept-specific achievements, also extract the base code without concept_id
+        // "lightning-fast-bronze-c_add_1s" -> extract "lightning-fast-bronze"
+        // Pattern: baseCode-tier-conceptId (e.g., "lightning-fast-bronze-c_add_1s")
+        // Try to find concept-like patterns (c_xxx or c_concept_xxx) at the end
+        const conceptPattern = /^(.+)-(c_[a-z0-9_]+)$/
+        const match = beforeRequiredBy.match(conceptPattern)
+        if (match) {
+          // Found concept suffix, extract base code + tier (everything before the concept)
+          const baseWithTier = match[1] // e.g., "lightning-fast-bronze"
+          enrichedAchievementBaseIds.add(baseWithTier)
+          
+          if (import.meta.env.DEV && baseWithTier.includes('lightning-fast')) {
+            console.log(`🔍 Extracted base from enriched: ${beforeRequiredBy} -> ${baseWithTier}`)
+          }
+        } else {
+          // If regex didn't match, try a different approach: look for tier in the middle
+          // and extract everything before the concept ID manually
+          const tierNames = ['bronze', 'silver', 'gold', 'platinum', 'diamond', 'master', 'grandmaster', 'legendary', 'mythic', 'divine', 'champion']
+          for (const tierName of tierNames) {
+            const tierPattern = new RegExp(`^(.+-${tierName})-(c_[a-z0-9_]+)$`)
+            const tierMatch = beforeRequiredBy.match(tierPattern)
+            if (tierMatch) {
+              const baseWithTier = tierMatch[1] // e.g., "lightning-fast-bronze"
+              enrichedAchievementBaseIds.add(baseWithTier)
+              if (import.meta.env.DEV && baseWithTier.includes('lightning-fast')) {
+                console.log(`🔍 Extracted base (tier-based) from enriched: ${beforeRequiredBy} -> ${baseWithTier}`)
+              }
+              break
+            }
+          }
+        }
+      }
+    })
+  
+  const filteredAchievementNodes = achievementNodes.filter(node => {
+    // Keep the node if it's an enriched variant
+    if (node.id.includes('-required-by-')) {
+      return true // Keep enriched variants
+    }
+    // For base achievements, check if there's an enriched variant
+    // Check both the exact ID and the base code (for concept-specific achievements)
+    if (enrichedAchievementBaseIds.has(node.id)) {
+      return false // Filter out - has enriched variant
+    }
+    // Also check if it's a base code that has concept-specific variants
+    // For "lightning-fast-bronze", check if any enriched variant starts with this
+    const { baseCode, tier } = extractTierFromCode(node.id)
+    if (baseCode && tier) {
+      const baseCodeWithTier = `${baseCode}-${tier.toLowerCase()}`
+      if (enrichedAchievementBaseIds.has(baseCodeWithTier)) {
+        if (import.meta.env.DEV && node.id.includes('lightning-fast')) {
+          console.log(`🚫 Filtering out ${node.id} - found in enriched set as ${baseCodeWithTier}`)
+        }
+        return false // Filter out - has concept-specific enriched variant
+      }
+      // Also check if any enriched base ID starts with this base code + tier
+      // This handles cases where the base node ID exactly matches the pattern
+      for (const enrichedBaseId of enrichedAchievementBaseIds) {
+        if (enrichedBaseId.startsWith(`${baseCodeWithTier}-c_`)) {
+          if (import.meta.env.DEV && node.id.includes('lightning-fast')) {
+            console.log(`🚫 Filtering out ${node.id} - enriched variant ${enrichedBaseId} starts with ${baseCodeWithTier}-c_`)
+          }
+          return false // Filter out - has concept-specific enriched variant
+        }
+      }
+    }
+    return true // Keep - no enriched variant exists
+  })
+  
   const conceptNodes = createForceGraphNodesFromConcepts(concepts)
   const rootCategoryNodes = createRootCategoryNodes()
-  const nodes = [...rootCategoryNodes, ...achievementNodes, ...conceptNodes]
+  const nodes = [...rootCategoryNodes, ...filteredAchievementNodes, ...conceptNodes]
 
-  // Create all types of edges
-  const achievementChainEdges = createForceGraphEdges(achievementNodes, normalizedAchievements, edgeMetadata)
-  const achievementToConceptEdges = createAchievementToConceptEdges(achievementNodes, conceptNodes, normalizedAchievements, backendRequirements)
+  // Create all types of edges (using filtered nodes)
+  const achievementChainEdges = createForceGraphEdges(filteredAchievementNodes, normalizedAchievements, edgeMetadata)
+  const achievementToConceptEdges = createAchievementToConceptEdges(filteredAchievementNodes, conceptNodes, normalizedAchievements, backendRequirements)
   const conceptToConceptEdges = createConceptToConceptEdges(conceptNodes)
-  const rootCategoryEdges = createRootCategoryEdges(achievementNodes, conceptNodes)
+  const rootCategoryEdges = createRootCategoryEdges(filteredAchievementNodes, conceptNodes)
 
   const edges = [...rootCategoryEdges, ...achievementChainEdges, ...achievementToConceptEdges, ...conceptToConceptEdges]
+
+  // Detect dangling achievements (achievements with no edges)
+  if (import.meta.env.DEV) {
+    const achievementNodeIds = new Set(filteredAchievementNodes.map(n => n.id))
+    const edgesBySource = new Map<string, ForceGraphEdge[]>()
+    const edgesByTarget = new Map<string, ForceGraphEdge[]>()
+    
+    edges.forEach(edge => {
+      const sourceId = typeof edge.source === 'string' ? edge.source : edge.source.id
+      const targetId = typeof edge.target === 'string' ? edge.target : edge.target.id
+      
+      if (!edgesBySource.has(sourceId)) {
+        edgesBySource.set(sourceId, [])
+      }
+      edgesBySource.get(sourceId)!.push(edge)
+      
+      if (!edgesByTarget.has(targetId)) {
+        edgesByTarget.set(targetId, [])
+      }
+      edgesByTarget.get(targetId)!.push(edge)
+    })
+    
+    const danglingAchievements = filteredAchievementNodes.filter(node => {
+      const hasOutgoing = edgesBySource.has(node.id)
+      const hasIncoming = edgesByTarget.has(node.id)
+      return !hasOutgoing && !hasIncoming
+    })
+    
+    if (danglingAchievements.length > 0) {
+      const danglingDetails = danglingAchievements.map(n => {
+        const achievement = normalizedAchievements.find(a => a.id === n.id)
+        return {
+          id: n.id,
+          title: n.title,
+          chainId: n.chainId,
+          tier: n.tier,
+          metadata: achievement?.metadata,
+          baseCode: extractTierFromCode(n.id).baseCode,
+          requiredBy: achievement?.metadata?.required_by,
+        }
+      })
+      
+      console.warn(`⚠️ Found ${danglingAchievements.length} dangling achievement(s) with no edges:`)
+      console.table(danglingDetails)
+      console.warn('All dangling achievement IDs:', danglingAchievements.map(n => n.id))
+      
+      // Log each dangling achievement separately for easier debugging
+      danglingDetails.forEach((detail, index) => {
+        console.warn(`  ${index + 1}. ${detail.id}:`, detail)
+      })
+    }
+  }
 
   return { nodes, edges }
 }

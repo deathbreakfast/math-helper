@@ -568,37 +568,22 @@ export function createAchievementToConceptEdges(
             chainId: 'unlock-requirement',
             labelColor: 'green',
           })
-          if (import.meta.env.DEV && (conceptId === 'c_add_2s' || achievementCode.includes('math-master'))) {
-            console.log(`✅ Edge created: ${expectedAchievementId} -> ${conceptId}`)
-          }
         } else if (import.meta.env.DEV) {
           // Debug logging in development
           const availableNodeIds = Array.from(achievementNodeMap.keys())
             .filter(id => id.includes(achievementCode) || id.includes(baseCode || ''))
             .slice(0, 10)
           
-          // Enhanced logging for math-master achievements
-          if (achievementCode.includes('math-master')) {
-            const allMathMasterNodes = Array.from(achievementNodeMap.keys()).filter(id => id.includes('math-master'))
-            console.warn(`⚠️ Math Master edge creation failed for ${conceptId}:`, {
-              achievementCode,
-              sourceConceptId,
-              expectedAchievementId,
-              availableMathMasterNodes: allMathMasterNodes,
-              availableSimilarNodes: availableNodeIds,
-            })
-          } else {
-            console.warn(`⚠️ Edge creation failed for ${conceptId}:`, {
-              achievementCode,
-              sourceConceptId,
-              expectedAchievementId,
-              availableSimilarNodes: availableNodeIds,
-              allNodeIds: Array.from(achievementNodeMap.keys()).length,
-              fullNodeIds: Array.from(achievementNodeMap.keys()).filter(id => 
-                id.includes(achievementCode) || id.includes(baseCode || '')
-              ),
-            })
-          }
+          console.warn(`⚠️ Edge creation failed for ${conceptId}:`, {
+            achievementCode,
+            sourceConceptId,
+            expectedAchievementId,
+            availableSimilarNodes: availableNodeIds,
+            allNodeIds: Array.from(achievementNodeMap.keys()).length,
+            fullNodeIds: Array.from(achievementNodeMap.keys()).filter(id => 
+              id.includes(achievementCode) || id.includes(baseCode || '')
+            ),
+          })
         }
       }
     }
@@ -1406,10 +1391,6 @@ export function transformAchievementsToForceGraph(
           // Found concept suffix, extract base code + tier (everything before the concept)
           const baseWithTier = match[1] // e.g., "lightning-fast-bronze"
           enrichedAchievementBaseIds.add(baseWithTier)
-          
-          if (import.meta.env.DEV && baseWithTier.includes('lightning-fast')) {
-            console.log(`🔍 Extracted base from enriched: ${beforeRequiredBy} -> ${baseWithTier}`)
-          }
         } else {
           // If regex didn't match, try a different approach: look for tier in the middle
           // and extract everything before the concept ID manually
@@ -1420,9 +1401,6 @@ export function transformAchievementsToForceGraph(
             if (tierMatch) {
               const baseWithTier = tierMatch[1] // e.g., "lightning-fast-bronze"
               enrichedAchievementBaseIds.add(baseWithTier)
-              if (import.meta.env.DEV && baseWithTier.includes('lightning-fast')) {
-                console.log(`🔍 Extracted base (tier-based) from enriched: ${beforeRequiredBy} -> ${baseWithTier}`)
-              }
               break
             }
           }
@@ -1446,18 +1424,12 @@ export function transformAchievementsToForceGraph(
     if (baseCode && tier) {
       const baseCodeWithTier = `${baseCode}-${tier.toLowerCase()}`
       if (enrichedAchievementBaseIds.has(baseCodeWithTier)) {
-        if (import.meta.env.DEV && node.id.includes('lightning-fast')) {
-          console.log(`🚫 Filtering out ${node.id} - found in enriched set as ${baseCodeWithTier}`)
-        }
         return false // Filter out - has concept-specific enriched variant
       }
       // Also check if any enriched base ID starts with this base code + tier
       // This handles cases where the base node ID exactly matches the pattern
       for (const enrichedBaseId of enrichedAchievementBaseIds) {
         if (enrichedBaseId.startsWith(`${baseCodeWithTier}-c_`)) {
-          if (import.meta.env.DEV && node.id.includes('lightning-fast')) {
-            console.log(`🚫 Filtering out ${node.id} - enriched variant ${enrichedBaseId} starts with ${baseCodeWithTier}-c_`)
-          }
           return false // Filter out - has concept-specific enriched variant
         }
       }

@@ -55,7 +55,10 @@ CONCEPT_UNLOCK_REQUIREMENTS: dict[str, list[ConceptRequirement]] = {
     "c_concept_023": [
         {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_008"}, "order": 1},
     ],
-    # Note: c_concept_011 through c_concept_021, c_concept_024 through c_concept_025 are unlocked by default (no requirements listed)
+    # Multiplication by 1 (c_concept_011) - requires Two Digit Addition
+    "c_concept_011": [
+        {"achievement_code": "math-master-silver", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_007"}, "order": 1},
+    ],
     # Note: c_concept_026 through c_concept_045 (Division concepts) have requirements defined below
     # Note: c_concept_004 removed (covered by c_sub_0s), c_concept_009 removed
 
@@ -155,6 +158,54 @@ CONCEPT_UNLOCK_REQUIREMENTS: dict[str, list[ConceptRequirement]] = {
     "c_mul_3s": [
         {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_mul_2s"}, "order": 1},
         {"achievement_code": "speed-demon-platinum", "quantity": 1, "order": 2},
+    ],
+    # Multiplication by 4 (c_concept_012)
+    "c_concept_012": [
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_mul_3s"}, "order": 1},
+    ],
+    # Multiplication by 5 (c_concept_013)
+    "c_concept_013": [
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_012"}, "order": 1},
+    ],
+    # Multiplication by 6 (c_concept_014)
+    "c_concept_014": [
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_013"}, "order": 1},
+    ],
+    # Multiplication by 7 (c_concept_015)
+    "c_concept_015": [
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_014"}, "order": 1},
+    ],
+    # Multiplication by 8 (c_concept_016)
+    "c_concept_016": [
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_015"}, "order": 1},
+    ],
+    # Multiplication by 9 (c_concept_017)
+    "c_concept_017": [
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_016"}, "order": 1},
+    ],
+    # Multiplication by 0 (c_concept_018)
+    "c_concept_018": [
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_021"}, "order": 1},
+    ],
+    # Multiplication by 10 (c_concept_019)
+    "c_concept_019": [
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_017"}, "order": 1},
+    ],
+    # Multiplication by 11 (c_concept_020)
+    "c_concept_020": [
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_019"}, "order": 1},
+    ],
+    # Multiplication by 12 (c_concept_021)
+    "c_concept_021": [
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_020"}, "order": 1},
+    ],
+    # Two Digit by Single Digit Multiplication (c_concept_024)
+    "c_concept_024": [
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_021"}, "order": 1},
+    ],
+    # Two Digit by Two Digit Multiplication (c_concept_025)
+    "c_concept_025": [
+        {"achievement_code": "math-master-bronze", "quantity": 1, "metadata_filter": {"concept_id": "c_concept_024"}, "order": 1},
     ],
 
     # Division by 1-12

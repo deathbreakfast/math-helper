@@ -969,16 +969,24 @@ export function createRootCategoryEdges(
 ): ForceGraphEdge[] {
   const edges: ForceGraphEdge[] = []
   
-  // Connect Single Digit Addition (1s) to "Math Concepts" root node
-  const c_add_1s = conceptNodes.find(n => n.conceptId === 'c_add_1s')
-  if (c_add_1s) {
-    edges.push({
-      id: `root-math-concepts-${c_add_1s.id}`,
-      source: 'root-math-concepts',
-      target: c_add_1s.id,
-      label: '',
-      chainId: 'root-category',
-    })
+  // Link the base nodes of the four major branches to the root "Math Concepts" node
+  // Addition: c_add_1s (Single Digit Addition (1s))
+  // Subtraction: c_sub_1s (Single Digit Subtraction (1s))
+  // Multiplication: c_concept_011 (Multiplication by 1)
+  // Division: c_concept_026 (Division by 1)
+  const baseConceptIds = ['c_add_1s', 'c_sub_1s', 'c_concept_011', 'c_concept_026']
+  
+  for (const conceptId of baseConceptIds) {
+    const conceptNode = conceptNodes.find(n => n.conceptId === conceptId)
+    if (conceptNode) {
+      edges.push({
+        id: `root-math-concepts-${conceptNode.id}`,
+        source: 'root-math-concepts',
+        target: conceptNode.id,
+        label: '',
+        chainId: 'root-category',
+      })
+    }
   }
   
   return edges
@@ -994,6 +1002,22 @@ export function createConceptToConceptEdges(
   const edges: ForceGraphEdge[] = []
   const conceptNodeMap = new Map(conceptNodes.map(n => [n.conceptId!, n]))
   
+  // Helper function to add edge if it doesn't already exist
+  const addEdgeIfNotExists = (sourceId: string, targetId: string) => {
+    const edgeId = `${sourceId}-${targetId}`
+    if (!edges.find(e => e.id === edgeId)) {
+      edges.push({
+        id: edgeId,
+        source: sourceId,
+        target: targetId,
+        label: '',
+        chainId: 'concept-prerequisite',
+      })
+      return true
+    }
+    return false
+  }
+  
   // Create concept prerequisite chain: 1s -> 2s -> 3s -> 4s -> 5s -> 6s -> 7s -> 8s -> 9s -> 0s -> 10s
   const conceptChain = ['c_add_1s', 'c_add_2s', 'c_add_3s', 'c_add_4s', 'c_add_5s', 'c_add_6s', 'c_add_7s', 'c_add_8s', 'c_add_9s', 'c_add_0s', 'c_add_10s']
   
@@ -1002,13 +1026,7 @@ export function createConceptToConceptEdges(
     const targetConcept = conceptNodeMap.get(conceptChain[i + 1])
     
     if (sourceConcept && targetConcept) {
-      edges.push({
-        id: `${sourceConcept.id}-${targetConcept.id}`,
-        source: sourceConcept.id,
-        target: targetConcept.id,
-        label: '', // No label for concept-to-concept edges
-        chainId: 'concept-prerequisite',
-      })
+      addEdgeIfNotExists(sourceConcept.id, targetConcept.id)
     }
   }
   
@@ -1020,13 +1038,7 @@ export function createConceptToConceptEdges(
     const targetConcept = conceptNodeMap.get(subConceptChain[i + 1])
     
     if (sourceConcept && targetConcept) {
-      edges.push({
-        id: `${sourceConcept.id}-${targetConcept.id}`,
-        source: sourceConcept.id,
-        target: targetConcept.id,
-        label: '', // No label for concept-to-concept edges
-        chainId: 'concept-prerequisite',
-      })
+      addEdgeIfNotExists(sourceConcept.id, targetConcept.id)
     }
   }
   
@@ -1038,13 +1050,7 @@ export function createConceptToConceptEdges(
     const targetConcept = conceptNodeMap.get(additionConceptChain[i + 1])
     
     if (sourceConcept && targetConcept) {
-      edges.push({
-        id: `${sourceConcept.id}-${targetConcept.id}`,
-        source: sourceConcept.id,
-        target: targetConcept.id,
-        label: '', // No label for concept-to-concept edges
-        chainId: 'concept-prerequisite',
-      })
+      addEdgeIfNotExists(sourceConcept.id, targetConcept.id)
     }
   }
   
@@ -1058,13 +1064,7 @@ export function createConceptToConceptEdges(
     const targetConcept = conceptNodeMap.get(subtractionConceptChain[i + 1])
     
     if (sourceConcept && targetConcept) {
-      edges.push({
-        id: `${sourceConcept.id}-${targetConcept.id}`,
-        source: sourceConcept.id,
-        target: targetConcept.id,
-        label: '', // No label for concept-to-concept edges
-        chainId: 'concept-prerequisite',
-      })
+      addEdgeIfNotExists(sourceConcept.id, targetConcept.id)
     }
   }
   
@@ -1072,25 +1072,13 @@ export function createConceptToConceptEdges(
   const c_concept_003 = conceptNodeMap.get('c_concept_003')
   const c_concept_010 = conceptNodeMap.get('c_concept_010')
   if (c_concept_003 && c_concept_010) {
-    edges.push({
-      id: `${c_concept_003.id}-${c_concept_010.id}`,
-      source: c_concept_003.id,
-      target: c_concept_010.id,
-      label: '',
-      chainId: 'concept-prerequisite',
-    })
+    addEdgeIfNotExists(c_concept_003.id, c_concept_010.id)
   }
   
   // c_concept_010 -> c_concept_008 (Two Digit Subtraction also requires Negative Number Subtraction)
   const c_concept_008 = conceptNodeMap.get('c_concept_008')
   if (c_concept_010 && c_concept_008) {
-    edges.push({
-      id: `${c_concept_010.id}-${c_concept_008.id}`,
-      source: c_concept_010.id,
-      target: c_concept_008.id,
-      label: '',
-      chainId: 'concept-prerequisite',
-    })
+    addEdgeIfNotExists(c_concept_010.id, c_concept_008.id)
   }
   
   // Basic Single Digit Addition (c_concept_001) is a child of Single Digit Addition (10s) and (0s)
@@ -1099,36 +1087,18 @@ export function createConceptToConceptEdges(
   const c_concept_001 = conceptNodeMap.get('c_concept_001')
   
   if (c_add_10s && c_concept_001) {
-    edges.push({
-      id: `${c_add_10s.id}-${c_concept_001.id}`,
-      source: c_add_10s.id,
-      target: c_concept_001.id,
-      label: '',
-      chainId: 'concept-prerequisite',
-    })
+    addEdgeIfNotExists(c_add_10s.id, c_concept_001.id)
   }
   
   if (c_add_0s && c_concept_001) {
-    edges.push({
-      id: `${c_add_0s.id}-${c_concept_001.id}`,
-      source: c_add_0s.id,
-      target: c_concept_001.id,
-      label: '',
-      chainId: 'concept-prerequisite',
-    })
+    addEdgeIfNotExists(c_add_0s.id, c_concept_001.id)
   }
   
   // Basic Single Digit Subtraction (c_concept_003) is a child of Single Digit Subtraction (10s)
   const c_sub_10s = conceptNodeMap.get('c_sub_10s')
   
   if (c_sub_10s && c_concept_003) {
-    edges.push({
-      id: `${c_sub_10s.id}-${c_concept_003.id}`,
-      source: c_sub_10s.id,
-      target: c_concept_003.id,
-      label: '',
-      chainId: 'concept-prerequisite',
-    })
+    addEdgeIfNotExists(c_sub_10s.id, c_concept_003.id)
   }
   
   // Multiplication concept prerequisite chain: 1 -> 2 -> 3 -> 4 -> 5 -> 6 -> 7 -> 8 -> 9 -> 10 -> 11 -> 12 -> 0
@@ -1153,14 +1123,15 @@ export function createConceptToConceptEdges(
     const targetConcept = conceptNodeMap.get(multiplicationChain[i + 1])
     
     if (sourceConcept && targetConcept) {
-      edges.push({
-        id: `${sourceConcept.id}-${targetConcept.id}`,
-        source: sourceConcept.id,
-        target: targetConcept.id,
-        label: '',
-        chainId: 'concept-prerequisite',
-      })
+      addEdgeIfNotExists(sourceConcept.id, targetConcept.id)
     }
+  }
+  
+  // Link Multiplication by 12 (c_concept_021) to Two Digit by Single Digit (c_concept_024)
+  const c_concept_021 = conceptNodeMap.get('c_concept_021')
+  const c_concept_024 = conceptNodeMap.get('c_concept_024')
+  if (c_concept_021 && c_concept_024) {
+    addEdgeIfNotExists(c_concept_021.id, c_concept_024.id)
   }
   
   // Advanced multiplication concept prerequisite chain: 24 -> 25 -> 43
@@ -1175,13 +1146,7 @@ export function createConceptToConceptEdges(
     const targetConcept = conceptNodeMap.get(advancedMultiplicationChain[i + 1])
     
     if (sourceConcept && targetConcept) {
-      edges.push({
-        id: `${sourceConcept.id}-${targetConcept.id}`,
-        source: sourceConcept.id,
-        target: targetConcept.id,
-        label: '',
-        chainId: 'concept-prerequisite',
-      })
+      addEdgeIfNotExists(sourceConcept.id, targetConcept.id)
     }
   }
   
@@ -1213,13 +1178,7 @@ export function createConceptToConceptEdges(
     const targetConcept = conceptNodeMap.get(divisionChain[i + 1])
     
     if (sourceConcept && targetConcept) {
-      edges.push({
-        id: `${sourceConcept.id}-${targetConcept.id}`,
-        source: sourceConcept.id,
-        target: targetConcept.id,
-        label: '',
-        chainId: 'concept-prerequisite',
-      })
+      addEdgeIfNotExists(sourceConcept.id, targetConcept.id)
     }
   }
   

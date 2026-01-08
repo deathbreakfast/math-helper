@@ -67,6 +67,8 @@ export type ForceGraphNode = {
   type: 'achievement' | 'math-concept' | 'root-category'  // Node type identifier
   x?: number                    // Force graph x position
   y?: number                    // Force graph y position
+  fx?: number                   // Fixed x position (prevents simulation movement)
+  fy?: number                   // Fixed y position (prevents simulation movement)
   vx?: number                   // Velocity x
   vy?: number                   // Velocity y
   relatedConceptLocked?: boolean // For achievements with metadata: whether the related concept is locked

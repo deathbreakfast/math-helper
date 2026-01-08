@@ -1,6 +1,7 @@
-import React, { useRef, useCallback, useState, useEffect } from 'react'
+import React, { useRef, useCallback, useState, useEffect, useMemo } from 'react'
 import ForceGraph2D from 'react-force-graph-2d'
 import type { ForceGraphNode, ForceGraphEdge } from '../../utils/forceGraphData'
+import type { NodePositions } from '../../utils/forceGraphPositions'
 
 type ForceGraphCanvasProps = {
   nodes: ForceGraphNode[]
@@ -9,6 +10,9 @@ type ForceGraphCanvasProps = {
   height?: number
   onNodeClick?: (node: ForceGraphNode) => void
   onNodeHover?: (node: ForceGraphNode | null) => void
+  initialPositions?: NodePositions
+  onPositionsReady?: (positions: NodePositions) => void
+  onGetCurrentPositions?: (getter: () => NodePositions) => void
 }
 
 export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
@@ -18,10 +22,40 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
   height = 600,
   onNodeClick,
   onNodeHover,
+  initialPositions,
+  onPositionsReady,
+  onGetCurrentPositions,
 }) => {
   const fgRef = useRef<any>(null)
   const containerRef = useRef<HTMLDivElement>(null)
   const [dimensions, setDimensions] = useState(() => ({ width, height }))
+  const positionsReadyCalledRef = useRef(false)
+  
+  // Apply initial positions to nodes
+  const nodesWithPositions = useMemo(() => {
+    if (!initialPositions || Object.keys(initialPositions).length === 0) {
+      return nodes
+    }
+    
+    return nodes.map(node => {
+      const position = initialPositions[node.id]
+      if (position) {
+        return {
+          ...node,
+          fx: position.x, // Fixed x position (prevents simulation movement)
+          fy: position.y, // Fixed y position (prevents simulation movement)
+          x: position.x,  // Initial x position
+          y: position.y,  // Initial y position
+        }
+      }
+      return node
+    })
+  }, [nodes, initialPositions])
+  
+  // Reset positions ready flag when nodes change
+  useEffect(() => {
+    positionsReadyCalledRef.current = false
+  }, [nodesWithPositions])
 
   // Make canvas responsive
   useEffect(() => {
@@ -40,6 +74,38 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
     return () => window.removeEventListener('resize', updateDimensions)
   }, [])
 
+  // Store ref to current nodes for position access
+  // The force graph library mutates nodes in place, so we can read from the nodes array
+  const nodesRef = useRef<ForceGraphNode[]>(nodesWithPositions)
+  
+  // Update ref when nodes change
+  useEffect(() => {
+    nodesRef.current = nodesWithPositions
+  }, [nodesWithPositions])
+  
+  // Expose function to get current positions
+  useEffect(() => {
+    if (onGetCurrentPositions) {
+      const getCurrentPositions = (): NodePositions => {
+        const positions: NodePositions = {}
+        // Access nodes from ref - the force graph mutates these nodes in place
+        // so we can read the current x, y, fx, fy values directly
+        const currentNodes = nodesRef.current
+        currentNodes.forEach((node) => {
+          // Read from the actual node object (mutated by force graph)
+          const x = node.fx !== undefined ? node.fx : node.x
+          const y = node.fy !== undefined ? node.fy : node.y
+          
+          if (x !== undefined && y !== undefined && isFinite(x) && isFinite(y)) {
+            positions[node.id] = { x, y }
+          }
+        })
+        return positions
+      }
+      onGetCurrentPositions(getCurrentPositions)
+    }
+  }, [onGetCurrentPositions])
+  
   // Configure force graph forces using d3Force method
   useEffect(() => {
     if (fgRef.current) {
@@ -67,7 +133,62 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
       // Reheat simulation to apply changes
       fgRef.current.d3ReheatSimulation()
     }
-  }, [nodes, edges])
+  }, [nodesWithPositions, edges])
+  
+  // Detect when simulation stabilizes and call onPositionsReady
+  useEffect(() => {
+    if (!onPositionsReady || positionsReadyCalledRef.current) {
+      return
+    }
+    
+    if (!fgRef.current) {
+      return
+    }
+    
+    // If we have initial positions, skip simulation and call callback immediately
+    if (initialPositions && Object.keys(initialPositions).length > 0) {
+      positionsReadyCalledRef.current = true
+      onPositionsReady(initialPositions)
+      return
+    }
+    
+    // Wait for simulation to complete (cooldownTicks = 300, which is ~5 seconds at 60fps)
+    // Use a timeout to wait for simulation to stabilize
+    const handleSimulationComplete = () => {
+      if (positionsReadyCalledRef.current) {
+        return
+      }
+      
+      // Extract current positions from nodes
+      // The force graph library mutates nodes in place, so we can read directly from nodesWithPositions
+      const positions: NodePositions = {}
+      nodesWithPositions.forEach((node) => {
+        const x = node.fx !== undefined ? node.fx : node.x
+        const y = node.fy !== undefined ? node.fy : node.y
+        
+        if (x !== undefined && y !== undefined && isFinite(x) && isFinite(y)) {
+          positions[node.id] = { x, y }
+        }
+      })
+      
+      // Only call if we have valid positions for most nodes
+      if (Object.keys(positions).length >= nodesWithPositions.length * 0.8) {
+        positionsReadyCalledRef.current = true
+        onPositionsReady(positions)
+      }
+    }
+    
+    // Wait for cooldown period (300 ticks at ~60fps = ~5 seconds) plus buffer
+    const timeoutId = setTimeout(() => {
+      if (!positionsReadyCalledRef.current) {
+        handleSimulationComplete()
+      }
+    }, 6000) // Wait 6 seconds to ensure simulation has completed
+    
+    return () => {
+      clearTimeout(timeoutId)
+    }
+  }, [onPositionsReady, nodesWithPositions, initialPositions])
 
   // Handle node click
   const handleNodeClick = useCallback((node: any) => {
@@ -435,12 +556,12 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
     >
       <ForceGraph2D
         ref={fgRef}
-        graphData={{ nodes, links: edges }}
+        graphData={{ nodes: nodesWithPositions, links: edges }}
         width={dimensions.width}
         height={dimensions.height}
         nodeRelSize={4}
         nodeVal={(node: any) => (node as ForceGraphNode).size || 9}
-        cooldownTicks={300}
+        cooldownTicks={initialPositions && Object.keys(initialPositions).length > 0 ? 0 : 300}
         onNodeClick={handleNodeClick}
         onNodeHover={handleNodeHover}
         nodeLabel={(node: any) => {
@@ -453,6 +574,11 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
         enablePanInteraction={true}
         enableZoomInteraction={true}
         enableNodeDrag={true}
+        onNodeDragEnd={(node: any) => {
+          // When node is dragged, release fixed position to allow it to stay where dragged
+          if (node.fx !== undefined) node.fx = undefined
+          if (node.fy !== undefined) node.fy = undefined
+        }}
       />
     </div>
   )

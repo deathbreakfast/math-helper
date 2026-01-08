@@ -20,15 +20,21 @@ class PracticeService:
     def create_session(
         user_id: int,
         mode: str = "standard",
-        level: int | None = None,
+        level: int | None = None,  # Legacy parameter, ignored
         concept_id: str | None = None,
     ) -> PracticeSession:
-        """Create a new practice session."""
+        """Create a new practice session.
+        
+        Args:
+            user_id: The user ID
+            mode: Session mode (standard/multiplication/division)
+            level: Legacy parameter, ignored (level removed from PracticeSession model)
+            concept_id: Concept identifier
+        """
         with transaction():
             session = PracticeSession(
                 user_id=user_id,
                 mode=mode,
-                level=level,
                 concept_id=concept_id,
                 started_at=datetime.utcnow(),
             )

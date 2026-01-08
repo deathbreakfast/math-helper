@@ -573,12 +573,7 @@ export const ForceGraphCanvas: React.FC<ForceGraphCanvasProps> = ({
         backgroundColor="rgba(0,0,0,0)"
         enablePanInteraction={true}
         enableZoomInteraction={true}
-        enableNodeDrag={true}
-        onNodeDragEnd={(node: any) => {
-          // When node is dragged, release fixed position to allow it to stay where dragged
-          if (node.fx !== undefined) node.fx = undefined
-          if (node.fy !== undefined) node.fy = undefined
-        }}
+        enableNodeDrag={false}
       />
     </div>
   )

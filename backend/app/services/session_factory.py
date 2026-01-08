@@ -34,10 +34,10 @@ class SessionFactory:
             The created PracticeSession object
         """
         # Create session
+        # Note: level parameter is ignored (legacy, removed from PracticeSession model)
         session = PracticeService.create_session(
             user_id=user_id,
             mode=mode,
-            level=level,
             concept_id=concept_id,
         )
         

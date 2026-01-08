@@ -1,10 +1,13 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { motion, AnimatePresence } from 'framer-motion'
-import { X, Calendar, Award, Info } from 'lucide-react'
+import { X, Calendar, Award, Info, Play } from 'lucide-react'
 import type { Achievement } from '../../data/achievements'
 import type { BackendAchievementDefinition } from '../../../lib/levels/api'
+import type { UserProgressData } from '../../utils/progressMapping'
 import { logError } from '../../../../utils/logger'
 import { getConceptDisplayNameByConceptId } from '../../data/mathConcepts'
+import { useRouter } from '../../../../utils/routing'
+import { useMathConcepts } from '../../hooks/useMathConcepts'
 
 type AchievementInstance = {
   id: string
@@ -23,6 +26,8 @@ type AchievementDetailModalProps = {
   userId: string
   isOpen: boolean
   onClose: () => void
+  conceptId?: string
+  userData?: UserProgressData
 }
 
 export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
@@ -31,9 +36,41 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
   userId,
   isOpen,
   onClose,
+  conceptId,
+  userData,
 }) => {
+  const router = useRouter()
   const [instances, setInstances] = useState<AchievementInstance[]>([])
   const [isLoading, setIsLoading] = useState(false)
+  
+  // Get math concepts to check if concept is locked
+  const { concepts: mathConcepts } = useMathConcepts({
+    userData,
+    isActive: true,
+    userId,
+  })
+  
+  // Find the concept and check if it's locked
+  const concept = useMemo(() => {
+    if (!conceptId) return null
+    return mathConcepts.find(c => c.conceptId === conceptId) || null
+  }, [conceptId, mathConcepts])
+  
+  const isConceptLocked = concept ? concept.isLocked : false
+  const conceptDisplayName = conceptId ? getConceptDisplayNameByConceptId(conceptId) : null
+  
+  // Handle start practice
+  const handleStartPractice = useCallback(() => {
+    if (!userData || !conceptId || isConceptLocked) return
+    
+    router.navigate('/practice', {
+      user: userData.name,
+      userId: userData.id,
+      avatar: userData.avatar,
+      conceptId: conceptId,
+      isConcept: 'true',
+    })
+  }, [userData, conceptId, isConceptLocked, router])
 
   useEffect(() => {
     if (isOpen && achievement) {
@@ -170,6 +207,38 @@ export const AchievementDetailModal: React.FC<AchievementDetailModalProps> = ({
 
               {/* Content */}
               <div className="p-6">
+                {/* Start Practice Button (if conceptId is provided) */}
+                {conceptId && conceptDisplayName && (
+                  <div className="mb-6 rounded-lg border-2 border-blue-200 bg-blue-50 p-4">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-semibold text-gray-700 mb-1">Practice Session</p>
+                        <p className="text-sm text-gray-600">
+                          Start practicing: <span className="font-medium">{conceptDisplayName}</span>
+                        </p>
+                      </div>
+                      <button
+                        onClick={handleStartPractice}
+                        disabled={isConceptLocked}
+                        className={`flex items-center gap-2 rounded-lg px-4 py-2 text-sm font-medium text-white transition-colors ${
+                          isConceptLocked
+                            ? 'cursor-not-allowed bg-gray-400'
+                            : 'bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2'
+                        }`}
+                        title={isConceptLocked ? 'This concept is locked. Complete requirements to unlock it.' : `Start practicing ${conceptDisplayName}`}
+                      >
+                        <Play className="h-4 w-4" />
+                        Start Practice
+                      </button>
+                    </div>
+                    {isConceptLocked && (
+                      <p className="mt-2 text-xs text-gray-500">
+                        This concept is locked. Complete the requirements to unlock it.
+                      </p>
+                    )}
+                  </div>
+                )}
+                
                 {isLoading ? (
                   <div className="flex items-center justify-center py-12" data-testid="testid-achievement-modal-loading">
                     <div className="mr-3 h-6 w-6 animate-spin rounded-full border-2 border-blue-500 border-t-transparent"></div>

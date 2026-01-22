@@ -11,6 +11,7 @@ from app import create_app, db
 from app.models import Achievement, PracticeSession, Question, Response, User
 from app.services.achievements.achievement_orchestrator import AchievementOrchestrator
 from app.services.practice_service import PracticeService
+from app.utils.tier_utils import ALL_TIERS
 
 
 @pytest.fixture
@@ -87,7 +88,7 @@ class TestAchievementOrchestrator:
         assert orchestrator.milestone_checker is not None
         assert orchestrator.level_checker is not None
         assert orchestrator.level_master_checker is not None
-        assert orchestrator.level_grandmaster_checker is not None
+        assert orchestrator.math_grandmaster_checker is not None
         assert orchestrator.human_calculator_checker is not None
 
     def test_ensure_achievements_no_responses(self, app, test_user, orchestrator):
@@ -253,7 +254,7 @@ class TestAchievementOrchestrator:
                         with patch.object(orchestrator.level_master_checker, 'check') as mock_master:
                             mock_master.return_value = []
                             
-                            with patch.object(orchestrator.level_grandmaster_checker, 'check') as mock_grandmaster:
+                            with patch.object(orchestrator.math_grandmaster_checker, 'check') as mock_grandmaster:
                                 mock_grandmaster.return_value = []
                                 
                                 with patch.object(orchestrator.human_calculator_checker, 'check') as mock_calculator:
@@ -265,7 +266,7 @@ class TestAchievementOrchestrator:
                                     assert mock_check.called
                                     assert mock_level.called
                                     assert mock_master.called
-                                    assert mock_grandmaster.called
+                                    assert mock_grandmaster.call_count == len(ALL_TIERS)
                                     assert mock_calculator.call_count == 2  # Bronze and silver
 
     def test_ensure_achievements_commits_on_new_achievements(self, app, test_user, orchestrator):
@@ -601,8 +602,8 @@ class TestAchievementOrchestrator:
                                 # Should have committed level master achievements
                                 assert mock_commit.called
 
-    def test_ensure_achievements_awards_level_grandmaster_achievements(self, app, test_user, orchestrator):
-        """Test ensure_achievements awards Level Grandmaster achievements."""
+    def test_ensure_achievements_awards_math_grandmaster_achievements(self, app, test_user, orchestrator):
+        """Test ensure_achievements awards Math Grandmaster achievements."""
         with app.app_context():
             with patch('app.services.achievements.achievement_orchestrator.AnalyticsService.compute_user_metrics') as mock_metrics:
                 mock_metrics.return_value = {
@@ -620,17 +621,17 @@ class TestAchievementOrchestrator:
                         with patch.object(orchestrator.level_master_checker, 'check') as mock_master:
                             mock_master.return_value = []
                             
-                            level_grandmaster_achievement = Achievement(
+                            math_grandmaster_achievement = Achievement(
                                 user_id=test_user.id,
                                 code="math-grandmaster-bronze",
-                                title="Level Grandmaster (Bronze)",
-                                description="Level Master on all levels",
+                                title="Math Grandmaster (Bronze)",
+                                description="Math Master (Bronze) on all math concepts",
                                 icon="👑",
                                 category="milestone"
                             )
                             
-                            with patch.object(orchestrator.level_grandmaster_checker, 'check') as mock_grandmaster:
-                                mock_grandmaster.return_value = [level_grandmaster_achievement]
+                            with patch.object(orchestrator.math_grandmaster_checker, 'check') as mock_grandmaster:
+                                mock_grandmaster.return_value = [math_grandmaster_achievement]
                                 
                                 with patch.object(db.session, 'commit') as mock_commit:
                                     achievements = orchestrator.ensure_achievements(test_user)
@@ -657,14 +658,14 @@ class TestAchievementOrchestrator:
                         with patch.object(orchestrator.level_master_checker, 'check') as mock_master:
                             mock_master.return_value = []
                             
-                            with patch.object(orchestrator.level_grandmaster_checker, 'check') as mock_grandmaster:
+                            with patch.object(orchestrator.math_grandmaster_checker, 'check') as mock_grandmaster:
                                 mock_grandmaster.return_value = []
                                 
                                 human_calculator_achievement = Achievement(
                                     user_id=test_user.id,
                                     code="human-calculator-bronze",
                                     title="Human Calculator (Bronze)",
-                                    description="Lightning Fast on all levels",
+                                    description="Lightning Fast on all math concepts",
                                     icon="🧮",
                                     category="milestone"
                                 )

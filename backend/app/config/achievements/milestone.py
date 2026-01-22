@@ -282,33 +282,35 @@ def _generate_perfect_streak_achievements() -> dict[str, dict[str, Any]]:
 def _generate_math_grandmaster_achievements() -> dict[str, dict[str, Any]]:
     """Generate Math Grandmaster milestone achievement definitions.
     
-    Requires having Math Master (Bronze) achievement for all descriptive concepts.
+    Requires having Math Master (Tier) achievement for all math concepts.
     Previously named "Level Grandmaster", renamed to "Math Grandmaster".
     """
     achievements = {}
     
-    code = "math-grandmaster"
-    title = "Math Grandmaster"
-    description = "Math Master (Bronze) on all descriptive concepts"
-    
-    requirements = {
-        "type": "level_grandmaster",
-        "required_achievement": "math-master-bronze",
-    }
-    
-    achievements[code] = {
-        "title": title,
-        "description": description,
-        "icon": "👑",
-        "category": "milestone",
-        "tier": "bronze",
-        "requirements": requirements,
-        "constraint": {
-            "allow_multiple_per_tier": True,
-            "allow_multiple_per_session": True,
-            "unique_achievement": False,
-        },
-    }
+    for tier in ALL_TIERS:
+        code = f"math-grandmaster-{tier}"
+        tier_title = tier.capitalize()
+        title = f"Math Grandmaster ({tier_title})"
+        description = f"Math Master ({tier_title}) on all math concepts"
+        
+        requirements = {
+            "type": "math_grandmaster",
+            "required_achievement": f"math-master-{tier}",
+        }
+        
+        achievements[code] = {
+            "title": title,
+            "description": description,
+            "icon": "👑",
+            "category": "milestone",
+            "tier": tier,
+            "requirements": requirements,
+            "constraint": {
+                "allow_multiple_per_tier": True,
+                "allow_multiple_per_session": True,
+                "unique_achievement": False,
+            },
+        }
     
     return achievements
 
@@ -354,14 +356,14 @@ def _generate_so_wow_achievements() -> dict[str, dict[str, Any]]:
 def _generate_human_calculator_achievements() -> dict[str, dict[str, Any]]:
     """Generate Human Calculator achievement definitions.
     
-    Like Level Grandmaster, but for Lightning Fast. Requires Lightning Fast (Bronze or Silver) at all levels.
+    Like Level Grandmaster, but for Lightning Fast. Requires Lightning Fast (Bronze or Silver) on all concepts.
     """
     achievements = {}
     
     # Bronze tier
     code = "human-calculator"
     title = "Human Calculator"
-    description = "Lightning Fast (Bronze) on all levels"
+    description = "Lightning Fast (Bronze) on all math concepts"
     
     requirements = {
         "type": "human_calculator",
@@ -385,7 +387,7 @@ def _generate_human_calculator_achievements() -> dict[str, dict[str, Any]]:
     # Silver tier
     code_silver = "human-calculator-silver"
     title_silver = "Human Calculator (Silver)"
-    description_silver = "Lightning Fast (Silver) on all levels"
+    description_silver = "Lightning Fast (Silver) on all math concepts"
     
     requirements_silver = {
         "type": "human_calculator",

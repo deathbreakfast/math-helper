@@ -1,8 +1,8 @@
 """Human Calculator achievement checker.
 
-Checks if user has achieved Lightning Fast (Bronze or Silver) for ALL descriptive concepts.
+Checks if user has achieved Lightning Fast (Bronze or Silver) for ALL concepts.
 Similar to Level Grandmaster, but for speed achievements.
-Checks achievements with concept_id for descriptive concepts (c_add_*, c_sub_*, c_mul_*, etc.).
+Checks achievements with concept_id for all concepts (including c_concept_###).
 """
 
 from __future__ import annotations
@@ -30,8 +30,8 @@ class HumanCalculatorChecker(AchievementChecker):
     def check(self, user: User, tier: str = "bronze") -> list[Achievement]:
         """Check and award Human Calculator milestone achievement.
         
-        Requires having Lightning Fast (Bronze or Silver) achievement for ALL descriptive concepts.
-        Checks achievements with concept_id metadata for descriptive concepts (c_add_*, c_sub_*, c_mul_*, etc.).
+        Requires having Lightning Fast (Bronze or Silver) achievement for ALL concepts.
+        Checks achievements with concept_id metadata for all concepts (including c_concept_###).
         
         Args:
             user: The user to check
@@ -44,13 +44,10 @@ class HumanCalculatorChecker(AchievementChecker):
         user_achievement_codes = AchievementService.get_achievement_codes(user.id)
         achievement_configs = self.achievement_configs
         
-        # Get all descriptive concepts (not c_concept_###)
-        descriptive_concepts = [
-            concept_id for concept_id in CONCEPTS_CONFIG.keys()
-            if not concept_id.startswith("c_concept_")
-        ]
+        # Get all concepts (including c_concept_###)
+        concept_ids = list(CONCEPTS_CONFIG.keys())
         
-        if not descriptive_concepts:
+        if not concept_ids:
             return new_achievements
         
         milestone_code = f"human-calculator-{tier}" if tier != "bronze" else "human-calculator"
@@ -63,7 +60,7 @@ class HumanCalculatorChecker(AchievementChecker):
         all_concepts_qualified = True
         required_achievement_code = f"lightning-fast-{tier}"
         
-        for target_concept_id in descriptive_concepts:
+        for target_concept_id in concept_ids:
             concept_achievements = Achievement.query.filter_by(
                 user_id=user.id,
                 code=required_achievement_code

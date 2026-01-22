@@ -452,9 +452,9 @@ class AchievementService:
     @staticmethod
     @log_query
     def check_level_grandmaster_achievement(user: User) -> list[Achievement]:
-        """Check and award Math Grandmaster milestone achievement.
+        """Check and award Math Grandmaster milestone achievements.
         
-        Requires having Math Master (Bronze) achievement for ALL descriptive concepts.
+        Requires having Math Master (Tier) achievement for ALL concepts.
         Previously named "Level Grandmaster", renamed to "Math Grandmaster".
         
         Args:
@@ -463,12 +463,17 @@ class AchievementService:
         Returns:
             List of newly created achievements
         """
-        from .achievements.achievement_checkers.level_grandmaster_checker import LevelGrandmasterChecker
+        from .achievements.achievement_checkers.math_grandmaster_checker import MathGrandmasterChecker
+        from ..utils.tier_utils import ALL_TIERS
         
         achievement_configs = _get_achievement_configs()
-        checker = LevelGrandmasterChecker(achievement_configs)
+        checker = MathGrandmasterChecker(achievement_configs)
         
-        return checker.check(user)
+        new_achievements = []
+        for tier in ALL_TIERS:
+            new_achievements.extend(checker.check(user, tier=tier))
+        
+        return new_achievements
 
     @staticmethod
     @log_query

@@ -12,12 +12,13 @@ from typing import Any
 from ...database import flush_or_commit
 from ...models import Achievement, PracticeSession, Question, Response, User, db
 from ...services.analytics_service import AnalyticsService
+from ...utils.tier_utils import ALL_TIERS
 from .achievement_utils import debug_print
 from .achievement_checkers import (
     MilestoneChecker,
     LevelAchievementChecker,
     LevelMasterChecker,
-    LevelGrandmasterChecker,
+    MathGrandmasterChecker,
     HumanCalculatorChecker,
     MasterOfBasicChecker,
 )
@@ -36,7 +37,7 @@ class AchievementOrchestrator:
         self.milestone_checker = MilestoneChecker(achievement_configs)
         self.level_checker = LevelAchievementChecker(achievement_configs)
         self.level_master_checker = LevelMasterChecker(achievement_configs)
-        self.level_grandmaster_checker = LevelGrandmasterChecker(achievement_configs)
+        self.math_grandmaster_checker = MathGrandmasterChecker(achievement_configs)
         self.human_calculator_checker = HumanCalculatorChecker(achievement_configs)
         self.master_of_basic_checker = MasterOfBasicChecker(achievement_configs)
     
@@ -166,17 +167,23 @@ class AchievementOrchestrator:
             )
             flush_or_commit()
         
-        # Check Math Grandmaster milestone achievement (Math Master Bronze on all descriptive concepts)
+        # Check Math Grandmaster milestone achievements (Math Master tier on all concepts)
         debug_print(f"[ACHIEVEMENT DEBUG] Checking Math Grandmaster achievement...")
-        level_grandmaster_achievements = self.level_grandmaster_checker.check(user)
-        if level_grandmaster_achievements:
-            level_grandmaster_codes = [a.code for a in level_grandmaster_achievements]
-            level_grandmaster_titles = [a.title for a in level_grandmaster_achievements]
-            debug_print(f"[ACHIEVEMENT DEBUG] Awarded {len(level_grandmaster_achievements)} Math Grandmaster achievement(s): {level_grandmaster_codes}")
-            print(f"[ACHIEVEMENT INFO] Awarded {len(level_grandmaster_achievements)} Math Grandmaster achievement(s): {level_grandmaster_titles}")
+        math_grandmaster_achievements = []
+        for tier in ALL_TIERS:
+            math_grandmaster_achievements.extend(self.math_grandmaster_checker.check(user, tier=tier))
+        if math_grandmaster_achievements:
+            math_grandmaster_codes = [a.code for a in math_grandmaster_achievements]
+            math_grandmaster_titles = [a.title for a in math_grandmaster_achievements]
+            debug_print(
+                f"[ACHIEVEMENT DEBUG] Awarded {len(math_grandmaster_achievements)} Math Grandmaster achievement(s): {math_grandmaster_codes}"
+            )
+            print(
+                f"[ACHIEVEMENT INFO] Awarded {len(math_grandmaster_achievements)} Math Grandmaster achievement(s): {math_grandmaster_titles}"
+            )
             flush_or_commit()
         
-        # Check Human Calculator milestone achievement (Lightning Fast Bronze/Silver on all levels)
+        # Check Human Calculator milestone achievement (Lightning Fast Bronze/Silver on all concepts)
         debug_print(f"[ACHIEVEMENT DEBUG] Checking Human Calculator achievement...")
         human_calculator_bronze = self.human_calculator_checker.check(user, tier="bronze")
         human_calculator_silver = self.human_calculator_checker.check(user, tier="silver")

@@ -7,6 +7,7 @@ from typing import Any
 from ..database import log_query
 from ..models import User, db
 from ..services.concept_selection_service import ConceptSelectionService
+from ..services.question_count_service import QuestionCountService
 from ..services.question_generation_service import QuestionGenerationService
 from ..services.session_factory import SessionFactory
 from ..services.session_resume_service import SessionResumeService
@@ -59,11 +60,17 @@ class SessionEngineService:
             user_id=user_id,
             concept_id=concept_id,
         )
-        
+
+        # Calculate dynamic question count based on perfect session history
+        question_count = QuestionCountService.get_question_count_for_concept(
+            user_id=user_id,
+            concept_id=selected_concept_id,
+        )
+
         # Generate questions for the selected concept
         questions = QuestionGenerationService.generate_questions_for_concept(
             concept_id=selected_concept_id,
-            question_count=10,
+            question_count=question_count,
         )
         
         # Create session and persist question IDs (level=None, not setting session.level)

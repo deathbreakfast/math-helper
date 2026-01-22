@@ -226,9 +226,9 @@ export const ForceGraphTab: React.FC<ForceGraphTabProps> = ({
       <div className="mb-6">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="mb-2 text-2xl font-bold text-gray-900">Force Graph</h2>
+            <h2 className="mb-2 text-2xl font-bold text-gray-900">Math Types</h2>
             <p className="text-gray-600">
-              Visualize achievement chains and their connections. Click on any achievement node to view details.
+              Visualize all the math concepts and the required achievements to unlock them. Click on any concept or achievement node to view details.
             </p>
           </div>
           {/* Save button (dev mode only) */}

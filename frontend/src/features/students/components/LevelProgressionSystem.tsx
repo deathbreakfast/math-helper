@@ -151,7 +151,7 @@ export const LevelProgressionSystem: React.FC<LevelProgressionSystemProps> = ({ 
             />
           )}
 
-          {activeTab === 'force-graph' && (
+          {activeTab === 'math-types' && (
             <ForceGraphTab
               achievements={userData.achievements || []}
               userData={userData}

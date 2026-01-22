@@ -36,7 +36,7 @@ export function useMathConcepts({ userData, isActive, userId }: UseMathConceptsO
 
   // Generate concepts from levels
   const concepts = useMemo(() => {
-    const userAchievements = userData.achievements || []
+    const userAchievements = userData?.achievements || []
 
     // Map concepts with unlock requirements from level requirements
     return allConcepts.map((concept) => {
@@ -44,7 +44,7 @@ export function useMathConcepts({ userData, isActive, userId }: UseMathConceptsO
       
       let unlockRequirements = concept.unlockRequirements
       
-      if (backendReqs.length > 0 && userData.id) {
+      if (backendReqs.length > 0 && userData?.id) {
         // Convert backend requirements to frontend format
         // We need user achievements for this - get from userData
         // Include metadata from achievements if available (for filtering stage/concept achievements)
